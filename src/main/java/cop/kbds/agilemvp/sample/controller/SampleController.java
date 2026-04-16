@@ -1,13 +1,14 @@
-package cop.kbds.agilemvp.sample;
+package cop.kbds.agilemvp.sample.controller;
 
 import java.util.List;
-
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
+
+import cop.kbds.agilemvp.sample.service.SampleService;
 
 @RestController
 @RequestMapping("/api/sample")
@@ -17,7 +18,7 @@ public class SampleController {
     private final SampleService sampleService;
 
     @GetMapping("/hello")
-    public List<SampleResponseDTO> getHelloMessages(SampleRequestDTO requestDTO) {
-        return sampleService.getHelloMessages(requestDTO);
+    public List<SampleResponse> getHelloMessages(SampleRequest request) {
+        return sampleService.getHelloMessages(request);
     }
 }

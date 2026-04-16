@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.sample;
+package cop.kbds.agilemvp.sample.service;
 
 public record SampleVO(String message) {
 

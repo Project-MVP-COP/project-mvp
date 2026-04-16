@@ -1,10 +1,12 @@
-package cop.kbds.agilemvp.sample;
+package cop.kbds.agilemvp.sample.repository;
 
 import java.util.List;
 
 import org.springframework.stereotype.Repository;
 
 import lombok.RequiredArgsConstructor;
+
+import cop.kbds.agilemvp.sample.service.SampleVO;
 
 @Repository
 @RequiredArgsConstructor

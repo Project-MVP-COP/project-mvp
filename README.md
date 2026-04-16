@@ -9,6 +9,18 @@
 - **데이터베이스**: H2 데이터베이스 (로컬/테스트 환경), 추후 PostgreSQL 적용 예정
 - **빌드 툴**: Gradle
 
+## 📦 주요 프로젝트 의존성 (Dependencies)
+`build.gradle`에 명시된 주요 라이브러리 및 의존성은 다음과 같습니다.
+
+- **Spring Boot Starter WebMVC** (`spring-boot-starter-webmvc`): 웹 애플리케이션(REST API 등) 개발을 위한 핵심 모듈
+- **Spring Boot Starter Validation** (`spring-boot-starter-validation`): 객체 검증(Validation)을 위한 기능 제공
+- **MyBatis Spring Boot Starter** (`mybatis-spring-boot-starter:4.0.1`): MyBatis와 Spring Boot 연동을 위한 스타터 모듈
+- **H2 Database** (`com.h2database:h2`): 로컬 및 테스트 환경을 위한 인메모리 데이터베이스
+  - `spring-boot-h2console`: H2 DB 접근을 위한 웹 콘솔 제공
+- **Lombok** (`org.projectlombok:lombok`): 어노테이션 기반 보일러플레이트 코드 자동 생성
+- **Spring Boot DevTools** (`spring-boot-devtools`): 개발 편의성(자동 재시작 등) 제공 기능
+- **Test 라이브러리**: Validation, WebMVC, MyBatis 전용 테스트 모듈 및 JUnit Platform 지원
+
 ## 📂 Sample 패키지 구조 및 데이터 처리 흐름
 
 `cop.kbds.agilemvp.sample` 패키지는 스프링 프로젝트에서 가장 관습적이고 널리 쓰이는 3계층(웹, 애플리케이션, 인프라) 구조로 구성된 레퍼런스 코드입니다. 유지보수성과 관심사의 분리를 위해 각 계층은 다음과 같이 `controller`, `service`, `repository` 패키지로 명확히 분리 되어있습니다.

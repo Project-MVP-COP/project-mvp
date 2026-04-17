@@ -3,7 +3,6 @@ package cop.kbds.agilemvp.sample.service;
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.sample.exception.SampleErrorCode;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

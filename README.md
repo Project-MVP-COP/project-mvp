@@ -22,6 +22,56 @@
 - **Test 라이브러리**: Validation, WebMVC, MyBatis 전용 테스트 모듈 및 JUnit Platform 지원
 - **SpringDoc OpenAPI** (`springdoc-openapi-starter-webmvc-ui:3.0.3`): Swagger UI를 통한 API 문서화 및 테스트 도구 제공
 
+## 🚀 실행 및 테스트 방법
+
+### 1. 애플리케이션 실행
+프로젝트 루트 디렉토리에서 다음 명령어를 통해 애플리케이션을 기동합니다.
+```bash
+./gradlew bootRun
+```
+
+### 2. 테스트 실행 및 리포트 확인
+전체 단위 및 통합 테스트를 수행하고 결과 리포트를 확인할 수 있습니다.
+```bash
+# 전체 테스트 실행
+./gradlew test
+
+# 테스트 리포트 확인 (명령 실행 후)
+# build/reports/tests/test/index.html
+```
+
+### 3. API 호출 테스트
+API 테스트 도구 (Postman 등) 또는 웹 브라우저를 통해 다음 URL로 요청을 호출하여 동작을 확인할 수 있습니다.
+- **Read (목록 조회)**: `GET http://localhost:8080/api/sample/hello?name=사용자`
+- **Create (생성)**: `POST http://localhost:8080/api/sample` (Body: `{ "message": "새로운 메세지" }`)
+- **Update (수정)**: `PUT http://localhost:8080/api/sample/1` (Body: `{ "message": "수정된 메세지" }`)
+- **Delete (삭제)**: `DELETE http://localhost:8080/api/sample/1`
+- **전역 예외 처리 테스트**: `GET http://localhost:8080/api/sample/error`
+
+---
+
+## 📂 프로젝트 구조 (Project Structure)
+
+```text
+.
+├── src
+│   ├── main
+│   │   ├── java
+│   │   │   └── cop.kbds.agilemvp
+│   │   │       ├── common (공통 아키텍처 및 유효성 검증)
+│   │   │       └── sample (3계층 구조의 레퍼런스 패키지)
+│   │   └── resources
+│   │       ├── mapper (MyBatis 쿼리 XML)
+│   │       ├── application.yml (설정 파일)
+│   │       └── schema.sql / data.sql (DB 초기화 스크립트)
+│   └── test
+│       └── java (단위 및 통합 테스트 코드)
+├── build.gradle (빌드 설정 및 의존성)
+└── README.md (프로젝트 문서)
+```
+
+---
+
 ## 📘 API 문서 (Swagger UI)
 본 프로젝트는 Swagger(SpringDoc)를 사용하여 API를 문서화하고 있습니다. 애플리케이션 실행 후 아래 URL을 통해 API 명세를 확인하고 직접 테스트해 볼 수 있습니다.
 
@@ -176,115 +226,39 @@ BusinessValidator.validateNonNull(order, CommonErrorCode.ENTITY_NOT_FOUND);
 2026-04-17 12:00:00.020  INFO [22c3da25-...] --- [nio-8080-exec-1] c.k.a.common.filter.LoggingFilter : [RESPONSE] GET /api/sample/hello status:200 (19ms)
 ```
 
-## 📂 Sample 패키지 구조 및 데이터 처리 흐름
+## 📂 Sample 패키지 구조 및 상세 아키텍처
 
-`cop.kbds.agilemvp.sample` 패키지는 스프링 프로젝트에서 가장 관습적이고 널리 쓰이는 3계층(웹, 애플리케이션, 인프라) 구조로 구성된 레퍼런스 코드입니다. 유지보수성과 관심사의 분리를 위해 각 계층은 다음과 같이 `controller`, `service`, `repository` 패키지로 명확히 분리 되어있습니다.
+`cop.kbds.agilemvp.sample` 패키지는 관습적인 3계층(웹, 애플리케이션, 인프라) 구조로 구성된 레퍼런스 코드입니다.
 
-### 1. 웹 계층 (`controller` 패키지)
-#### `controller/SampleController.java`
-- **역할**: 클라이언트의 HTTP 요청을 매핑하고 표준화된 규격으로 응답을 반환합니다. (`GET /api/sample/hello`)
-- **흐름**: 클라이언트로 부터 `name` 파라미터가 포함된 `SampleRequest`를 받아 애플리케이션 계층인 `SampleService`로 전달하고, 가공된 결과인 `List<SampleResponse>`를 순수하게 반환합니다. 이때 전역 설정된 `GlobalResponseAdvice`가 자동으로 개입하여 `ApiResponse.success()` 포맷으로 감싸주기 때문에(Wrapping), 컨트롤러는 응답 규격을 신경 쓰지 규칙된 비즈니스 데이터 반환에만 집중할 수 있습니다.
+### 1. 웹 계층 (`controller`)
+*   **`SampleController`**: HTTP 요청 매핑 및 응답 반환. `GlobalResponseAdvice`에 의해 `ApiResponse`로 자동 래핑됩니다.
+*   **`SampleRequest` / `SampleResponse`**: 데이터 전송 객체(DTO). Java **`record`**를 활용한 불변 객체입니다.
 
-#### `controller/SampleRequest.java` & `controller/SampleResponse.java`
-- **역할**: 외부 환경(클라이언트)과 데이터를 주고받기 위한 **DTO(Data Transfer Object)**입니다.
-- **특징**: 
-  - 무분별한 데이터 변경을 막기 위해 **Java `record`**로 설계된 완전한 불변 객체입니다. 
-  - 응답 객체는 내부의 정적 팩토리 메서드 `from(vo, name)`을 통해 도메인 객체(`Sample`)를 클라이언트 요구사항에 맞게 변환하여 전달합니다.
-  - **DTO는 순수하게 데이터 전달만을 목적**으로 하며, 비즈니스 로직을 포함하지 않습니다.
+### 2. 애플리케이션 / 도메인 계층 (`service`)
+*   **`SampleService`**: 비즈니스 로직 조율. `SampleRepository` 인터페이스에만 의존하여 기술 환경 변화에 대응(DIP)합니다.
+*   **`Sample` (Domain Model)**:
+    *   초기에는 `record`였으나 ID 자동 생성 및 생명주기 관리를 위해 **일반 Class**로 전환되었습니다.
+    *   **Self-Validation**: 생성 시점에 유효성을 스스로 검증합니다.
+    *   **Anemic Model 방지**: `isUrgent()`, `getFormattedMessage()` 등 도메인 로직을 내부에 캡슐화하고 있습니다.
 
-### 2. 애플리케이션 / 도메인 계층 (`service` 패키지)
-#### `service/SampleService.java`
-- **역할**: 애플리케이션의 핵심 비즈니스 로직을 조율합니다.
-- **흐름**: MyBatis 인프라(Mapper)에 직접 의존하지 않고, 순수 Java 인터페이스인 `SampleRepository`에만 의존합니다(DIP 적용). 조회된 데이터를 바탕으로 비즈니스 응답 객체(DTO)로 변환하여 반환하며, 이 과정에서 VO 고유의 도메인 로직을 활용할 수 있습니다.
+### 3. 인프라 / DB 계층 (`repository`)
+*   **`SampleRepository`**: 애플리케이션 계층에서 정의한 영속성 인터페이스.
+*   **`SampleRepositoryImpl`**: MyBatis(`SampleMapper`)를 사용하는 실제 구현체(Adapter).
+*   **`SampleMapper.java` & `SampleMapper.xml`**: SQL 매핑 및 실행.
+    *   `Sample`이 불변 속성을 유지할 수 있도록 `<constructor>` 매핑을 통해 결과를 주입합니다.
 
-### Sample (Domain Model)
-- **역할**: 도메인 핵심 비즈니스 로직을 담당하는 엔티티(Entity)입니다.
-- **특징**:
-  - 기존에는 단순 불변 값 객체(VO)를 위해 Java `record`를 사용했으나, MyBatis의 `useGeneratedKeys`를 통한 ID 자동 주입 및 도메인 생명주기 관리를 위해 **일반 Class**로 전환되었습니다.
-  - **Self-Validation**: 생성자 및 `@Builder` 단계에서 데이터의 유효성을 스스로 검증하여 항상 유효한 상태를 유지합니다.
-  - **Lombok 활용**: `@Getter`, `@Builder` 등을 사용하여 코드의 간결성을 유지합니다.
-  - **도메인 정책**: `isUrgent()` (긴급 여부 판단), `getFormattedMessage()` (포맷팅 정책) 등 비즈니스 규칙이 캡슐화되어 있습니다.
-  - **Side-Effect-Free Behavior**: 단순한 Getter를 넘어, `isUrgent()`나 `getFormattedMessage()`와 같이 데이터를 기반으로 비즈니스 질문에 답하거나 도메인 정책에 따라 포맷팅된 값을 반환하는 로직을 내부에 포함합니다. (Anemic Domain Model 방지)
+    ```xml
+    <mapper namespace="cop.kbds.agilemvp.sample.repository.SampleMapper">
+        <resultMap id="SampleResultMap" type="cop.kbds.agilemvp.sample.service.Sample">
+            <constructor>
+                <arg column="id" javaType="long"/>
+                <arg column="message" javaType="string"/>
+            </constructor>
+        </resultMap>
 
-### 3. 인프라/DB 계층 (`repository` 패키지)
-#### `repository/SampleRepository.java` (리포지토리 인터페이스)
-- **역할**: 도메인/애플리케이션 계층이 외부 인프라와 소통하기 위해 정의한 인터페이스입니다. 전통적인 스프링 계층 구조에 따라 인프라/리포지토리 패키지에 위치합니다.
+        <select id="getHelloMessages" resultMap="SampleResultMap">
+            SELECT id, message FROM temp
+        </select>
+    </mapper>
+    ```
 
-#### `repository/SampleRepositoryImpl.java` (인프라 어댑터)
-- **역할**: `SampleRepository` 인터페이스의 실제 구현체로, MyBatis를 사용하는 `SampleMapper`에 의존하여 실제 데이터를 가져옵니다. 추후 데이터베이스 접근 기술(JPA 등)이 변경되더라도 이 어댑터 클래스만 교체하면 서비스 로직(Service)에는 전혀 영향을 주지 않습니다.
-
-#### `repository/SampleMapper.java` & `SampleMapper.xml`
-- **역할**: MyBatis를 활용해 실제 데이터베이스에 쿼리를 수행합니다.
-- **XML 위치**: `src/main/resources/mapper/sample/SampleMapper.xml`
-- **특징 및 쿼리 내용**:
-  `Sample`이 기본 생성자가 없는 Java `record`로 구현되었기 때문에, 일반적인 `resultType` 매핑 대신 `<resultMap>`의 `<constructor>`를 활용하여 데이터베이스 조회 결과를 직접 객체 생성자로 주입하고 있습니다.
-  ```xml
-  <mapper namespace="cop.kbds.agilemvp.sample.repository.SampleMapper">
-      <resultMap id="SampleResultMap" type="cop.kbds.agilemvp.sample.service.Sample">
-          <constructor>
-              <arg column="message" javaType="string"/>
-          </constructor>
-      </resultMap>
-
-      <select id="getHelloMessages" resultMap="SampleResultMap">
-          SELECT message FROM temp
-      </select>
-  </mapper>
-  ```
-
-## 🚀 실행 및 테스트 방법
-1. 프로젝트 루트 디렉토리에서 애플리케이션을 기동합니다.
-   ```bash
-   ./gradlew bootRun
-   ```
-2. API 테스트 도구 (Postman 등) 또는 웹 브라우저를 통해 다음 URL로 `GET` 요청을 호출합니다.
-    - **Read (목록 조회)**:
-      ```text
-      GET http://localhost:8080/api/sample/hello?name=사용자
-      ```
-    - **Create (생성)**:
-      ```text
-      POST http://localhost:8080/api/sample
-      Body: { "message": "새로운 메세지" }
-      ```
-    - **Update (수정)**:
-      ```text
-      PUT http://localhost:8080/api/sample/1
-      Body: { "message": "수정된 메세지" }
-      ```
-    - **Delete (삭제)**:
-      ```text
-      DELETE http://localhost:8080/api/sample/1
-      ```
-    - **전역 예외 처리 테스트 (BusinessException)**:
-      ```text
-      GET http://localhost:8080/api/sample/error
-      ```
-3. 정상적으로 동작할 경우 `temp` 테이블에 저장된 `message` 데이터에 요청 파라미터 정보가 결합되며, **공통 API 규격(`ApiResponse`)으로 자동 포장되어 JSON 형태**로 응답됩니다.
-   - **정상 응답 예시 (`/hello`)**:
-     ```json
-     {
-       "success": true,
-       "errorCode": null,
-       "message": "요청이 성공적으로 처리되었습니다.",
-       "data": [
-         {
-           "message": "사용자님, Hello World"
-         },
-         {
-           "message": "사용자님, [URGENT] System Down ASAP!"
-         }
-       ]
-     }
-     ```
-   - **에러 응답 예시 (`/error`)**:
-     ```json
-     {
-       "success": false,
-       "errorCode": "SAM003",
-       "message": "강제로 발생시킨 비즈니스 예외 테스트입니다.",
-       "data": {
-         "traceId": "550e8400-..."
-       }
-     }
-     ```

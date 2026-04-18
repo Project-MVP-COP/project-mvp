@@ -71,7 +71,7 @@ class GlobalExceptionHandlerTest {
                 .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("urn:cop:kbds:agilemvp:error:COM001"))
-                .andExpect(jsonPath("$.detail").value("요청 데이터 검증에 실패했습니다."))
+                .andExpect(jsonPath("$.detail").value("잘못된 입력값입니다."))
                 .andExpect(jsonPath("$.errors.name").value("이름은 필수입니다."));
     }
 }

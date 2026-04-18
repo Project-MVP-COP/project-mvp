@@ -69,7 +69,7 @@ public class GlobalExceptionHandler {
         Map<String, String> fieldErrors = extractFieldErrors(e);
 
         ErrorCode errorCode = CommonErrorCode.INVALID_INPUT_VALUE;
-        ProblemDetail problemDetail = createProblemDetail(errorCode, "요청 데이터 검증에 실패했습니다.", request);
+        ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
         problemDetail.setProperty("errors", fieldErrors);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
     }

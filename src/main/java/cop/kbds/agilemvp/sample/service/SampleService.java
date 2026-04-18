@@ -1,6 +1,7 @@
 package cop.kbds.agilemvp.sample.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -31,11 +32,9 @@ public class SampleService {
      * ID로 단건 샘플을 조회합니다.
      */
     public SampleResponse getSampleById(Long id) {
-        Sample sample = sampleRepository.findById(id);
-        if (sample == null) {
-            throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
-        }
-        return SampleResponse.from(sample);
+        return Optional.ofNullable(sampleRepository.findById(id))
+                .map(SampleResponse::from)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND));
     }
 
     public void createSample(String message) {
@@ -46,30 +45,24 @@ public class SampleService {
     }
 
     public Sample updateSample(Long id, String message) {
-        Sample existing = sampleRepository.findById(id);
-        if (existing == null) {
-            throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
-        }
+        Optional.ofNullable(sampleRepository.findById(id))
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND));
         Sample updated = new Sample(id, message);
         sampleRepository.update(updated);
         return updated;
     }
 
     public Sample patchSample(Long id, String message, String status) {
-        Sample existing = sampleRepository.findById(id);
-        if (existing == null) {
-            throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
-        }
+        Sample existing = Optional.ofNullable(sampleRepository.findById(id))
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND));
         Sample patched = existing.applyPatch(message, status);
         sampleRepository.patch(patched);
         return patched;
     }
 
     public void deleteSample(Long id) {
-        Sample existing = sampleRepository.findById(id);
-        if (existing == null) {
-            throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
-        }
+        Optional.ofNullable(sampleRepository.findById(id))
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND));
         sampleRepository.deleteById(id);
     }
 }

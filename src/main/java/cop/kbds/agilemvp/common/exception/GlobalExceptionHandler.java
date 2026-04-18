@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BusinessException.class)
     protected ResponseEntity<ProblemDetail> handleBusinessException(BusinessException e, HttpServletRequest request) {
-        log.warn("BusinessException: {}", e.getMessage());
+        log.warn("BusinessException: {}", e.getMessage(), e);
         ErrorCode errorCode = e.getErrorCode();
         ProblemDetail problemDetail = createProblemDetail(errorCode, e.getMessage(), request);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     protected ResponseEntity<ProblemDetail> handleHttpMessageNotReadableException(
             HttpMessageNotReadableException e, HttpServletRequest request) {
-        log.warn("HttpMessageNotReadableException: {}", e.getMessage());
+        log.warn("HttpMessageNotReadableException: {}", e.getMessage(), e);
         ErrorCode errorCode = CommonErrorCode.HTTP_MESSAGE_NOT_READABLE;
         ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({ MethodArgumentNotValidException.class, BindException.class })
     protected ResponseEntity<ProblemDetail> handleValidationException(Exception e, HttpServletRequest request) {
-        log.warn("Validation Exception: {}", e.getMessage());
+        log.warn("Validation Exception: {}", e.getMessage(), e);
 
         Map<String, String> fieldErrors = extractFieldErrors(e);
 
@@ -80,9 +80,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     protected ResponseEntity<ProblemDetail> handleMissingServletRequestParameterException(
             MissingServletRequestParameterException e, HttpServletRequest request) {
-        log.warn("MissingServletRequestParameterException: {}", e.getMessage());
+        log.warn("MissingServletRequestParameterException: {}", e.getMessage(), e);
         ErrorCode errorCode = CommonErrorCode.INVALID_INPUT_VALUE;
-        ProblemDetail problemDetail = createProblemDetail(errorCode, e.getMessage(), request);
+        ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
     }
 
@@ -92,9 +92,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     protected ResponseEntity<ProblemDetail> handleHttpRequestMethodNotSupportedException(
             HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
-        log.warn("HttpRequestMethodNotSupportedException: {}", e.getMessage());
+        log.warn("HttpRequestMethodNotSupportedException: {}", e.getMessage(), e);
         ErrorCode errorCode = CommonErrorCode.METHOD_NOT_ALLOWED;
-        ProblemDetail problemDetail = createProblemDetail(errorCode, e.getMessage(), request);
+        ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
     }
 
@@ -104,9 +104,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     protected ResponseEntity<ProblemDetail> handleMethodArgumentTypeMismatchException(
             MethodArgumentTypeMismatchException e, HttpServletRequest request) {
-        log.warn("MethodArgumentTypeMismatchException: {}", e.getMessage());
+        log.warn("MethodArgumentTypeMismatchException: {}", e.getMessage(), e);
         ErrorCode errorCode = CommonErrorCode.INVALID_TYPE_VALUE;
-        ProblemDetail problemDetail = createProblemDetail(errorCode, e.getMessage(), request);
+        ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
     }
 
@@ -116,9 +116,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     protected ResponseEntity<ProblemDetail> handleNoResourceFoundException(
             NoResourceFoundException e, HttpServletRequest request) {
-        log.warn("NoResourceFoundException: {}", e.getMessage());
+        log.warn("NoResourceFoundException: {}", e.getMessage(), e);
         ErrorCode errorCode = CommonErrorCode.ENTITY_NOT_FOUND;
-        ProblemDetail problemDetail = createProblemDetail(errorCode, e.getMessage(), request);
+        ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
     }
 
@@ -127,7 +127,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ProblemDetail> handleException(Exception e, HttpServletRequest request) {
-        log.error("Unhandled Exception: ", e);
+        log.error("Unhandled Exception: {}", e.getMessage(), e);
         ErrorCode errorCode = CommonErrorCode.INTERNAL_SERVER_ERROR;
         ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);

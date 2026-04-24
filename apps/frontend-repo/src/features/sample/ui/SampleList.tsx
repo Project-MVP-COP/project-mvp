@@ -1,80 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
 import { Form, useNavigation } from "react-router";
-import type { QueryClient } from "@tanstack/react-query";
+import type { Sample } from "../model/types";
 
-interface Sample {
-  id: number;
-  message: string;
-  status: string;
-  urgent: boolean;
-  updatedAt: string;
+interface SampleListProps {
+  samples: Sample[];
 }
 
-const getSamplesQuery = () => ({
-  queryKey: ["samples"],
-  queryFn: async (): Promise<Sample[]> => {
-    const response = await fetch("/api/sample");
-    if (!response.ok) throw new Error("Failed to fetch samples");
-    return response.json();
-  },
-});
-
-export const loader = (queryClient: QueryClient) => async () => {
-  await queryClient.ensureQueryData(getSamplesQuery());
-  return null;
-};
-
-export const action = (queryClient: QueryClient) => async ({ request }: { request: Request }) => {
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  try {
-    if (intent === "create") {
-      const message = formData.get("message") as string;
-      await fetch("/api/sample", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
-    } else if (intent === "update") {
-      const id = formData.get("id");
-      const message = formData.get("message") as string;
-      await fetch(`/api/sample/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
-    } else if (intent === "patch") {
-      const id = formData.get("id");
-      const status = formData.get("status") as string;
-      await fetch(`/api/sample/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-    } else if (intent === "delete") {
-      const id = formData.get("id");
-      await fetch(`/api/sample/${id}`, { method: "DELETE" });
-    }
-  } catch (error) {
-    console.error("Action error:", error);
-  }
-
-  await queryClient.invalidateQueries({ queryKey: ["samples"] });
-  return null;
-};
-
-export default function App() {
-  const { data: samples, isLoading, isError } = useQuery(getSamplesQuery());
+export function SampleList({ samples }: SampleListProps) {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting" || navigation.state === "loading";
 
-  if (isLoading) return <div style={{ padding: "2rem" }}>Loading samples...</div>;
-  if (isError) return <div style={{ padding: "2rem", color: "red" }}>Error loading samples</div>;
-
   return (
     <section id="center" style={{ padding: "2rem", fontFamily: "sans-serif", maxWidth: "1200px", margin: "0 auto" }}>
-      <h1 style={{ marginBottom: "2rem" }}>Sample CRUD with React Query & React Router Action</h1>
+      <h1 style={{ marginBottom: "2rem" }}>Sample CRUD with React Query & FSD</h1>
 
       <div style={{ marginBottom: "2rem", padding: "1.5rem", border: "1px solid #eaeaea", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
         <h2 style={{ marginTop: 0 }}>Create New Sample</h2>
@@ -95,11 +32,11 @@ export default function App() {
 
       <div>
         <h2 style={{ marginBottom: "1rem" }}>Samples List</h2>
-        {samples?.length === 0 ? (
+        {samples.length === 0 ? (
           <p>No samples available.</p>
         ) : (
           <ul style={{ listStyle: "none", padding: 0 }}>
-            {samples?.map((sample) => (
+            {samples.map((sample) => (
               <li key={sample.id} style={{ marginBottom: "1rem", padding: "1.5rem", border: "1px solid #ddd", borderRadius: "8px", display: "flex", flexDirection: "column", gap: "1rem" }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
                   <span><strong>ID:</strong> {sample.id}</span>
@@ -112,6 +49,8 @@ export default function App() {
                   <Form method="post" style={{ display: "flex", gap: "0.5rem" }}>
                     <input type="hidden" name="intent" value="update" />
                     <input type="hidden" name="id" value={sample.id} />
+                    <input type="hidden" name="status" value={sample.status} />
+                    <input type="hidden" name="urgent" value={String(sample.urgent)} />
                     <input type="text" name="message" defaultValue={sample.message} required style={{ padding: "0.25rem" }} />
                     <button type="submit" disabled={isSubmitting} style={{ cursor: "pointer" }}>Update Msg</button>
                   </Form>
@@ -132,6 +71,14 @@ export default function App() {
                     <input type="hidden" name="id" value={sample.id} />
                     <button type="submit" disabled={isSubmitting} style={{ color: "white", backgroundColor: "#d32f2f", border: "none", padding: "0.5rem 1rem", borderRadius: "4px", cursor: "pointer" }}>
                       Delete
+                    </button>
+                  </Form>
+
+                  {/* Test Error Boundary Button */}
+                  <Form method="post" style={{ display: "flex" }}>
+                    <input type="hidden" name="intent" value="error_test" />
+                    <button type="submit" disabled={isSubmitting} style={{ color: "white", backgroundColor: "#ff9800", border: "none", padding: "0.5rem 1rem", borderRadius: "4px", cursor: "pointer", marginLeft: "1rem" }}>
+                      Force Error
                     </button>
                   </Form>
                 </div>

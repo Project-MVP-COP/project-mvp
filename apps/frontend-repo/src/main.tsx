@@ -1,8 +1,9 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router";
-import App, { action as appAction, loader as appLoader } from "./App.tsx";
+import { RouterProvider } from "react-router";
+import { queryClient } from "./app/queryClient";
+import { router } from "./app/router";
 
 const rootElement = document.getElementById("root");
 
@@ -15,18 +16,7 @@ async function enableMocking() {
   }
 }
 
-const queryClient = new QueryClient();
-
 enableMocking().then(() => {
-  const router = createBrowserRouter([
-    {
-      index: true,
-      element: <App />,
-      loader: appLoader(queryClient),
-      action: appAction(queryClient),
-    },
-  ]);
-
   createRoot(rootElement).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>

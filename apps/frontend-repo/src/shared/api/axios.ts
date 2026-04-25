@@ -1,6 +1,5 @@
 import axios from "axios";
 import { ProblemDetailSchema } from "@/shared/model/problemDetail";
-import { toast } from "@/shared/lib/toast";
 
 export const api = axios.create({
   baseURL: "/",
@@ -16,13 +15,10 @@ api.interceptors.response.use(
       // RFC 9457 표준 에러 처리
       const parsed = ProblemDetailSchema.safeParse(error.response.data);
       if (parsed.success) {
-        const { detail, title } = parsed.data;
-        toast.error(detail || title || "An unexpected error occurred");
-        return Promise.reject(parsed.data);
+        return Promise.reject(parsed.data); // 파싱된 RFC 9457 객체만 던짐
       }
     }
     
-    toast.error(error.message || "Network Error");
     return Promise.reject(error);
   }
 );

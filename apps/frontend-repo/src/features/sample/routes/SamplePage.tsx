@@ -1,43 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
-import { sampleQueries } from "@/features/sample/api/queries";
-import { SampleList } from "@/features/sample/ui/SampleList";
-import { Toast } from "@/shared/ui/Toast";
-import { useAppStore } from "@/app/store/useAppStore";
+import { Suspense } from "react";
+import { SamplePageSkeleton } from "../ui/SamplePageSkeleton";
+import { SamplePageContent } from "../ui/SamplePageContent";
 
+/**
+ * SamplePage
+ * Route component that orchestrates Suspense and data loading.
+ * Each sub-component is separated into its own file to optimize Vite's HMR.
+ */
 export function SamplePage() {
-  const { data: samples, isLoading, isError } = useQuery(sampleQueries.list());
-  const { isSidebarOpen, toggleSidebar, showToast, toast, hideToast } = useAppStore();
-
-  if (isLoading) return <div style={{ padding: "2rem" }}>Loading samples...</div>;
-  if (isError) return <div style={{ padding: "2rem", color: "red" }}>Error loading samples</div>;
-
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      {/* Sidebar Example */}
-      {isSidebarOpen && (
-        <aside style={{ width: "250px", borderRight: "1px solid #ddd", padding: "1rem", backgroundColor: "#f4f4f4" }}>
-          <h3>App Sidebar</h3>
-          <p>Zustand Global State</p>
-        </aside>
-      )}
-
-      <main style={{ flex: 1 }}>
-        <header style={{ padding: "1rem", borderBottom: "1px solid #ddd", display: "flex", gap: "1rem" }}>
-          <button onClick={toggleSidebar}>
-            {isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
-          </button>
-          <button onClick={() => showToast("Welcome to the App!", "success")}>
-            Show Welcome Toast
-          </button>
-        </header>
-        
-        <SampleList samples={samples ?? []} />
-        <Toast 
-          message={toast?.message} 
-          type={toast?.type} 
-          onClose={hideToast} 
-        />
-      </main>
-    </div>
+    <Suspense fallback={<SamplePageSkeleton />}>
+      <SamplePageContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,5 @@
 import { isRouteErrorResponse, useRouteError } from "react-router";
-import type { ProblemDetail } from "../model/problemDetail";
+import type { ProblemDetail } from "@/shared/model/problemDetail";
 
 export function ErrorBoundary() {
   const error = useRouteError();

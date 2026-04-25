@@ -1,5 +1,5 @@
-import { api } from "../../../shared/api/axios";
-import type { CreateSampleRequest, UpdateSampleRequest, PatchSampleRequest } from "../model/types";
+import { api } from "@/shared/api/axios";
+import type { CreateSampleRequest, UpdateSampleRequest, PatchSampleRequest } from "@/features/sample/model/types";
 
 export const createSample = async (payload: CreateSampleRequest) => {
   const { data } = await api.post("/api/sample", payload);

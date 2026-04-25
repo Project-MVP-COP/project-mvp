@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SamplePage } from "./routes/SamplePage";
 import { action } from "./routes/action";
 import { loader } from "./routes/loader";
-import { resetSamples } from "../../mocks/db";
+import { resetSamples } from "@/mocks/db";
 
 /**
  * [핵심 통합 테스트]

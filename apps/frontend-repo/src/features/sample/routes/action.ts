@@ -1,8 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { sampleKeys } from "../api/queries";
-import { createSample, updateSample, patchSample, deleteSample } from "../api/mutations";
-import { api } from "../../../shared/api/axios";
-import { parseSampleCommand } from "../model/core";
+import { sampleKeys } from "@/features/sample/api/queries";
+import { createSample, updateSample, patchSample, deleteSample } from "@/features/sample/api/mutations";
+import { api } from "@/shared/api/axios";
+import { parseSampleCommand } from "@/features/sample/model/core";
 
 export const action = (queryClient: QueryClient) => async ({ request }: { request: Request }) => {
   const formData = await request.formData();

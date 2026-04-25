@@ -1,5 +1,5 @@
 import { Form, useNavigation } from "react-router";
-import type { Sample } from "../model/types";
+import type { Sample } from "@/features/sample/model/types";
 
 interface SampleListProps {
   samples: Sample[];

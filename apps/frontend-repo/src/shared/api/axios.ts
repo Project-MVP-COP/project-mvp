@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ProblemDetailSchema } from "../model/problemDetail";
+import { ProblemDetailSchema } from "@/shared/model/problemDetail";
 
 export const api = axios.create({
   baseURL: "/",

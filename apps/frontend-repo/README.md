@@ -88,7 +88,24 @@ pnpm install
 pnpm dev
 ```
 
-### 3. 테스트 실행 및 리포트 확인
+### 3. 애플리케이션 빌드
+
+```bash
+pnpm build
+```
+
+### 4. API 타입 및 Zod 스키마 자동 생성
+
+백엔드 OpenAPI 명세를 기반으로 프론트엔드 타입을 동기화합니다. (백엔드 서버 기동 필요)
+
+```bash
+pnpm generate:api
+```
+
+- 생성 위치: `src/features/[feature]/model/generated/`
+- 직접 수정하지 마세요. (Manual 파일에서 import하여 사용)
+
+### 5. 테스트 실행 및 리포트 확인
 
 전체 단위 및 통합 테스트를 수행합니다.
 
@@ -99,20 +116,6 @@ pnpm test
 # 테스트 감시 모드 (개발 시)
 pnpm test:watch
 ```
-
-```bash
-pnpm build
-```
-
-### 5. API 타입 및 Zod 스키마 자동 생성
-
-백엔드 OpenAPI 명세를 기반으로 프론트엔드 타입을 동기화합니다. (백엔드 서버 기동 필요)
-
-```bash
-pnpm generate:api
-```
-- 생성 위치: `src/features/[feature]/model/generated/`
-- 직접 수정하지 마세요. (Manual 파일에서 import하여 사용)
 
 ---
 
@@ -198,6 +201,37 @@ graph LR
 ### 6. 전체 통합 테스트 (`[Feature]Integration.test.tsx`)
 
 - `createMemoryRouter`를 활용하여 `UI -> Router Action -> API Mock -> UI` 전체 파이프라인 검증.
+
+---
+
+## 🏗️ 신규 피처 확장 가이드 (Frontend)
+
+새로운 기능을 추가할 때 프론트엔드 워크스페이스에서 수행해야 할 절차입니다.
+
+### 1. 디렉터리 생성 및 Orval 설정 확장
+- **디렉터리 생성**: `src/features/[domain]` 하위 구조(api, model, ui, routes)를 생성합니다.
+- **Orval 설정 확장**: `orval.config.ts`에 새로운 타겟 섹션을 추가하여 태그별로 코드를 분리 생성합니다.
+  ```typescript
+  // orval.config.ts
+  export default defineConfig({
+    'user-api': {
+      input: {
+        target: 'http://localhost:8080/api-docs',
+        filters: { tags: ['user'] }, // 백엔드 @Tag와 일치해야 함
+      },
+      output: {
+        target: 'src/features/user/model/generated/schemas.ts',
+        schemas: { path: 'src/features/user/model/generated', type: 'zod' },
+        // ... 공통 설정
+      }
+    }
+  });
+  ```
+
+### 2. 코드 생성 및 도메인 모델링
+- **타입 생성**: `pnpm generate:api`를 실행하여 `generated/` 코드를 생성합니다.
+- **모델 래핑**: `model/types.ts`와 `schemas.ts`에서 자동 생성된 코드를 `import`하여 사용합니다.
+- **워크플로우 수행**: 이후 "개발자 워크플로우"에 따라 Mocking부터 통합 테스트까지 진행합니다.
 
 ---
 
@@ -358,18 +392,18 @@ export const useAppStore = create<AppState>()(
 
 ### 1. 핵심 의존성 규칙 (Dependency Rules)
 
-| 대상 (Zone)  | 제한 사항 (Restricted From) | 이유 및 해결책                                                                              |
-| :----------- | :-------------------------- | :------------------------------------------------------------------------------------------ |
-| `features/A` | `features/B`                | **피처 간 독립성**: 피처는 서로의 존재를 몰라야 합니다. (ADR-F02 AHA 원칙 준수)             |
-| `shared`     | `features`, `app`           | **공유 계층 순수성**: 하위 계층이 상위 도메인 지식을 가지면 순환 참조가 발생합니다.         |
-| `*/model`    | `api`, `ui`, `routes`       | **모델 순수성**: 도메인 로직은 부수 효과(I/O, UI)에 의존하지 않는 순수 함수여야 합니다.     |
-| `*/ui`       | `routes`                    | **UI 멍청함 유지**: 컴포넌트는 제어 로직을 직접 알지 말고 `props`로 주입받아야 합니다.      |
-| `*/api`      | `ui`, `routes`              | **역할 격리(IoC)**: 데이터 레이어는 UI(Toast 등)를 직접 참조하지 않습니다. (ADR-F04)        |
+| 대상 (Zone)  | 제한 사항 (Restricted From) | 이유 및 해결책                                                                          |
+| :----------- | :-------------------------- | :-------------------------------------------------------------------------------------- |
+| `features/A` | `features/B`                | **피처 간 독립성**: 피처는 서로의 존재를 몰라야 합니다. (ADR-F02 AHA 원칙 준수)         |
+| `shared`     | `features`, `app`           | **공유 계층 순수성**: 하위 계층이 상위 도메인 지식을 가지면 순환 참조가 발생합니다.     |
+| `*/model`    | `api`, `ui`, `routes`       | **모델 순수성**: 도메인 로직은 부수 효과(I/O, UI)에 의존하지 않는 순수 함수여야 합니다. |
+| `*/ui`       | `routes`                    | **UI 멍청함 유지**: 컴포넌트는 제어 로직을 직접 알지 말고 `props`로 주입받아야 합니다.  |
+| `*/api`      | `ui`, `routes`              | **역할 격리(IoC)**: 데이터 레이어는 UI(Toast 등)를 직접 참조하지 않습니다. (ADR-F04)    |
 
 ### 2. 인프라 및 도구 통제 (Infrastructure Control)
 
 - **Axios 직접 사용 금지**: `import axios from 'axios'`를 직접 호출하지 마세요. 반드시 `@shared/api/axios`의 인스턴스를 사용해야 전역 에러 처리가 보장됩니다.
-- **외부 UI 라이브러리(Mantine) 격리**: 
+- **외부 UI 라이브러리(Mantine) 격리**:
   - `Box`, `Flex`, `Text` 같은 **원시 배치 컴포넌트**는 피처에서 직접 임포트가 허용됩니다.
   - `Toast`, `DataTable`, `Modal` 등 **비즈니스 로직이나 커스텀 스타일이 결합된 요소**는 반드시 `shared/ui/`에서 래핑된 버전을 사용해야 합니다. (ADR-F05)
 

@@ -67,7 +67,7 @@ cd apps/backend-repo
 
 ### 🖥️ 2. 백엔드 (BE) 아키텍처 결정 사항
 *백엔드 전용 아키텍처 결정 사항은 아래 문서에서 상세히 확인할 수 있습니다.*
-- **[Backend ADRs 상세 보기](./apps/backend-repo/README.md#📘-architecture-decision-records-adrs)**
+- **[Backend ADRs 상세 보기](./apps/backend-repo/README.md#-architecture-decision-records-adrs)**
   - ADR-B01: 데이터 접근 기술 (MyBatis)
   - ADR-B02: 패키지 구조 (도메인 내 3계층 분리)
   - ADR-B03: 도메인 모델 생성 방식 및 테스팅 전략
@@ -77,7 +77,7 @@ cd apps/backend-repo
 
 ### ⚛️ 3. 프론트엔드 (FE) 아키텍처 결정 사항
 *프론트엔드 전용 아키텍처 결정 사항은 아래 문서에서 상세히 확인할 수 있습니다.*
-- **[Frontend ADRs 상세 보기](./apps/frontend-repo/README.md#📘-architecture-decision-records-adrs---project-mvp-cop)**
+- **[Frontend ADRs 상세 보기](./apps/frontend-repo/README.md#-architecture-decision-records-adrs---project-mvp-cop)**
   - ADR-F01: FSD 실용적 단순화 및 경계 통제
   - ADR-F02: 의도적 코드 중복 허용 (AHA)
   - ADR-F03: Router Data Mode 및 로직 분리

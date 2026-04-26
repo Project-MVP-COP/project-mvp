@@ -3,6 +3,7 @@ package cop.kbds.agilemvp.sample.controller;
 import java.time.format.DateTimeFormatter;
 
 import cop.kbds.agilemvp.sample.service.Sample;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * 도메인 모델(Sample)을 API 응답 규격에 맞게 변환하는 DTO입니다.
@@ -11,6 +12,7 @@ import cop.kbds.agilemvp.sample.service.Sample;
 public record SampleResponse(
         Long id,
         String message,
+        @Schema(allowableValues = {"ACTIVE", "INACTIVE", "ERROR"})
         String status,
         boolean urgent,
         String updatedAt

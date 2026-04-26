@@ -32,8 +32,6 @@ export const parseSampleCommand = (formData: FormData): SampleCommand => {
         id: extractNumber(formData, "id"),
         payload: {
           message: extractString(formData, "message"),
-          status: extractString(formData, "status"),
-          urgent: extractBoolean(formData, "urgent"),
         },
       };
 
@@ -42,7 +40,8 @@ export const parseSampleCommand = (formData: FormData): SampleCommand => {
         type: "patch",
         id: extractNumber(formData, "id"),
         payload: {
-          status: extractString(formData, "status"),
+          message: extractString(formData, "message") || undefined,
+          status: extractString(formData, "status") || undefined,
         },
       };
 

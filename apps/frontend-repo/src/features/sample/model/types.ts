@@ -1,20 +1,11 @@
 import { z } from "zod";
 import { SampleSchema } from "./schemas";
+import type { 
+  SampleCreateRequest as CreateSampleRequest,
+  SampleUpdateRequest as UpdateSampleRequest,
+  SamplePatchRequest as PatchSampleRequest 
+} from "./generated";
 
 export type Sample = z.infer<typeof SampleSchema>;
 
-export interface CreateSampleRequest {
-  message: string;
-}
-
-export interface UpdateSampleRequest {
-  message: string;
-  status: string;
-  urgent: boolean;
-}
-
-export interface PatchSampleRequest {
-  status?: string;
-  message?: string;
-  urgent?: boolean;
-}
+export type { CreateSampleRequest, UpdateSampleRequest, PatchSampleRequest };

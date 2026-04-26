@@ -1,15 +1,10 @@
 import { z } from "zod";
+import { SampleResponse as SampleSchema } from "./generated/sampleResponse.zod";
 
 /**
  * API 응답 데이터의 타입 안정성을 위한 스키마
- * 비즈니스 로직 유효성 검증은 백엔드에 위임합니다.
+ * ADR-F08: 자동 생성된 스키마를 기반으로 하며, 필요 시 여기서 확장합니다.
  */
-export const SampleSchema = z.object({
-  id: z.number(),
-  message: z.string(),
-  status: z.enum(["ACTIVE", "INACTIVE", "ERROR"]),
-  urgent: z.boolean(),
-  updatedAt: z.string(),
-});
+export { SampleSchema };
 
 export const SampleListSchema = z.array(SampleSchema);

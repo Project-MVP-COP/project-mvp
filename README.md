@@ -85,4 +85,4 @@ cd apps/backend-repo
   - ADR-F05: 외부 UI 라이브러리(Mantine) 격리
   - ADR-F06: 정적 자산 및 패스 알리아스 최적화
   - ADR-F07: 데이터 패칭 및 상태 관리 체계 분리
-  - ADR-F08: MSW + Zod 기반 API 계약 동기화
+  - ADR-F08: OpenAPI(Orval) 기반 API 계약 자동 동기화

@@ -24,6 +24,79 @@
 - **Test 라이브러리**: Validation, WebMVC, MyBatis 전용 테스트 모듈 및 JUnit Platform 지원
 - **SpringDoc OpenAPI** (`springdoc-openapi-starter-webmvc-ui:3.0.3`): Swagger UI를 통한 API 문서화 및 테스트 도구 제공
 
+---
+
+## ☕ Java 25 설치
+
+본 프로젝트는 **Java 25 (LTS)**를 기반으로 합니다. 개발 환경 구성을 위해 아래 가이드에 따라 JDK를 설치해 주세요.
+
+> [!NOTE]
+> 본 가이드는 가장 범용적인 **Eclipse Temurin (Adoptium)** 배포판을 기준으로 작성되었습니다. Oracle JDK, Amazon Corretto, Microsoft OpenJDK 등 타 배포판을 사용해도 무방합니다.
+
+### ⚙️ OS별 설정
+
+#### 🍎 macOS
+
+1. **Homebrew를 이용한 설치 (권장)**
+   ```bash
+   brew install openjdk@25
+   ```
+2. **시스템 JDK 경로 등록** (Homebrew 설치 시 필수)
+   터미널에서 아래 명령어를 실행하여 macOS가 JDK를 인식하도록 심볼릭 링크를 생성합니다.
+   ```bash
+   sudo ln -sfn /opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-25.jdk
+   ```
+3. **SDKMAN! 사용 시**
+   ```bash
+   sdk install java 25.0.0-tem
+   ```
+
+#### 🪟 Windows
+
+1. **직접 설치 (권장)**
+   - [Adoptium (Eclipse Temurin)](https://adoptium.net/temurin/releases/?version=25) 사이트에서 Java 25 **.msi** 파일을 다운로드합니다.
+2. **설치 시 주의사항**
+   - 설치 마법사 단계에서 **`Add to PATH`** 및 **`Set JAVA_HOME variable`** 옵션이 활성화(Will be installed on local hard drive)되어 있는지 반드시 확인하세요.
+3. **Winget 사용 시**
+   ```powershell
+   winget install EclipseAdoptium.Temurin.25.JDK
+   ```
+
+---
+
+### 🖥️ IDE 구성 (VS Code)
+
+본 가이드는 **Visual Studio Code**를 기본 환경으로 설명합니다. (IntelliJ IDEA 또는 Eclipse 사용자는 각 IDE의 SDK 설정 메뉴에서 설치된 Java 25를 선택하여 사용할 수 있습니다.)
+
+1. **확장 프로그램 설치**
+   - VS Code 마켓플레이스에서 **[Extension Pack for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack)**를 설치합니다.
+2. **런타임 설정 확인**
+   - `Ctrl + Shift + P` (macOS: `Cmd + Shift + P`) 입력 -> `Java: Configure Java Runtime` 검색 및 실행
+   - `Java Tooling Runtime` 탭에서 **Java 25**가 정상적으로 인식되었는지 확인합니다.
+
+---
+
+### ✅ 검증 및 트러블슈팅
+
+1. **버전 확인**
+   새로운 터미널 창을 열고 아래 명령어를 입력합니다.
+   ```bash
+   java -version
+   ```
+   `openjdk version "25.x.x"`와 같이 출력되면 정상입니다.
+
+2. **우선순위 확인 (멀티 JDK 환경)**
+   기존에 다른 버전의 Java가 설치되어 있다면, Java 25가 우선순위를 갖는지 확인하세요.
+   - **macOS**: `which java` 결과가 `/usr/bin/java`이고, `java -version`이 25여야 합니다.
+   - **Windows**: `where java` 명령으로 Java 25 경로가 가장 상단에 있는지 확인합니다.
+
+3. **환경 변수 반영 안 됨**
+   - 설치 후 터미널을 완전히 종료하고 **새 창**을 열어 다시 시도하세요.
+   - Windows의 경우 시스템 환경 변수 설정에서 `JAVA_HOME`이 올바른 경로(예: `C:\Program Files\Eclipse Foundation\jdk-25.x.x-hotspot\`)를 가리키는지 확인합니다.
+
+---
+
+
 ## 🚀 실행 및 테스트 방법
 
 ### 1. 애플리케이션 실행

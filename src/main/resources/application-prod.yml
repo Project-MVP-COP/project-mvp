@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/project_mvp_db
+    driver-class-name: org.postgresql.Driver
+    username: mvp_user
+    password: project_mvp_123!
+
+  sql:
+    init:
+      mode: never

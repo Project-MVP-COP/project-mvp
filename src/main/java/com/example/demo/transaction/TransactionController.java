@@ -21,6 +21,11 @@ public class TransactionController {
         return service.findAll();
     }
 
+    @GetMapping("/search")
+    public TransactionPageResult search(TransactionSearchDto params) {
+        return service.search(params);
+    }
+
     @PostMapping
     public TransactionDto add(@RequestBody TransactionDto dto) {
         return service.add(dto);

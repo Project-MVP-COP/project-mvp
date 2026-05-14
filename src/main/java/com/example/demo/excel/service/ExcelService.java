@@ -47,15 +47,128 @@ public class ExcelService {
     /* ── 카테고리 자동 분류 ─────────────────────────────────────── */
 
     private static final List<String[]> CATEGORY_RULES = List.of(
-        new String[]{"식음료",   "스타벅스,쿠팡이츠,배달의민족,맥도날드,버거킹,롯데리아,KFC,서브웨이,빽다방,메가커피,메가MGC,투썸,이디야,던킨,파리바게뜨,뚜레쥬르,카멜커피,셀렉커피,브알라,대접,뉴쎄일마트,신선청과,빵연구소,치킨,피자,라멘,분식,식당,카페,커피,음식점"},
-        new String[]{"쇼핑",     "쿠팡,이마트,롯데,신세계,현대백화점,홈플러스,코스트코,다이소,아성다이소,무신사,올리브영,네이버쇼핑,G마켓,11번가,위메프,트레이더스,인터파크,SSG,쿠팡(주)"},
-        new String[]{"교통",     "한국철도공사,철도,KTX,SRT,카카오택시,티머니,버스,지하철,항공,우버,코레일,철도승차권"},
-        new String[]{"의료/건강","병원,의원,약국,클리닉,한의원,치과,안과,피부과,이비인후과,세브란스,서울대병원,올리브영약국"},
-        new String[]{"문화/여가","CGV,롯데시네마,메가박스,넷플릭스,유튜브,왓챠,쿠팡플레이,게임,공연,뮤지컬,전시,스포츠"},
-        new String[]{"편의점",   "GS25,세븐일레븐,CU,씨유,이마트24,미니스톱,스토리웨이"},
-        new String[]{"주유",     "SK에너지,GS칼텍스,현대오일뱅크,S-OIL,에쓰오일,주유소,오일뱅크"},
-        new String[]{"통신",     "SKT,KT,LGU,LG U,통신,알뜰폰"},
-        new String[]{"교육",     "인프런,클래스101,유데미,coursera,학원,교육,강의"}
+        // ── 편의점 (쇼핑보다 먼저: GS25 등이 쇼핑 GS와 겹치지 않도록)
+        new String[]{"편의점",
+            "GS25,세븐일레븐,7-eleven,CU편의점,씨유,이마트24,미니스톱,스토리웨이,바이더웨이," +
+            "위드미,365플러스,더채움,로손,패밀리마트"},
+
+        // ── 식음료
+        new String[]{"식음료",
+            // 카페/음료
+            "스타벅스,투썸플레이스,이디야,빽다방,메가커피,메가mgc,컴포즈커피,파스쿠찌," +
+            "할리스,탐앤탐스,엔젤리너스,커피빈,던킨,배스킨,베스킨,나뚜루,설빙," +
+            "공차,버블티,쥬씨,쥬스,스무디킹,빙수,카페,커피숍," +
+            // 패스트푸드
+            "맥도날드,맥도,버거킹,롯데리아,kfc,서브웨이,맘스터치,파파이스,쉐이크쉑," +
+            "노브랜드버거,빅쉑,파이브가이즈,웬디스,타코벨,치폴레," +
+            // 치킨/피자
+            "bbq,bhc,굽네치킨,교촌치킨,페리카나,네네치킨,처갓집,노랑통닭,호식이," +
+            "피자헛,도미노,도미노피자,파파존스,피자알볼로,고피자,반올림피자,미스터피자," +
+            // 배달앱
+            "배달의민족,쿠팡이츠,요기요,배달특급,위메프오,땡겨요," +
+            // 한식/일식/중식/기타외식
+            "한솥,본도시락,한솥도시락,도시락,김밥천국,김밥나라,이삭토스트,써브웨이," +
+            "스시,초밥,라멘,라면,우동,소바,돈까스,돈가스,샤브샤브,삼겹살,고기집,구이," +
+            "중국집,짜장,짬뽕,족발,보쌈,순대,국밥,해장국,설렁탕,갈비,냉면,만두," +
+            "분식,떡볶이,순대국,순댓국,편의식,식당,음식점,레스토랑,밥집," +
+            // 빵/케이크
+            "파리바게뜨,뚜레쥬르,성심당,아우어베이커리,빵집,베이커리,케이크," +
+            // 마트/슈퍼 식품관
+            "신선청과,수산시장,정육점,슈퍼마켓,슈퍼,식자재,반찬"},
+
+        // ── 쇼핑
+        new String[]{"쇼핑",
+            // 온라인 쇼핑
+            "쿠팡,11번가,g마켓,gmarket,옥션,auction,위메프,티몬,인터파크,네이버쇼핑," +
+            "카카오쇼핑,카카오선물,쿠페이,ssg닷컴,ssg.com,마켓컬리,컬리,오늘의집," +
+            "무신사,29cm,에이블리,지그재그,브랜디,하이버," +
+            // 백화점/대형마트
+            "이마트,트레이더스,롯데마트,홈플러스,코스트코,costco,메가마트,농협하나로," +
+            "롯데백화점,현대백화점,신세계백화점,갤러리아,AK플라자,NC백화점," +
+            // 패션/뷰티
+            "올리브영,랄라블라,시코르,세포라,이니스프리,아리따움," +
+            "유니클로,자라,zara,h&m,spao,탑텐,무신사스탠다드,나이키,아디다스,뉴발란스," +
+            "abc마트,슈마커,폴리,자주,이케아,ikea," +
+            // 생활용품
+            "다이소,아성다이소,버터,핫트랙스,영풍문고,교보문고,yes24,알라딘,반디앤루니스," +
+            "쿠팡로켓,로켓배송,위즈위드,쇼핑몰"},
+
+        // ── 교통
+        new String[]{"교통",
+            // 대중교통
+            "티머니,티-머니,한국스마트카드,교통카드,지하철,버스,서울교통공사,도시철도," +
+            // 철도
+            "한국철도,코레일,ktx,srt,무궁화,새마을,itx,레일플러스,기차," +
+            // 항공
+            "대한항공,아시아나,제주항공,진에어,에어부산,에어서울,티웨이,이스타,에어로k," +
+            "에어프레미아,항공,공항리무진,공항버스," +
+            // 택시/차량
+            "카카오택시,카카오t,우티,타다,아이엠택시,온다택시,반반택시,마카롱택시," +
+            "택시,콜택시,대리운전,킥보드,씽씽,라임,빔,쏘카,그린카,렌터카,렌트카," +
+            // 고속버스/여객
+            "고속버스,시외버스,usb,버스티켓,코버스,이비tickt,철도승차권,철도역"},
+
+        // ── 의료/건강
+        new String[]{"의료/건강",
+            // 병원
+            "병원,의원,클리닉,의료,한의원,한방,치과,안과,피부과,성형외과,이비인후과," +
+            "정형외과,내과,외과,산부인과,소아과,정신건강,신경과,비뇨기과,재활의학," +
+            "세브란스,서울대병원,삼성의료원,아산병원,강남성심,강북삼성,건국대병원," +
+            // 약국
+            "약국,약방,드럭스토어,올리브영약국," +
+            // 건강/헬스
+            "헬스장,헬스클럽,피트니스,pt센터,크로스핏,필라테스,요가,수영장,골프," +
+            "스포츠센터,구민체육관,건강식품,영양제,비타민,홍삼"},
+
+        // ── 문화/여가
+        new String[]{"문화/여가",
+            // 영화
+            "cgv,롯데시네마,메가박스,씨네큐,영화관,영화티켓," +
+            // OTT/스트리밍
+            "넷플릭스,netflix,유튜브프리미엄,youtube,왓챠,웨이브,wave,티빙,tving," +
+            "쿠팡플레이,시즌,애플tv,디즈니플러스,스포티파이,melon,멜론,지니뮤직,플로," +
+            // 게임
+            "스팀,steam,플레이스테이션,nintendo,닌텐도,xbox,넥슨,엔씨소프트,카카오게임," +
+            "구글플레이,app store,앱스토어,게임,배틀넷," +
+            // 공연/전시
+            "인터파크티켓,멜론티켓,예스24티켓,공연,뮤지컬,콘서트,연극,전시,박물관,미술관," +
+            // 스포츠/레저
+            "야구,축구,농구,배구,스타디움,경기장,볼링,당구,pc방,노래방,코인노래,스크린골프," +
+            "캠핑,낚시,등산,클라이밍,서핑,스키,스노우보드,찜질방,사우나,스파,워터파크," +
+            // 여행
+            "여행사,호텔,모텔,펜션,에어비앤비,airbnb,booking,야놀자,여기어때,goodchoice," +
+            "제주도,해외여행,면세점,롯데면세,신라면세"},
+
+        // ── 주유
+        new String[]{"주유",
+            "sk에너지,gs칼텍스,현대오일뱅크,s-oil,에쓰오일,오일뱅크,알뜰주유소," +
+            "self주유,셀프주유,주유소,ex-oil,극동유,부광주유,하이오일,e1충전,ev충전," +
+            "전기차충전,충전소,환경부충전,kepco충전,한전충전"},
+
+        // ── 통신
+        new String[]{"통신",
+            "skt,sk텔레콤,kt,kt올레,lg유플러스,lgu+,lg u+,lguplus," +
+            "알뜰폰,mvno,헬로모바일,kt엠모바일,sk세븐모바일,미디어로그," +
+            "인터넷,유선전화,케이블tv,위성tv,sky life,skylife"},
+
+        // ── 교육
+        new String[]{"교육",
+            // 온라인 강의
+            "인프런,클래스101,유데미,udemy,coursera,코세라,패스트캠퍼스,에듀윌," +
+            "해커스,메가스터디,이투스,엠베스트,sky에듀,시대인재,대성,종로학원," +
+            // 학원/교습
+            "학원,교습소,어학원,영어학원,수학학원,코딩학원,음악학원,미술학원," +
+            "어린이집,유치원,학교,대학교,대학원,도서관," +
+            // 교재/도서
+            "교재,참고서,문제집,yes24,알라딘,교보문고,영풍문고,반디앤루니스,강의,교육"},
+
+        // ── 공과금/금융 (기타 전에 잡아주기)
+        new String[]{"기타",
+            "국민건강보험,건강보험,국민연금,고용보험,산재보험,세금,부가세,소득세," +
+            "아파트관리비,관리비,도시가스,한국전력,수도,수도요금,전기요금,가스요금," +
+            "보험료,생명보험,손해보험,화재보험,자동차보험,삼성생명,한화생명,교보생명," +
+            "신한은행,국민은행,우리은행,하나은행,농협,기업은행,카카오뱅크,토스,페이코," +
+            "atm,이체수수료,대출,이자,카드연회비,페이,간편결제"}
     );
 
     private String classifyCategory(String merchant) {
@@ -99,9 +212,9 @@ public class ExcelService {
             String status   = cancelFlag.isBlank() ? "승인" : "취소";
 
             result.add(TransactionDto.builder()
-                    .id(tempId++).date(date).merchant(merchant)
-                    .category(classifyCategory(merchant))
-                    .amount(amount).card("신한카드")
+                    .id(tempId++).transactionDate(date).merchant(merchant)
+                    .categoryName(classifyCategory(merchant))
+                    .amount(amount).cardName("신한카드")
                     .installment(installment).status(status)
                     .build());
         }
@@ -143,9 +256,9 @@ public class ExcelService {
             String status      = statusRaw.contains("취소") ? "취소" : "승인";
 
             result.add(TransactionDto.builder()
-                    .id(tempId++).date(date).merchant(merchant)
-                    .category(classifyCategory(merchant))
-                    .amount(amount).card("국민카드")
+                    .id(tempId++).transactionDate(date).merchant(merchant)
+                    .categoryName(classifyCategory(merchant))
+                    .amount(amount).cardName("국민카드")
                     .installment(installment).status(status)
                     .build());
         }
@@ -196,8 +309,8 @@ public class ExcelService {
                 throw new IllegalArgumentException((r + 1) + "행: 상태는 '승인' 또는 '취소'여야 합니다.");
 
             result.add(TransactionDto.builder()
-                    .id(tempId++).date(date).merchant(merchant).category(category)
-                    .amount(amount).card(card)
+                    .id(tempId++).transactionDate(date).merchant(merchant).categoryName(category)
+                    .amount(amount).cardName(card)
                     .installment(installment == 0 ? 1 : installment)
                     .status(status).build());
         }
@@ -288,12 +401,12 @@ public class ExcelService {
             for (int r = 0; r < transactions.size(); r++) {
                 TransactionDto t = transactions.get(r);
                 Row row = sheet.createRow(r + 1);
-                setCell(row, 0, t.getDate(),     dataStyle);
-                setCell(row, 1, t.getMerchant(), dataStyle);
-                setCell(row, 2, t.getCategory(), dataStyle);
+                setCell(row, 0, t.getTransactionDate(), dataStyle);
+                setCell(row, 1, t.getMerchant(),        dataStyle);
+                setCell(row, 2, t.getCategoryName(),    dataStyle);
                 Cell amt = row.createCell(3);
                 amt.setCellValue(t.getAmount()); amt.setCellStyle(amountStyle);
-                setCell(row, 4, t.getCard(), dataStyle);
+                setCell(row, 4, t.getCardName(), dataStyle);
                 Cell inst = row.createCell(5);
                 inst.setCellValue(t.getInstallment()); inst.setCellStyle(dataStyle);
                 setCell(row, 6, t.getStatus(), dataStyle);

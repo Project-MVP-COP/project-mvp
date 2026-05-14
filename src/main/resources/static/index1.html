@@ -1871,7 +1871,7 @@
       <div class="app-info">
         <div><strong>앱 이름:</strong> 카드 이용내역 관리</div>
         <div><strong>버전:</strong> 1.0.0</div>
-        <div><strong>데이터 저장:</strong> 브라우저 localStorage</div>
+        <div><strong>데이터 저장:</strong> 서버 DB (PostgreSQL)</div>
         <div><strong>지원 기능:</strong> 엑셀 업로드/다운로드, 차트 시각화, 예산 관리, AI 피드백</div>
       </div>
     </div>
@@ -1930,104 +1930,8 @@ const CATEGORY_COLORS = {
 
 const CARDS = ['신한카드','국민카드','삼성카드','현대카드','우리카드'];
 
-const LS_KEY = 'card_txns_v1';
 const LS_BUDGET_KEY = 'card_budget_v1';
 const API_BASE = '';
-
-/* ════════════════════════════════════════════════════════════════════
-   DUMMY DATA
-════════════════════════════════════════════════════════════════════ */
-
-const DEFAULT_DATA = [
-  // ── January 2026 ──
-  {id:1,  date:'2026-01-02', merchant:'스타벅스',        category:'식음료',   amount:6500,   card:'신한카드', installment:1, status:'승인'},
-  {id:2,  date:'2026-01-03', merchant:'쿠팡',            category:'쇼핑',     amount:38900,  card:'국민카드', installment:1, status:'승인'},
-  {id:3,  date:'2026-01-05', merchant:'카카오택시',       category:'교통',     amount:12300,  card:'삼성카드', installment:1, status:'승인'},
-  {id:4,  date:'2026-01-06', merchant:'맥도날드',         category:'식음료',   amount:9800,   card:'신한카드', installment:1, status:'승인'},
-  {id:5,  date:'2026-01-07', merchant:'CU',              category:'편의점',   amount:3200,   card:'현대카드', installment:1, status:'승인'},
-  {id:6,  date:'2026-01-08', merchant:'넷플릭스',         category:'문화/여가',amount:17000,  card:'국민카드', installment:1, status:'승인'},
-  {id:7,  date:'2026-01-09', merchant:'SKT',             category:'통신',     amount:55000,  card:'신한카드', installment:1, status:'승인'},
-  {id:8,  date:'2026-01-10', merchant:'배달의민족',       category:'식음료',   amount:24500,  card:'삼성카드', installment:1, status:'승인'},
-  {id:9,  date:'2026-01-11', merchant:'이마트',           category:'쇼핑',     amount:67300,  card:'현대카드', installment:1, status:'승인'},
-  {id:10, date:'2026-01-12', merchant:'SK에너지',         category:'주유',     amount:89000,  card:'우리카드', installment:1, status:'승인'},
-  {id:11, date:'2026-01-13', merchant:'세브란스병원',      category:'의료/건강',amount:45000,  card:'국민카드', installment:1, status:'승인'},
-  {id:12, date:'2026-01-14', merchant:'GS25',            category:'편의점',   amount:4700,   card:'삼성카드', installment:1, status:'승인'},
-  {id:13, date:'2026-01-15', merchant:'CGV',             category:'문화/여가',amount:14000,  card:'신한카드', installment:1, status:'승인'},
-  {id:14, date:'2026-01-16', merchant:'KTX',             category:'교통',     amount:53000,  card:'현대카드', installment:1, status:'승인'},
-  {id:15, date:'2026-01-17', merchant:'무신사',           category:'쇼핑',     amount:128000, card:'국민카드', installment:3, status:'승인'},
-  {id:16, date:'2026-01-18', merchant:'스타벅스',         category:'식음료',   amount:13500,  card:'신한카드', installment:1, status:'승인'},
-  {id:17, date:'2026-01-20', merchant:'클래스101',        category:'교육',     amount:39000,  card:'삼성카드', installment:1, status:'승인'},
-  {id:18, date:'2026-01-21', merchant:'GS칼텍스',         category:'주유',     amount:76000,  card:'우리카드', installment:1, status:'승인'},
-  {id:19, date:'2026-01-22', merchant:'쿠팡이츠',         category:'식음료',   amount:18900,  card:'신한카드', installment:1, status:'승인'},
-  {id:20, date:'2026-01-23', merchant:'유튜브프리미엄',    category:'문화/여가',amount:14900,  card:'현대카드', installment:1, status:'승인'},
-  {id:21, date:'2026-01-24', merchant:'세븐일레븐',        category:'편의점',   amount:5600,   card:'국민카드', installment:1, status:'승인'},
-  {id:22, date:'2026-01-25', merchant:'롯데백화점',        category:'쇼핑',     amount:235000, card:'현대카드', installment:6, status:'승인'},
-  {id:23, date:'2026-01-26', merchant:'티머니',           category:'교통',     amount:50000,  card:'우리카드', installment:1, status:'승인'},
-  {id:24, date:'2026-01-27', merchant:'올리브영',         category:'쇼핑',     amount:43500,  card:'신한카드', installment:1, status:'승인'},
-  {id:25, date:'2026-01-28', merchant:'인프런',           category:'교육',     amount:59000,  card:'삼성카드', installment:1, status:'승인'},
-  {id:26, date:'2026-01-29', merchant:'맥도날드',         category:'식음료',   amount:8700,   card:'신한카드', installment:1, status:'취소'},
-  {id:27, date:'2026-01-30', merchant:'KT',              category:'통신',     amount:49000,  card:'국민카드', installment:1, status:'승인'},
-  {id:28, date:'2026-01-31', merchant:'네이버쇼핑',        category:'쇼핑',     amount:52000,  card:'현대카드', installment:2, status:'승인'},
-
-  // ── February 2026 ──
-  {id:29, date:'2026-02-01', merchant:'스타벅스',         category:'식음료',   amount:7500,   card:'신한카드', installment:1, status:'승인'},
-  {id:30, date:'2026-02-02', merchant:'배달의민족',        category:'식음료',   amount:31000,  card:'삼성카드', installment:1, status:'승인'},
-  {id:31, date:'2026-02-03', merchant:'카카오택시',        category:'교통',     amount:8900,   card:'삼성카드', installment:1, status:'승인'},
-  {id:32, date:'2026-02-05', merchant:'이마트',           category:'쇼핑',     amount:92000,  card:'현대카드', installment:1, status:'승인'},
-  {id:33, date:'2026-02-06', merchant:'CGV',             category:'문화/여가',amount:28000,  card:'신한카드', installment:1, status:'승인'},
-  {id:34, date:'2026-02-07', merchant:'SK에너지',         category:'주유',     amount:95000,  card:'우리카드', installment:1, status:'승인'},
-  {id:35, date:'2026-02-08', merchant:'LG U+',          category:'통신',     amount:62000,  card:'삼성카드', installment:1, status:'승인'},
-  {id:36, date:'2026-02-10', merchant:'쿠팡',            category:'쇼핑',     amount:145000, card:'국민카드', installment:3, status:'승인'},
-  {id:37, date:'2026-02-11', merchant:'스타벅스',         category:'식음료',   amount:12000,  card:'신한카드', installment:1, status:'승인'},
-  {id:38, date:'2026-02-12', merchant:'세브란스병원',      category:'의료/건강',amount:35000,  card:'국민카드', installment:1, status:'승인'},
-  {id:39, date:'2026-02-13', merchant:'GS25',            category:'편의점',   amount:6100,   card:'삼성카드', installment:1, status:'승인'},
-  {id:40, date:'2026-02-14', merchant:'롯데백화점',        category:'쇼핑',     amount:198000, card:'현대카드', installment:6, status:'승인'},
-  {id:41, date:'2026-02-15', merchant:'넷플릭스',         category:'문화/여가',amount:17000,  card:'국민카드', installment:1, status:'승인'},
-  {id:42, date:'2026-02-16', merchant:'쿠팡이츠',         category:'식음료',   amount:22400,  card:'신한카드', installment:1, status:'승인'},
-  {id:43, date:'2026-02-17', merchant:'인프런',           category:'교육',     amount:49000,  card:'삼성카드', installment:1, status:'승인'},
-  {id:44, date:'2026-02-18', merchant:'GS칼텍스',         category:'주유',     amount:82000,  card:'우리카드', installment:1, status:'승인'},
-  {id:45, date:'2026-02-20', merchant:'CU',              category:'편의점',   amount:4200,   card:'현대카드', installment:1, status:'승인'},
-  {id:46, date:'2026-02-21', merchant:'KTX',             category:'교통',     amount:65000,  card:'현대카드', installment:1, status:'승인'},
-  {id:47, date:'2026-02-22', merchant:'올리브영약국',      category:'의료/건강',amount:28000,  card:'신한카드', installment:1, status:'승인'},
-  {id:48, date:'2026-02-23', merchant:'무신사',           category:'쇼핑',     amount:78000,  card:'국민카드', installment:2, status:'승인'},
-  {id:49, date:'2026-02-24', merchant:'유튜브프리미엄',    category:'문화/여가',amount:14900,  card:'현대카드', installment:1, status:'승인'},
-  {id:50, date:'2026-02-25', merchant:'세븐일레븐',        category:'편의점',   amount:3800,   card:'국민카드', installment:1, status:'승인'},
-  {id:51, date:'2026-02-26', merchant:'네이버쇼핑',        category:'쇼핑',     amount:34500,  card:'현대카드', installment:1, status:'승인'},
-  {id:52, date:'2026-02-27', merchant:'SKT',             category:'통신',     amount:55000,  card:'신한카드', installment:1, status:'승인'},
-  {id:53, date:'2026-02-28', merchant:'배달의민족',        category:'식음료',   amount:28700,  card:'삼성카드', installment:1, status:'취소'},
-
-  // ── March 2026 ──
-  {id:54, date:'2026-03-01', merchant:'스타벅스',         category:'식음료',   amount:9000,   card:'신한카드', installment:1, status:'승인'},
-  {id:55, date:'2026-03-02', merchant:'카카오택시',        category:'교통',     amount:15700,  card:'삼성카드', installment:1, status:'승인'},
-  {id:56, date:'2026-03-03', merchant:'쿠팡',            category:'쇼핑',     amount:234000, card:'국민카드', installment:6, status:'승인'},
-  {id:57, date:'2026-03-04', merchant:'맥도날드',         category:'식음료',   amount:11200,  card:'신한카드', installment:1, status:'승인'},
-  {id:58, date:'2026-03-05', merchant:'SK에너지',         category:'주유',     amount:102000, card:'우리카드', installment:1, status:'승인'},
-  {id:59, date:'2026-03-06', merchant:'세브란스병원',      category:'의료/건강',amount:67000,  card:'국민카드', installment:1, status:'승인'},
-  {id:60, date:'2026-03-07', merchant:'GS25',            category:'편의점',   amount:5100,   card:'삼성카드', installment:1, status:'승인'},
-  {id:61, date:'2026-03-08', merchant:'넷플릭스',         category:'문화/여가',amount:17000,  card:'국민카드', installment:1, status:'승인'},
-  {id:62, date:'2026-03-09', merchant:'배달의민족',        category:'식음료',   amount:35600,  card:'삼성카드', installment:1, status:'승인'},
-  {id:63, date:'2026-03-10', merchant:'이마트',           category:'쇼핑',     amount:118000, card:'현대카드', installment:1, status:'승인'},
-  {id:64, date:'2026-03-11', merchant:'KT',              category:'통신',     amount:49000,  card:'국민카드', installment:1, status:'승인'},
-  {id:65, date:'2026-03-12', merchant:'클래스101',        category:'교육',     amount:55000,  card:'삼성카드', installment:1, status:'승인'},
-  {id:66, date:'2026-03-13', merchant:'GS칼텍스',         category:'주유',     amount:88000,  card:'우리카드', installment:1, status:'승인'},
-  {id:67, date:'2026-03-14', merchant:'CGV',             category:'문화/여가',amount:21000,  card:'신한카드', installment:1, status:'승인'},
-  {id:68, date:'2026-03-15', merchant:'쿠팡이츠',         category:'식음료',   amount:26800,  card:'신한카드', installment:1, status:'승인'},
-  {id:69, date:'2026-03-16', merchant:'올리브영',         category:'쇼핑',     amount:56000,  card:'신한카드', installment:1, status:'승인'},
-  {id:70, date:'2026-03-17', merchant:'티머니',           category:'교통',     amount:50000,  card:'우리카드', installment:1, status:'승인'},
-  {id:71, date:'2026-03-18', merchant:'무신사',           category:'쇼핑',     amount:97000,  card:'국민카드', installment:2, status:'승인'},
-  {id:72, date:'2026-03-19', merchant:'세븐일레븐',        category:'편의점',   amount:4400,   card:'국민카드', installment:1, status:'승인'},
-  {id:73, date:'2026-03-20', merchant:'유튜브프리미엄',    category:'문화/여가',amount:14900,  card:'현대카드', installment:1, status:'승인'},
-  {id:74, date:'2026-03-21', merchant:'롯데백화점',        category:'쇼핑',     amount:312000, card:'현대카드', installment:12, status:'승인'},
-  {id:75, date:'2026-03-22', merchant:'스타벅스',         category:'식음료',   amount:14500,  card:'신한카드', installment:1, status:'승인'},
-  {id:76, date:'2026-03-23', merchant:'SKT',             category:'통신',     amount:55000,  card:'신한카드', installment:1, status:'승인'},
-  {id:77, date:'2026-03-24', merchant:'인프런',           category:'교육',     amount:39000,  card:'삼성카드', installment:1, status:'승인'},
-  {id:78, date:'2026-03-25', merchant:'배달의민족',        category:'식음료',   amount:42000,  card:'삼성카드', installment:1, status:'승인'},
-  {id:79, date:'2026-03-26', merchant:'CU',              category:'편의점',   amount:7800,   card:'현대카드', installment:1, status:'승인'},
-  {id:80, date:'2026-03-27', merchant:'올리브영약국',      category:'의료/건강',amount:32000,  card:'신한카드', installment:1, status:'승인'},
-  {id:81, date:'2026-03-28', merchant:'KTX',             category:'교통',     amount:71000,  card:'현대카드', installment:1, status:'승인'},
-  {id:82, date:'2026-03-29', merchant:'네이버쇼핑',        category:'쇼핑',     amount:45000,  card:'현대카드', installment:2, status:'취소'},
-  {id:83, date:'2026-03-30', merchant:'맥도날드',         category:'식음료',   amount:8200,   card:'신한카드', installment:1, status:'승인'},
-];
 
 /* ════════════════════════════════════════════════════════════════════
    STATE
@@ -2035,8 +1939,9 @@ const DEFAULT_DATA = [
 
 let transactions = [];
 let filteredData = [];
-let displayCount = 20;
 const PAGE_SIZE = 20;
+let currentSearchPage = 0;
+let serverSummary = { totalCount: 0, approvedCount: 0, cancelledCount: 0, totalAmount: 0, hasMore: false };
 let currentPeriod = 'month';
 let vizDateRange = null;
 let charts = {};
@@ -2047,7 +1952,7 @@ let charts = {};
 
 async function init() {
   await loadData();
-  applyFilters();
+  await applyFilters();
   buildCategoryColorTable();
   renderPersonal();
 }
@@ -2062,9 +1967,7 @@ async function loadData() {
   }
 }
 
-function saveData() {
-  // no-op: 각 동작마다 개별 API 호출로 대체됨
-}
+function saveData() { /* DB 저장은 각 API 호출로 처리 */ }
 
 /* ════════════════════════════════════════════════════════════════════
    NAVIGATION
@@ -2105,62 +2008,61 @@ function resetFilters() {
   applyFilters();
 }
 
-function applyFilters() {
+function buildSearchParams(page) {
   const f = getFilters();
   const sortField = document.getElementById('sort-field').value;
   const sortOrder = document.getElementById('sort-order').value;
+  const p = new URLSearchParams({ sortField, sortOrder, page, size: PAGE_SIZE });
+  if (f.dateStart) p.set('dateStart',    f.dateStart);
+  if (f.dateEnd)   p.set('dateEnd',      f.dateEnd);
+  if (f.category)  p.set('categoryName', f.category);
+  if (f.amountMin) p.set('amountMin',    f.amountMin);
+  if (f.amountMax) p.set('amountMax',    f.amountMax);
+  if (f.card)      p.set('cardName',     f.card);
+  if (f.status)    p.set('status',       f.status);
+  if (f.search)    p.set('search',       f.search);
+  return p;
+}
 
-  filteredData = transactions.filter(t => {
-    if (f.dateStart && t.date < f.dateStart) return false;
-    if (f.dateEnd   && t.date > f.dateEnd)   return false;
-    if (f.category  && t.category !== f.category) return false;
-    if (f.amountMin && t.amount < Number(f.amountMin)) return false;
-    if (f.amountMax && t.amount > Number(f.amountMax)) return false;
-    if (f.card      && t.card !== f.card) return false;
-    if (f.status    && t.status !== f.status) return false;
-    if (f.search    && !t.merchant.toLowerCase().includes(f.search)) return false;
-    return true;
-  });
-
-  filteredData.sort((a, b) => {
-    let va, vb;
-    if (sortField === 'date')     { va = a.date; vb = b.date; }
-    else if (sortField === 'amount') { va = a.amount; vb = b.amount; }
-    else { va = a.merchant; vb = b.merchant; }
-    if (va < vb) return sortOrder === 'asc' ? -1 : 1;
-    if (va > vb) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  displayCount = PAGE_SIZE;
+async function applyFilters() {
+  currentSearchPage = 0;
+  try {
+    const res = await fetch(`${API_BASE}/api/transactions/search?${buildSearchParams(0)}`);
+    const result = await res.json();
+    filteredData  = result.data;
+    serverSummary = { totalCount: result.totalCount, approvedCount: result.approvedCount,
+                      cancelledCount: result.cancelledCount, totalAmount: result.totalAmount,
+                      hasMore: result.hasMore };
+  } catch (e) {
+    showToast('조회 실패: ' + e.message, 'error');
+    return;
+  }
   renderSummary();
   renderTable();
   renderLoadMore();
 }
 
 function renderSummary() {
-  const approved = filteredData.filter(t => t.status === '승인');
-  const cancelled = filteredData.filter(t => t.status === '취소');
-  const totalAmt = approved.reduce((s,t) => s + t.amount, 0);
+  const { totalCount, approvedCount, cancelledCount, totalAmount } = serverSummary;
   document.getElementById('summary-bar').innerHTML = `
-    <span>총 <strong>${filteredData.length}건</strong></span>
+    <span>총 <strong>${totalCount}건</strong></span>
     <span class="sep">|</span>
-    <span>총 금액 <strong>${fmt(totalAmt)}원</strong></span>
+    <span>총 금액 <strong>${fmt(totalAmount)}원</strong></span>
     <span class="sep">|</span>
-    <span>승인 <strong style="color:#3fb950">${approved.length}건</strong></span>
+    <span>승인 <strong style="color:#3fb950">${approvedCount}건</strong></span>
     <span class="sep">|</span>
-    <span>취소 <strong style="color:#f85149">${cancelled.length}건</strong></span>
+    <span>취소 <strong style="color:#f85149">${cancelledCount}건</strong></span>
   `;
 }
 
 function rowHtml(t) {
   return `
     <tr class="${t.status === '취소' ? 'cancelled' : ''}" onclick="openModal(${t.id})">
-      <td>${t.date}</td>
+      <td>${t.transactionDate}</td>
       <td>${t.merchant}</td>
-      <td><span class="badge" style="background:${CATEGORY_COLORS[t.category]||'#64748b'}">${t.category}</span></td>
+      <td><span class="badge" style="background:${CATEGORY_COLORS[t.categoryName]||'#64748b'}">${t.categoryName}</span></td>
       <td><strong>${fmt(t.amount)}</strong>원</td>
-      <td>${t.card}</td>
+      <td>${t.cardName}</td>
       <td>${t.installment === 1 ? '일시불' : t.installment + '개월'}</td>
       <td><span class="status-badge ${t.status === '승인' ? 'status-approved' : 'status-cancelled'}">${t.status}</span></td>
       <td style="display:flex;gap:6px;align-items:center;padding:10px 14px;">
@@ -2174,37 +2076,23 @@ function renderTable() {
   const tbody = document.getElementById('txn-tbody');
   const empty = document.getElementById('empty-state');
 
-  tbody.innerHTML = [1,2,3].map(() => `
-    <tr class="skeleton-row">
-      ${Array(8).fill(`<td><div class="skeleton-cell" style="width:${60+Math.random()*40}%"></div></td>`).join('')}
-    </tr>
-  `).join('');
-
-  setTimeout(() => {
-    if (filteredData.length === 0) {
-      tbody.innerHTML = '';
-      empty.style.display = 'block';
-      return;
-    }
-    empty.style.display = 'none';
-    tbody.innerHTML = filteredData.slice(0, displayCount).map(rowHtml).join('');
-  }, 120);
-}
-
-function appendRows() {
-  const tbody = document.getElementById('txn-tbody');
-  const newRows = filteredData.slice(displayCount - PAGE_SIZE, displayCount);
-  tbody.insertAdjacentHTML('beforeend', newRows.map(rowHtml).join(''));
+  if (filteredData.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = filteredData.map(rowHtml).join('');
 }
 
 function renderLoadMore() {
-  const pg = document.getElementById('pagination');
-  const shown = Math.min(displayCount, filteredData.length);
-  const total = filteredData.length;
+  const pg    = document.getElementById('pagination');
+  const total = serverSummary.totalCount;
+  const shown = filteredData.length;
 
   if (total === 0) { pg.innerHTML = ''; return; }
 
-  if (shown >= total) {
+  if (!serverSummary.hasMore) {
     pg.innerHTML = `<div class="load-more-wrap"><span class="load-more-count">전체 ${total}건 표시 중</span></div>`;
     return;
   }
@@ -2219,9 +2107,20 @@ function renderLoadMore() {
     </div>`;
 }
 
-function loadMore() {
-  displayCount += PAGE_SIZE;
-  appendRows();
+async function loadMore() {
+  currentSearchPage++;
+  try {
+    const res = await fetch(`${API_BASE}/api/transactions/search?${buildSearchParams(currentSearchPage)}`);
+    const result = await res.json();
+    const newRows = result.data;
+    filteredData = [...filteredData, ...newRows];
+    serverSummary.hasMore = result.hasMore;
+    document.getElementById('txn-tbody').insertAdjacentHTML('beforeend', newRows.map(rowHtml).join(''));
+  } catch (e) {
+    showToast('더보기 실패: ' + e.message, 'error');
+    currentSearchPage--;
+    return;
+  }
   renderLoadMore();
 }
 
@@ -2280,7 +2179,7 @@ function deleteTransaction(id, fromModal = false) {
       doDeleteTransaction(id, t.merchant, true);
     };
   } else {
-    const ok = confirm(`"${t.merchant}" (${t.date}, ${fmt(t.amount)}원)\n이 내역을 삭제할까요?`);
+    const ok = confirm(`"${t.merchant}" (${t.transactionDate}, ${fmt(t.amount)}원)\n이 내역을 삭제할까요?`);
     if (!ok) return;
     doDeleteTransaction(id, t.merchant, false);
   }
@@ -2312,7 +2211,7 @@ function renderModalView(id) {
     <div class="modal-grid">
       <div class="modal-field">
         <label>날짜</label>
-        <div class="field-value">${t.date}</div>
+        <div class="field-value">${t.transactionDate}</div>
       </div>
       <div class="modal-field">
         <label>상태</label>
@@ -2327,12 +2226,12 @@ function renderModalView(id) {
       <div class="modal-field">
         <label>카테고리</label>
         <div class="field-value">
-          <span class="badge" style="background:${CATEGORY_COLORS[t.category]||'#64748b'}">${t.category}</span>
+          <span class="badge" style="background:${CATEGORY_COLORS[t.categoryName]||'#64748b'}">${t.categoryName}</span>
         </div>
       </div>
       <div class="modal-field">
         <label>카드</label>
-        <div class="field-value">${t.card}</div>
+        <div class="field-value">${t.cardName}</div>
       </div>
       <div class="modal-field">
         <label>할부</label>
@@ -2369,7 +2268,7 @@ function renderModalEdit(id) {
     <div class="modal-grid">
       <div class="modal-field">
         <label>날짜</label>
-        <input type="date" id="edit-date" value="${t.date}" />
+        <input type="date" id="edit-date" value="${t.transactionDate}" />
       </div>
       <div class="modal-field">
         <label>금액 (원)</label>
@@ -2382,13 +2281,13 @@ function renderModalEdit(id) {
       <div class="modal-field">
         <label>카테고리</label>
         <select id="edit-category">
-          ${CATEGORIES.map(c=>`<option value="${c}" ${c===t.category?'selected':''}>${c}</option>`).join('')}
+          ${CATEGORIES.map(c=>`<option value="${c}" ${c===t.categoryName?'selected':''}>${c}</option>`).join('')}
         </select>
       </div>
       <div class="modal-field">
         <label>카드</label>
         <select id="edit-card">
-          ${CARDS.map(c=>`<option value="${c}" ${c===t.card?'selected':''}>${c}</option>`).join('')}
+          ${CARDS.map(c=>`<option value="${c}" ${c===t.cardName?'selected':''}>${c}</option>`).join('')}
         </select>
       </div>
       <div class="modal-field">
@@ -2471,9 +2370,9 @@ async function saveTransaction(id) {
   if (!amountVal)    { showToast('금액을 입력해주세요.', 'error'); return; }
   if (!merchantVal)  { showToast('가맹점명을 입력해주세요.', 'error'); return; }
 
-  const updated = { ...t, date: dateVal, amount: amountVal, merchant: merchantVal,
-    category: categoryVal, card: cardVal, installment: installmentVal || 1,
-    status: statusVal, memo: memoVal, address: addressVal };
+  const updated = { ...t, transactionDate: dateVal, amount: amountVal, merchant: merchantVal,
+    categoryName: categoryVal, cardName: cardVal, installment: installmentVal || 1,
+    status: statusVal, memo: memoVal };
 
   try {
     const res = await fetch(`${API_BASE}/api/transactions/${id}`, {
@@ -2620,12 +2519,12 @@ function getVizRange() {
 function renderViz() {
   const range = getVizRange();
   const rangeData = transactions.filter(t =>
-    t.status === '승인' && t.date >= range.start && t.date <= range.end
+    t.status === '승인' && t.transactionDate >= range.start && t.transactionDate <= range.end
   );
 
   // ── Stats ──
-  const thisMonthData = transactions.filter(t => t.status === '승인' && t.date.startsWith('2026-03'));
-  const lastMonthData = transactions.filter(t => t.status === '승인' && t.date.startsWith('2026-02'));
+  const thisMonthData = transactions.filter(t => t.status === '승인' && t.transactionDate.startsWith('2026-03'));
+  const lastMonthData = transactions.filter(t => t.status === '승인' && t.transactionDate.startsWith('2026-02'));
   const thisTotal = thisMonthData.reduce((s,t) => s+t.amount, 0);
   const lastTotal = lastMonthData.reduce((s,t) => s+t.amount, 0);
   const momDiff   = thisTotal - lastTotal;
@@ -2635,7 +2534,7 @@ function renderViz() {
 
   // Top category this month
   const catMap = {};
-  thisMonthData.forEach(t => catMap[t.category] = (catMap[t.category]||0) + t.amount);
+  thisMonthData.forEach(t => catMap[t.categoryName] = (catMap[t.categoryName]||0) + t.amount);
   const topCat = Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
 
   document.getElementById('stat-this-month').textContent = fmt(thisTotal) + '원';
@@ -2650,7 +2549,7 @@ function renderViz() {
 
   // ── Pie Chart ──
   const catData = {};
-  rangeData.forEach(t => catData[t.category] = (catData[t.category]||0) + t.amount);
+  rangeData.forEach(t => catData[t.categoryName] = (catData[t.categoryName]||0) + t.amount);
   const catEntries = Object.entries(catData).sort((a,b)=>b[1]-a[1]);
   const catTotal   = catEntries.reduce((s,[,v])=>s+v, 0);
 
@@ -2701,7 +2600,7 @@ function renderViz() {
     months.push(d.toISOString().slice(0,7));
   }
   const monthlyTotals = months.map(m =>
-    transactions.filter(t => t.status==='승인' && t.date.startsWith(m)).reduce((s,t)=>s+t.amount,0)
+    transactions.filter(t => t.status==='승인' && t.transactionDate.startsWith(m)).reduce((s,t)=>s+t.amount,0)
   );
 
   destroyChart('monthlyChart');
@@ -2743,7 +2642,7 @@ function renderViz() {
 
   let cumulative = 0;
   const dailyCumData = days.map(day => {
-    const dayTotal = rangeData.filter(t => t.date === day).reduce((s,t)=>s+t.amount, 0);
+    const dayTotal = rangeData.filter(t => t.transactionDate === day).reduce((s,t)=>s+t.amount, 0);
     cumulative += dayTotal;
     return { x: day, y: cumulative };
   });
@@ -2818,7 +2717,7 @@ function renderBudget() {
   if (budget > 0) el.value = budget;
 
   const thisMonthSpent = transactions
-    .filter(t => t.status === '승인' && t.date.startsWith('2026-03'))
+    .filter(t => t.status === '승인' && t.transactionDate.startsWith('2026-03'))
     .reduce((s,t) => s+t.amount, 0);
 
   const display = document.getElementById('budget-display');
@@ -2845,17 +2744,17 @@ function renderBudget() {
 
 // Overspending Warnings
 function renderWarnings() {
-  const thisMonth = transactions.filter(t => t.status==='승인' && t.date.startsWith('2026-03'));
+  const thisMonth = transactions.filter(t => t.status==='승인' && t.transactionDate.startsWith('2026-03'));
   const catSpend  = {};
-  thisMonth.forEach(t => catSpend[t.category] = (catSpend[t.category]||0) + t.amount);
+  thisMonth.forEach(t => catSpend[t.categoryName] = (catSpend[t.categoryName]||0) + t.amount);
 
   // Compute average spend per category across all months
   const allApproved = transactions.filter(t => t.status==='승인');
-  const monthSet = new Set(allApproved.map(t => t.date.slice(0,7)));
+  const monthSet = new Set(allApproved.map(t => t.transactionDate.slice(0,7)));
   const catMonthly = {};
   CATEGORIES.forEach(c => {
     catMonthly[c] = Array.from(monthSet).map(m =>
-      allApproved.filter(t => t.category===c && t.date.startsWith(m)).reduce((s,t)=>s+t.amount,0)
+      allApproved.filter(t => t.categoryName===c && t.transactionDate.startsWith(m)).reduce((s,t)=>s+t.amount,0)
     );
   });
 
@@ -2890,9 +2789,9 @@ function renderWarnings() {
 
 // Card Recommendations
 function renderRecommendations() {
-  const thisMonth = transactions.filter(t => t.status==='승인' && t.date.startsWith('2026-03'));
+  const thisMonth = transactions.filter(t => t.status==='승인' && t.transactionDate.startsWith('2026-03'));
   const catSpend  = {};
-  thisMonth.forEach(t => catSpend[t.category] = (catSpend[t.category]||0) + t.amount);
+  thisMonth.forEach(t => catSpend[t.categoryName] = (catSpend[t.categoryName]||0) + t.amount);
   const sorted = Object.entries(catSpend).sort((a,b)=>b[1]-a[1]);
   const topCats = sorted.slice(0,3).map(([c])=>c);
 
@@ -2922,13 +2821,13 @@ function renderRecommendations() {
 
 // AI Feedback
 function renderAiFeedback() {
-  const thisMonth = transactions.filter(t => t.status==='승인' && t.date.startsWith('2026-03'));
-  const lastMonth = transactions.filter(t => t.status==='승인' && t.date.startsWith('2026-02'));
+  const thisMonth = transactions.filter(t => t.status==='승인' && t.transactionDate.startsWith('2026-03'));
+  const lastMonth = transactions.filter(t => t.status==='승인' && t.transactionDate.startsWith('2026-02'));
   const thisTotal = thisMonth.reduce((s,t)=>s+t.amount, 0);
   const lastTotal = lastMonth.reduce((s,t)=>s+t.amount, 0);
 
   const catSpend = {};
-  thisMonth.forEach(t => catSpend[t.category] = (catSpend[t.category]||0) + t.amount);
+  thisMonth.forEach(t => catSpend[t.categoryName] = (catSpend[t.categoryName]||0) + t.amount);
 
   const feedbacks = [];
   const budget = Number(localStorage.getItem(LS_BUDGET_KEY)) || 0;
@@ -3034,9 +2933,9 @@ const YT_VIDEOS = {
 };
 
 function renderYoutubeReco() {
-  const thisMonth = transactions.filter(t => t.status === '승인' && t.date.startsWith('2026-03'));
+  const thisMonth = transactions.filter(t => t.status === '승인' && t.transactionDate.startsWith('2026-03'));
   const catSpend = {};
-  thisMonth.forEach(t => catSpend[t.category] = (catSpend[t.category] || 0) + t.amount);
+  thisMonth.forEach(t => catSpend[t.categoryName] = (catSpend[t.categoryName] || 0) + t.amount);
 
   // Get top 3 categories, then add 기타 as fallback
   const topCats = Object.entries(catSpend).sort((a,b) => b[1]-a[1]).slice(0, 3).map(([c]) => c);

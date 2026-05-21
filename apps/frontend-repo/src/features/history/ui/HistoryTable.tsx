@@ -1,5 +1,13 @@
 import {
-  Table, Badge, Text, Group, Center, Stack, Pagination, Card,
+  Table,
+  Badge,
+  Text,
+  Group,
+  Center,
+  Stack,
+  Pagination,
+  Card,
+  Box,
 } from '@mantine/core';
 import type { TransactionDto } from '../model/types';
 import { CATEGORY_COLORS } from '../model/constants';
@@ -17,13 +25,22 @@ interface Props {
   isLoading?: boolean;
 }
 
+const tableCardStyle = {
+  backgroundColor: 'var(--card)',
+  border: '1px solid var(--border)',
+  borderRadius: 20,
+  boxShadow: '0 10px 20px rgba(0, 0, 0, 0.05)',
+} as const;
+
 export function HistoryTable({ data, page, totalPages, onPageChange, onRowClick, isLoading }: Props) {
   if (isLoading) {
     return (
-      <Card withBorder radius="xl" p={0}>
+      <Card p={0} style={tableCardStyle}>
         <Center p="xl">
           <Stack align="center" gap="sm">
-            <Text c="dimmed" size="sm">불러오는 중...</Text>
+            <Text size="sm" style={{ color: 'var(--text)', opacity: 0.7 }}>
+              내역을 불러오는 중입니다.
+            </Text>
           </Stack>
         </Center>
       </Card>
@@ -32,11 +49,13 @@ export function HistoryTable({ data, page, totalPages, onPageChange, onRowClick,
 
   if (data.length === 0) {
     return (
-      <Card withBorder radius="xl" p={0}>
+      <Card p={0} style={tableCardStyle}>
         <Center p="xl">
           <Stack align="center" gap="sm">
-            <Text size="xl">🔍</Text>
-            <Text c="dimmed">조회된 내역이 없습니다</Text>
+            <Text size="xl">비어 있음</Text>
+            <Text style={{ color: 'var(--text)', opacity: 0.7 }}>
+              조건에 맞는 이용내역이 없습니다.
+            </Text>
           </Stack>
         </Center>
       </Card>
@@ -44,9 +63,30 @@ export function HistoryTable({ data, page, totalPages, onPageChange, onRowClick,
   }
 
   return (
-    <Card withBorder radius="xl" p={0}>
-      <div style={{ overflowX: 'auto' }}>
-        <Table striped highlightOnHover>
+    <Card p={0} style={tableCardStyle}>
+      <Box style={{ overflowX: 'auto' }}>
+        <Table
+          highlightOnHover
+          styles={{
+            table: {
+              color: 'var(--text)',
+            },
+            th: {
+              backgroundColor: 'var(--bg)',
+              color: 'var(--text)',
+              borderBottom: '1px solid var(--border)',
+              fontSize: 12,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            },
+            td: {
+              borderBottom: '1px solid var(--border)',
+            },
+            tr: {
+              transition: '0.25s ease-in-out',
+            },
+          }}
+        >
           <Table.Thead>
             <Table.Tr>
               <Table.Th>날짜</Table.Th>
@@ -66,43 +106,47 @@ export function HistoryTable({ data, page, totalPages, onPageChange, onRowClick,
                   cursor: 'pointer',
                   opacity: txn.status === '취소' ? 0.6 : 1,
                   textDecoration: txn.status === '취소' ? 'line-through' : 'none',
-                  color: txn.status === '취소' ? 'var(--mantine-color-red-6)' : 'inherit',
+                  color: 'var(--text)',
                 }}
                 onClick={() => onRowClick(txn)}
               >
                 <Table.Td>{txn.transactionDate}</Table.Td>
                 <Table.Td>
-                  <Text fw={600} size="sm" style={{ textDecoration: 'inherit', color: 'inherit' }}>
+                  <Text fw={700} size="sm" style={{ textDecoration: 'inherit', color: 'inherit' }}>
                     {txn.merchant}
                   </Text>
                 </Table.Td>
                 <Table.Td>
                   <Badge
+                    size="sm"
+                    radius="xl"
                     style={{
-                      backgroundColor: CATEGORY_COLORS[txn.categoryName] ?? '#64748b',
+                      backgroundColor: CATEGORY_COLORS[txn.categoryName] ?? 'var(--text)',
                       color: '#fff',
                       textDecoration: 'none',
                     }}
-                    size="sm"
                   >
                     {txn.categoryName}
                   </Badge>
                 </Table.Td>
                 <Table.Td ta="right">
-                  <Text fw={700} size="sm" style={{ textDecoration: 'inherit', color: 'inherit' }}>
+                  <Text fw={800} size="sm" style={{ textDecoration: 'inherit', color: 'inherit' }}>
                     {fmt(txn.amount)}원
                   </Text>
                 </Table.Td>
                 <Table.Td>{txn.cardName}</Table.Td>
-                <Table.Td>
-                  {txn.installment === 1 ? '일시불' : `${txn.installment}개월`}
-                </Table.Td>
+                <Table.Td>{txn.installment === 1 ? '일시불' : `${txn.installment}개월`}</Table.Td>
                 <Table.Td>
                   <Badge
-                    color={txn.status === '승인' ? 'green' : 'red'}
+                    radius="xl"
                     variant="light"
                     size="sm"
-                    style={{ textDecoration: 'none' }}
+                    style={{
+                      backgroundColor: txn.status === '승인' ? 'rgba(255, 204, 0, 0.18)' : 'var(--bg)',
+                      border: `1px solid ${txn.status === '승인' ? 'var(--kb-yellow)' : 'var(--border)'}`,
+                      color: 'var(--text)',
+                      textDecoration: 'none',
+                    }}
                   >
                     {txn.status}
                   </Badge>
@@ -111,7 +155,7 @@ export function HistoryTable({ data, page, totalPages, onPageChange, onRowClick,
             ))}
           </Table.Tbody>
         </Table>
-      </div>
+      </Box>
 
       {totalPages > 1 && (
         <Group justify="center" p="md">
@@ -120,6 +164,7 @@ export function HistoryTable({ data, page, totalPages, onPageChange, onRowClick,
             value={page}
             onChange={onPageChange}
             color="brandYellow"
+            radius="xl"
             size="sm"
           />
         </Group>

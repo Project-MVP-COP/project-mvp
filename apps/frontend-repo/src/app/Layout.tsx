@@ -29,7 +29,7 @@ export function Layout() {
       <NavigationProgress color="brandYellow" />
 
       <AppShell.Header
-        bg={colorScheme === "dark" ? "dark.7" : "gray.0"}
+        bg="var(--card)"
         withBorder={false}
       >
         <AppHeader
@@ -40,7 +40,7 @@ export function Layout() {
         />
       </AppShell.Header>
 
-      <AppShell.Main>
+      <AppShell.Main style={{ backgroundColor: "var(--bg)", transition: "0.25s ease-in-out" }}>
         <Box pos="relative" mih="calc(100vh - 100px)" mx="auto" maw={1400}>
           <LoadingOverlay
             visible={isNavigating}

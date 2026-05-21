@@ -1,7 +1,15 @@
 import { useRef, useState } from 'react';
 import {
-  Modal, Stack, Group, Button, Text, Box, Card,
-  Table, Badge, ScrollArea,
+  Modal,
+  Stack,
+  Group,
+  Button,
+  Text,
+  Box,
+  Card,
+  Table,
+  Badge,
+  ScrollArea,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useUploadExcel, useBulkSave } from '../api/mutations';
@@ -17,6 +25,12 @@ interface Props {
   onClose: () => void;
 }
 
+const previewCardStyle = {
+  backgroundColor: 'var(--card)',
+  border: '1px solid var(--border)',
+  borderRadius: 20,
+} as const;
+
 export function HistoryUploadModal({ opened, onClose }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');
@@ -30,7 +44,12 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
     e.target.value = '';
     if (!file) return;
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
-      notifications.show({ title: '❌', message: '엑셀 파일(.xlsx, .xls)만 선택할 수 있습니다.', color: 'red', autoClose: 3000 });
+      notifications.show({
+        title: '업로드 실패',
+        message: '엑셀 파일(.xlsx, .xls)만 선택할 수 있습니다.',
+        color: 'red',
+        autoClose: 3000,
+      });
       return;
     }
 
@@ -38,16 +57,31 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
     setParsedRows([]);
 
     uploadMutation.mutate(file, {
-      onSuccess: (rows) => {
+      onSuccess: rows => {
         if (rows.length === 0) {
-          notifications.show({ title: '💡', message: '엑셀 데이터가 없습니다.', color: 'blue', autoClose: 3000 });
+          notifications.show({
+            title: '파싱 완료',
+            message: '미리보기할 데이터가 없습니다.',
+            color: 'blue',
+            autoClose: 3000,
+          });
         } else {
           setParsedRows(rows);
-          notifications.show({ title: '💡', message: `${rows.length}건 파싱 완료`, color: 'blue', autoClose: 3000 });
+          notifications.show({
+            title: '파싱 완료',
+            message: `${rows.length}건을 불러왔습니다.`,
+            color: 'blue',
+            autoClose: 3000,
+          });
         }
       },
       onError: () => {
-        notifications.show({ title: '❌', message: '서버에서 엑셀 파싱 중 오류가 발생했습니다.', color: 'red', autoClose: 3000 });
+        notifications.show({
+          title: '파싱 오류',
+          message: '서버에서 엑셀 파일을 읽는 중 오류가 발생했습니다.',
+          color: 'red',
+          autoClose: 3000,
+        });
       },
     });
   };
@@ -55,18 +89,23 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
   const handleSave = () => {
     if (parsedRows.length === 0) return;
     bulkMutation.mutate(parsedRows, {
-      onSuccess: (added) => {
+      onSuccess: added => {
         const skipped = parsedRows.length - added.length;
         notifications.show({
-          title: '✅',
-          message: `${added.length}건 추가${skipped > 0 ? `, ${skipped}건 중복 건너뜀` : ''}`,
+          title: '저장 완료',
+          message: `${added.length}건 저장${skipped > 0 ? `, ${skipped}건 중복 제외` : ''}`,
           color: 'green',
           autoClose: 3000,
         });
         handleClose();
       },
       onError: () => {
-        notifications.show({ title: '❌', message: '서버 저장 중 오류가 발생했습니다.', color: 'red', autoClose: 3000 });
+        notifications.show({
+          title: '저장 오류',
+          message: '서버 저장 중 오류가 발생했습니다.',
+          color: 'red',
+          autoClose: 3000,
+        });
       },
     });
   };
@@ -82,7 +121,24 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
   const isLoading = uploadMutation.isPending || bulkMutation.isPending;
 
   return (
-    <Modal opened={opened} onClose={handleClose} title="엑셀 업로드" size="xl" centered radius="xl">
+    <Modal
+      opened={opened}
+      onClose={handleClose}
+      title="엑셀 업로드"
+      size="xl"
+      centered
+      radius="xl"
+      styles={{
+        content: {
+          backgroundColor: 'var(--card)',
+          color: 'var(--text)',
+        },
+        header: {
+          backgroundColor: 'var(--card)',
+          color: 'var(--text)',
+        },
+      }}
+    >
       <Stack gap="md">
         <input
           ref={inputRef}
@@ -93,35 +149,63 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
         />
 
         <Group justify="space-between" align="center">
-          <Text size="sm" c="dimmed">
-            선택된 파일: <strong>{fileName || '없음'}</strong>
+          <Text size="sm" style={{ color: 'var(--text)', opacity: 0.72 }}>
+            선택한 파일: <strong>{fileName || '없음'}</strong>
           </Text>
           <Button
             variant="outline"
             size="sm"
+            radius="xl"
             loading={uploadMutation.isPending}
             onClick={() => inputRef.current?.click()}
+            style={{
+              borderColor: 'var(--border)',
+              color: 'var(--text)',
+            }}
           >
             파일 선택
           </Button>
         </Group>
 
-        <Text size="sm" c="dimmed">
-          신한카드·KB국민카드 실제 내보내기 파일(.xls)을 그대로 업로드하면 카드사가 자동
-          감지됩니다. 카테고리는 가맹점명 키워드로 자동 분류됩니다.
+        <Text size="sm" style={{ color: 'var(--text)', opacity: 0.72 }}>
+          카드사 엑셀 파일을 업로드하면 서버에서 거래 내역을 파싱하고, 저장 전에 미리보기를
+          확인할 수 있습니다.
         </Text>
 
         {uploadMutation.isError && (
-          <Box p="sm" style={{ backgroundColor: 'var(--mantine-color-red-0)', borderRadius: 8, border: '1px solid var(--mantine-color-red-3)' }}>
-            <Text size="sm" c="red">서버에서 엑셀을 파싱하는 중 오류가 발생했습니다.</Text>
+          <Box
+            p="sm"
+            style={{
+              backgroundColor: 'var(--bg)',
+              borderRadius: 12,
+              border: '1px solid var(--border)',
+            }}
+          >
+            <Text size="sm" style={{ color: 'var(--text)' }}>
+              서버에서 업로드 파일을 분석하는 중 오류가 발생했습니다.
+            </Text>
           </Box>
         )}
 
         {parsedRows.length > 0 ? (
           <>
-            <Text size="sm" fw={600}>미리보기 ({parsedRows.length}건)</Text>
+            <Text size="sm" fw={700} style={{ color: 'var(--text)' }}>
+              미리보기 ({parsedRows.length}건)
+            </Text>
             <ScrollArea h={300} type="hover">
-              <Table striped highlightOnHover>
+              <Table
+                highlightOnHover
+                styles={{
+                  table: { color: 'var(--text)' },
+                  th: {
+                    backgroundColor: 'var(--bg)',
+                    borderBottom: '1px solid var(--border)',
+                  },
+                  td: {
+                    borderBottom: '1px solid var(--border)',
+                  },
+                }}
+              >
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>날짜</Table.Th>
@@ -141,8 +225,9 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
                       <Table.Td>
                         <Badge
                           size="sm"
+                          radius="xl"
                           style={{
-                            backgroundColor: CATEGORY_COLORS[row.categoryName] ?? '#64748b',
+                            backgroundColor: CATEGORY_COLORS[row.categoryName] ?? 'var(--text)',
                             color: '#fff',
                           }}
                         >
@@ -153,7 +238,16 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
                       <Table.Td>{row.cardName}</Table.Td>
                       <Table.Td>{row.installment === 1 ? '일시불' : `${row.installment}개월`}</Table.Td>
                       <Table.Td>
-                        <Badge color={row.status === '승인' ? 'green' : 'red'} variant="light" size="sm">
+                        <Badge
+                          radius="xl"
+                          variant="light"
+                          size="sm"
+                          style={{
+                            backgroundColor: row.status === '승인' ? 'rgba(255, 204, 0, 0.18)' : 'var(--bg)',
+                            border: `1px solid ${row.status === '승인' ? 'var(--kb-yellow)' : 'var(--border)'}`,
+                            color: 'var(--text)',
+                          }}
+                        >
                           {row.status}
                         </Badge>
                       </Table.Td>
@@ -164,21 +258,37 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
             </ScrollArea>
 
             <Group justify="flex-end">
-              <Button variant="default" onClick={handleClose} disabled={isLoading}>취소</Button>
               <Button
-                fw={700}
-                style={{ backgroundColor: '#FFCC00', color: '#000' }}
+                variant="outline"
+                radius="xl"
+                onClick={handleClose}
+                disabled={isLoading}
+                style={{
+                  borderColor: 'var(--border)',
+                  color: 'var(--text)',
+                }}
+              >
+                취소
+              </Button>
+              <Button
+                radius="xl"
+                fw={800}
                 loading={bulkMutation.isPending}
                 onClick={handleSave}
+                style={{
+                  backgroundColor: 'var(--kb-yellow)',
+                  color: '#000',
+                  boxShadow: '0 4px 15px rgba(255, 204, 0, 0.4)',
+                }}
               >
                 {parsedRows.length}건 저장
               </Button>
             </Group>
           </>
         ) : (
-          <Card withBorder radius="md" p="lg" bg="gray.0">
-            <Text size="sm" c="dimmed">
-              엑셀 파일을 선택하면 서버에서 파싱한 결과를 미리보기로 확인할 수 있습니다.
+          <Card p="lg" style={previewCardStyle}>
+            <Text size="sm" style={{ color: 'var(--text)', opacity: 0.72 }}>
+              파일을 선택하면 파싱 결과가 이 영역에 표시됩니다.
             </Text>
           </Card>
         )}

@@ -1,3 +1,5 @@
+import { HistoryPage } from "@/features/history/routes/HistoryPage";
+import { loader as historyLoader } from "@/features/history/routes/loader";
 import { SamplePage } from "@/features/sample/routes/SamplePage";
 import { action as sampleAction } from "@/features/sample/routes/action";
 import { loader as sampleLoader } from "@/features/sample/routes/loader";
@@ -13,6 +15,11 @@ export const router = createBrowserRouter([
     element: <Layout />,
     errorElement: <ErrorBoundary />,
     children: [
+      {
+        path: "history",
+        element: <HistoryPage />,
+        loader: historyLoader(queryClient),
+      },
       {
         path: "sample",
         element: <SamplePage />,

@@ -26,6 +26,18 @@ public class TransactionController {
         return service.search(params);
     }
 
+    @GetMapping("/summary")
+    public TransactionSummaryDto summary(TransactionSearchDto params) {
+        return service.summary(params);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<TransactionDto> findById(@PathVariable Long id) {
+        TransactionDto dto = service.findById(id);
+        if (dto == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(dto);
+    }
+
     @PostMapping
     public TransactionDto add(@RequestBody TransactionDto dto) {
         return service.add(dto);

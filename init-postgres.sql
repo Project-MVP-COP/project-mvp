@@ -1,0 +1,163 @@
+-- =====================================================
+-- Card Horizon PostgreSQL 초기화 스크립트
+-- 대상 DB: project_mvp_db / 사용자: mvp_user
+-- 실행: psql -h 127.0.0.1 -U mvp_user -d project_mvp_db -f init-postgres.sql
+-- =====================================================
+
+-- 기존 테이블 초기화 (재실행 시 중복 방지)
+DROP TABLE IF EXISTS transactions CASCADE;
+DROP TABLE IF EXISTS categories  CASCADE;
+DROP TABLE IF EXISTS users       CASCADE;
+
+-- ── 테이블 생성 ───────────────────────────────────────
+
+CREATE TABLE users (
+    id            BIGSERIAL    PRIMARY KEY,
+    login_id      VARCHAR(50)  NOT NULL UNIQUE,
+    nickname      VARCHAR(50)  NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    status        VARCHAR(20)  NOT NULL DEFAULT 'active',
+    last_login_at TIMESTAMP WITH TIME ZONE,
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_users_status CHECK (status IN ('active', 'suspended', 'deleted'))
+);
+
+CREATE TABLE categories (
+    id            BIGSERIAL   PRIMARY KEY,
+    name          VARCHAR(50) NOT NULL UNIQUE,
+    color         VARCHAR(7)  NOT NULL DEFAULT '#64748b',
+    display_order INTEGER     NOT NULL DEFAULT 0,
+    is_default    BOOLEAN     NOT NULL DEFAULT FALSE,
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_categories_display_order ON categories(display_order);
+
+CREATE TABLE transactions (
+    id               BIGSERIAL    PRIMARY KEY,
+    user_id          BIGINT       NOT NULL,
+    transaction_date DATE         NOT NULL,
+    merchant         VARCHAR(200) NOT NULL,
+    category_id      BIGINT,
+    amount           BIGINT       NOT NULL,
+    card_name        VARCHAR(50),
+    installment      INTEGER      NOT NULL DEFAULT 1,
+    status           VARCHAR(20)  NOT NULL DEFAULT '승인',
+    memo             TEXT,
+    created_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_transactions_user     FOREIGN KEY (user_id)     REFERENCES users(id)      ON DELETE CASCADE,
+    CONSTRAINT fk_transactions_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+    CONSTRAINT chk_transactions_amount      CHECK (amount >= 0),
+    CONSTRAINT chk_transactions_installment CHECK (installment BETWEEN 1 AND 60),
+    CONSTRAINT uk_transactions_dedup        UNIQUE (user_id, transaction_date, merchant, amount, card_name)
+);
+
+CREATE INDEX idx_transactions_user_date ON transactions(user_id, transaction_date DESC);
+CREATE INDEX idx_transactions_category  ON transactions(category_id);
+CREATE INDEX idx_transactions_status    ON transactions(status);
+CREATE INDEX idx_transactions_merchant  ON transactions(merchant);
+
+-- ── 기본 데이터 ───────────────────────────────────────
+
+INSERT INTO users (login_id, nickname, password_hash, status) VALUES
+('dummy_user', '테스트유저', '$2a$10$dummyhashplaceholderonly', 'active');
+
+INSERT INTO categories (name, color, display_order, is_default) VALUES
+('식음료',    '#f97316', 10, TRUE),
+('쇼핑',      '#8b5cf6', 20, TRUE),
+('교통',      '#3b82f6', 30, TRUE),
+('의료/건강', '#ef4444', 40, TRUE),
+('문화/여가', '#ec4899', 50, TRUE),
+('편의점',    '#10b981', 60, TRUE),
+('주유',      '#6b7280', 70, TRUE),
+('통신',      '#06b6d4', 80, TRUE),
+('교육',      '#f59e0b', 90, TRUE),
+('기타',      '#64748b', 99, TRUE);
+
+INSERT INTO transactions (user_id, transaction_date, merchant, category_id, amount, card_name, installment, status) VALUES
+(1, '2026-01-02', '스타벅스',       1,   6500, '신한카드', 1, '승인'),
+(1, '2026-01-03', '쿠팡',           2,  38900, '국민카드', 1, '승인'),
+(1, '2026-01-05', '카카오택시',     3,  12300, '삼성카드', 1, '승인'),
+(1, '2026-01-06', '맥도날드',       1,   9800, '신한카드', 1, '승인'),
+(1, '2026-01-07', 'CU',             6,   3200, '현대카드', 1, '승인'),
+(1, '2026-01-08', '넷플릭스',       5,  17000, '국민카드', 1, '승인'),
+(1, '2026-01-09', 'SKT',            8,  55000, '신한카드', 1, '승인'),
+(1, '2026-01-10', '배달의민족',     1,  24500, '삼성카드', 1, '승인'),
+(1, '2026-01-11', '이마트',         2,  67300, '현대카드', 1, '승인'),
+(1, '2026-01-12', 'SK에너지',       7,  89000, '우리카드', 1, '승인'),
+(1, '2026-01-13', '세브란스병원',   4,  45000, '국민카드', 1, '승인'),
+(1, '2026-01-14', 'GS25',           6,   4700, '삼성카드', 1, '승인'),
+(1, '2026-01-15', 'CGV',            5,  14000, '신한카드', 1, '승인'),
+(1, '2026-01-16', 'KTX',            3,  53000, '현대카드', 1, '승인'),
+(1, '2026-01-17', '무신사',         2, 128000, '국민카드', 3, '승인'),
+(1, '2026-01-18', '스타벅스',       1,  13500, '신한카드', 1, '승인'),
+(1, '2026-01-20', '클래스101',      9,  39000, '삼성카드', 1, '승인'),
+(1, '2026-01-21', 'GS칼텍스',       7,  76000, '우리카드', 1, '승인'),
+(1, '2026-01-22', '쿠팡이츠',       1,  18900, '신한카드', 1, '승인'),
+(1, '2026-01-23', '유튜브프리미엄', 5,  14900, '현대카드', 1, '승인'),
+(1, '2026-01-24', '세븐일레븐',     6,   5600, '국민카드', 1, '승인'),
+(1, '2026-01-25', '롯데백화점',     2, 235000, '현대카드', 6, '승인'),
+(1, '2026-01-26', '티머니',         3,  50000, '우리카드', 1, '승인'),
+(1, '2026-01-27', '올리브영',       2,  43500, '신한카드', 1, '승인'),
+(1, '2026-01-28', '인프런',         9,  59000, '삼성카드', 1, '승인'),
+(1, '2026-01-29', '맥도날드',       1,   8700, '신한카드', 1, '취소'),
+(1, '2026-01-30', 'KT',             8,  49000, '국민카드', 1, '승인'),
+(1, '2026-01-31', '네이버쇼핑',     2,  52000, '현대카드', 2, '승인'),
+(1, '2026-02-01', '스타벅스',       1,   7500, '신한카드', 1, '승인'),
+(1, '2026-02-02', '배달의민족',     1,  31000, '삼성카드', 1, '승인'),
+(1, '2026-02-03', '카카오택시',     3,   8900, '삼성카드', 1, '승인'),
+(1, '2026-02-05', '이마트',         2,  92000, '현대카드', 1, '승인'),
+(1, '2026-02-06', 'CGV',            5,  28000, '신한카드', 1, '승인'),
+(1, '2026-02-07', 'SK에너지',       7,  95000, '우리카드', 1, '승인'),
+(1, '2026-02-08', 'LG U+',          8,  62000, '삼성카드', 1, '승인'),
+(1, '2026-02-10', '쿠팡',           2, 145000, '국민카드', 3, '승인'),
+(1, '2026-02-11', '스타벅스',       1,  12000, '신한카드', 1, '승인'),
+(1, '2026-02-12', '세브란스병원',   4,  35000, '국민카드', 1, '승인'),
+(1, '2026-02-13', 'GS25',           6,   6100, '삼성카드', 1, '승인'),
+(1, '2026-02-14', '롯데백화점',     2, 198000, '현대카드', 6, '승인'),
+(1, '2026-02-15', '넷플릭스',       5,  17000, '국민카드', 1, '승인'),
+(1, '2026-02-16', '쿠팡이츠',       1,  22400, '신한카드', 1, '승인'),
+(1, '2026-02-17', '인프런',         9,  49000, '삼성카드', 1, '승인'),
+(1, '2026-02-18', 'GS칼텍스',       7,  82000, '우리카드', 1, '승인'),
+(1, '2026-02-20', 'CU',             6,   4200, '현대카드', 1, '승인'),
+(1, '2026-02-21', 'KTX',            3,  65000, '현대카드', 1, '승인'),
+(1, '2026-02-22', '올리브영약국',   4,  28000, '신한카드', 1, '승인'),
+(1, '2026-02-23', '무신사',         2,  78000, '국민카드', 2, '승인'),
+(1, '2026-02-24', '유튜브프리미엄', 5,  14900, '현대카드', 1, '승인'),
+(1, '2026-02-25', '세븐일레븐',     6,   3800, '국민카드', 1, '승인'),
+(1, '2026-02-26', '네이버쇼핑',     2,  34500, '현대카드', 1, '승인'),
+(1, '2026-02-27', 'SKT',            8,  55000, '신한카드', 1, '승인'),
+(1, '2026-02-28', '배달의민족',     1,  28700, '삼성카드', 1, '취소'),
+(1, '2026-03-01', '스타벅스',       1,   9000, '신한카드', 1, '승인'),
+(1, '2026-03-02', '카카오택시',     3,  15700, '삼성카드', 1, '승인'),
+(1, '2026-03-03', '쿠팡',           2, 234000, '국민카드', 6, '승인'),
+(1, '2026-03-04', '맥도날드',       1,  11200, '신한카드', 1, '승인'),
+(1, '2026-03-05', 'SK에너지',       7, 102000, '우리카드', 1, '승인'),
+(1, '2026-03-06', '세브란스병원',   4,  67000, '국민카드', 1, '승인'),
+(1, '2026-03-07', 'GS25',           6,   5100, '삼성카드', 1, '승인'),
+(1, '2026-03-08', '넷플릭스',       5,  17000, '국민카드', 1, '승인'),
+(1, '2026-03-09', '배달의민족',     1,  35600, '삼성카드', 1, '승인'),
+(1, '2026-03-10', '이마트',         2, 118000, '현대카드', 1, '승인'),
+(1, '2026-03-11', 'GS칼텍스',       7,  88000, '우리카드', 1, '승인'),
+(1, '2026-03-12', 'CGV',            5,  21000, '신한카드', 1, '승인'),
+(1, '2026-03-13', '클래스101',      9,  49000, '삼성카드', 1, '승인'),
+(1, '2026-03-14', 'CU',             6,   6200, '현대카드', 1, '승인'),
+(1, '2026-03-15', 'KTX',            3,  73000, '현대카드', 1, '승인'),
+(1, '2026-03-16', '올리브영',       2,  56000, '신한카드', 1, '승인'),
+(1, '2026-03-17', '스타벅스',       1,   8500, '신한카드', 1, '승인'),
+(1, '2026-03-18', '쿠팡이츠',       1,  19800, '신한카드', 1, '승인'),
+(1, '2026-03-19', '무신사',         2, 165000, '국민카드', 3, '승인'),
+(1, '2026-03-20', '유튜브프리미엄', 5,  14900, '현대카드', 1, '승인'),
+(1, '2026-03-21', '세븐일레븐',     6,   4100, '국민카드', 1, '승인'),
+(1, '2026-03-22', 'KT',             8,  49000, '국민카드', 1, '승인'),
+(1, '2026-03-23', '롯데백화점',     2, 312000, '현대카드', 6, '승인'),
+(1, '2026-03-24', '인프런',         9,  79000, '삼성카드', 1, '승인'),
+(1, '2026-03-25', '티머니',         3,  50000, '우리카드', 1, '승인'),
+(1, '2026-03-26', '세브란스병원',   4,  32000, '국민카드', 1, '승인'),
+(1, '2026-03-27', '배달의민족',     1,  27300, '삼성카드', 1, '취소'),
+(1, '2026-03-28', 'KTX',            3,  71000, '현대카드', 1, '승인'),
+(1, '2026-03-29', '네이버쇼핑',     2,  45000, '현대카드', 2, '취소'),
+(1, '2026-03-30', '맥도날드',       1,   8200, '신한카드', 1, '승인');

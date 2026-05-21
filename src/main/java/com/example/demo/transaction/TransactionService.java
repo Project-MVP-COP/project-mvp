@@ -40,6 +40,14 @@ public class TransactionService {
         );
     }
 
+    public TransactionSummaryDto summary(TransactionSearchDto params) {
+        return mapper.searchSummary(params);
+    }
+
+    public TransactionDto findById(Long id) {
+        return mapper.findById(id);
+    }
+
     public TransactionDto add(TransactionDto dto) {
         dto.setUserId(DUMMY_USER_ID);
         resolveCategoryId(dto);

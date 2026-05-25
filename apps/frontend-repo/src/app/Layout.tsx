@@ -4,6 +4,7 @@ import { AppShell, Box, LoadingOverlay } from "@mantine/core";
 import { NavigationProgress, nprogress } from "@mantine/nprogress";
 import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate, useNavigation } from "react-router";
+import { toast } from "@/shared/ui/toast";
 
 /**
  * 애플리케이션 기본 레이아웃
@@ -13,7 +14,7 @@ export function Layout() {
   const navigation = useNavigation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { colorScheme, toggleColorScheme } = useAppStore();
+  const { colorScheme, toggleColorScheme, isAuthenticated, nickname, clearSession } = useAppStore();
   const isNavigating = navigation.state === "loading";
 
   useEffect(() => {
@@ -23,6 +24,12 @@ export function Layout() {
       nprogress.complete();
     }
   }, [isNavigating]);
+
+  const handleLogout = () => {
+    clearSession();
+    toast.success("로그아웃되었습니다.");
+    navigate("/login");
+  };
 
   return (
     <AppShell header={{ height: { base: 60, sm: 100 } }} padding="md">
@@ -37,8 +44,12 @@ export function Layout() {
           onToggleColorScheme={toggleColorScheme}
           activeTab={location.pathname}
           onTabChange={(value) => navigate(value)}
+          isAuthenticated={isAuthenticated}
+          nickname={nickname}
+          onLogout={handleLogout}
         />
       </AppShell.Header>
+
 
       <AppShell.Main>
         <Box pos="relative" mih="calc(100vh - 100px)" mx="auto" maw={1400}>

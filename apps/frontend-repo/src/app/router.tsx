@@ -1,18 +1,52 @@
+import LoginPage from "@/features/auth/routes/LoginPage";
+import RegisterPage from "@/features/auth/routes/RegisterPage";
+import { loginAction, registerAction } from "@/features/auth/routes/action";
 import { SamplePage } from "@/features/sample/routes/SamplePage";
 import { action as sampleAction } from "@/features/sample/routes/action";
 import { loader as sampleLoader } from "@/features/sample/routes/loader";
 import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import { NotFoundPage } from "@/shared/ui/NotFoundPage";
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, redirect, Navigate } from "react-router";
 import { Layout } from "./Layout";
 import { queryClient } from "./queryClient";
+import { useAppStore } from "@/app/store/useAppStore";
+
+/**
+ * 보안 라우팅 가드 로더
+ * 미인증 접속 발생 시 즉시 /login 으로 안전하게 튕겨냅니다.
+ */
+const rootLoader = () => async () => {
+  const { isAuthenticated } = useAppStore.getState();
+  if (!isAuthenticated) {
+    return redirect("/login");
+  }
+  return null;
+};
 
 export const router = createBrowserRouter([
+  // 1. 공통 헤더 쉘 레이아웃에서 탈출한 단독 풀스크린 라우트
+  {
+    path: "/login",
+    element: <LoginPage />,
+    action: loginAction(),
+  },
+  {
+    path: "/register",
+    element: <RegisterPage />,
+    action: registerAction(),
+  },
+  
+  // 2. 인증 가드가 탑재된 공통 레이아웃 보호 영역 라우트
   {
     path: "/",
     element: <Layout />,
     errorElement: <ErrorBoundary />,
+    loader: rootLoader(),
     children: [
+      {
+        index: true,
+        element: <Navigate to="/sample" replace />,
+      },
       {
         path: "sample",
         element: <SamplePage />,
@@ -26,3 +60,5 @@ export const router = createBrowserRouter([
     ],
   },
 ]);
+
+

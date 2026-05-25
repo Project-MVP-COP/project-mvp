@@ -12,6 +12,7 @@ import {
   NavLink,
   rem,
   ScrollArea,
+  Stack,
   Tabs,
   Text,
   Title,
@@ -26,12 +27,8 @@ import {
 } from "@tabler/icons-react";
 import { useState } from "react";
 
-const user = {
-  name: "Jane Spoonfighter",
-  email: "janspoon@fighter.dev",
-  image:
-    "https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-5.png",
-};
+const userAvatarDefault =
+  "https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-5.png";
 
 const navTabs = [
   { label: "내역관리", value: "/history" },
@@ -46,6 +43,9 @@ interface AppHeaderProps {
   onToggleColorScheme: () => void;
   activeTab: string | null;
   onTabChange: (value: string) => void;
+  isAuthenticated: boolean;
+  nickname: string | null;
+  onLogout: () => void;
 }
 
 /**
@@ -56,10 +56,14 @@ export function AppHeader({
   onToggleColorScheme,
   activeTab,
   onTabChange,
+  isAuthenticated,
+  nickname,
+  onLogout,
 }: AppHeaderProps) {
   const [drawerOpened, { toggle: toggleDrawer, close: closeDrawer }] =
     useDisclosure(false);
   const [userMenuOpened, setUserMenuOpened] = useState(false);
+
 
   return (
     <Box component="header">
@@ -99,68 +103,94 @@ export function AppHeader({
               )}
             </ActionIcon>
 
-            <Menu
-              width={260}
-              position="bottom-end"
-              transitionProps={{ transition: "pop-top-right" }}
-              onClose={() => setUserMenuOpened(false)}
-              onOpen={() => setUserMenuOpened(true)}
-              withinPortal
-            >
-              <Menu.Target>
+            {isAuthenticated ? (
+              <Menu
+                width={260}
+                position="bottom-end"
+                transitionProps={{ transition: "pop-top-right" }}
+                onClose={() => setUserMenuOpened(false)}
+                onOpen={() => setUserMenuOpened(true)}
+                withinPortal
+              >
+                <Menu.Target>
+                  <Button
+                    variant="subtle"
+                    color="gray"
+                    px="xs"
+                    h={38}
+                    style={{
+                      backgroundColor: userMenuOpened
+                        ? "var(--mantine-color-default-hover)"
+                        : undefined,
+                    }}
+                  >
+                    <Group gap={7}>
+                      <Avatar
+                        src={userAvatarDefault}
+                        alt={nickname || "사용자"}
+                        radius="xl"
+                        size={24}
+                      />
+                      <Text fw={500} size="sm" lh={1} mr={3} visibleFrom="xs">
+                        {nickname}
+                      </Text>
+                      <IconChevronDown size={12} stroke={1.5} />
+                    </Group>
+                  </Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Label>사용자</Menu.Label>
+                  <Menu.Item
+                    leftSection={<IconSettings size={16} stroke={1.5} />}
+                  >
+                    계정 설정
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<IconLogout size={16} stroke={1.5} />}
+                    onClick={onLogout}
+                  >
+                    로그아웃
+                  </Menu.Item>
+
+                  <Menu.Divider />
+
+                  <Menu.Item
+                    leftSection={
+                      colorScheme === "dark" ? (
+                        <IconSun size={16} stroke={1.5} />
+                      ) : (
+                        <IconMoon size={16} stroke={1.5} />
+                      )
+                    }
+                    onClick={onToggleColorScheme}
+                    hiddenFrom="sm"
+                  >
+                    {colorScheme === "dark" ? "Light Mode" : "Dark Mode"}
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            ) : (
+              <Group gap="xs" visibleFrom="xs">
                 <Button
-                  variant="subtle"
-                  color="gray"
-                  px="xs"
-                  h={38}
-                  style={{
-                    backgroundColor: userMenuOpened
-                      ? "var(--mantine-color-default-hover)"
-                      : undefined,
-                  }}
+                  variant="default"
+                  radius="sm"
+                  size="sm"
+                  h={34}
+                  onClick={() => onTabChange("/login")}
                 >
-                  <Group gap={7}>
-                    <Avatar
-                      src={user.image}
-                      alt={user.name}
-                      radius="xl"
-                      size={24}
-                    />
-                    <Text fw={500} size="sm" lh={1} mr={3} visibleFrom="xs">
-                      {user.name}
-                    </Text>
-                    <IconChevronDown size={12} stroke={1.5} />
-                  </Group>
+                  로그인
                 </Button>
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Label>사용자</Menu.Label>
-                <Menu.Item
-                  leftSection={<IconSettings size={16} stroke={1.5} />}
+                <Button
+                  color="brandYellow"
+                  radius="sm"
+                  size="sm"
+                  h={34}
+                  onClick={() => onTabChange("/register")}
                 >
-                  계정 설정
-                </Menu.Item>
-                <Menu.Item leftSection={<IconLogout size={16} stroke={1.5} />}>
-                  로그아웃
-                </Menu.Item>
-
-                <Menu.Divider />
-
-                <Menu.Item
-                  leftSection={
-                    colorScheme === "dark" ? (
-                      <IconSun size={16} stroke={1.5} />
-                    ) : (
-                      <IconMoon size={16} stroke={1.5} />
-                    )
-                  }
-                  onClick={onToggleColorScheme}
-                  hiddenFrom="sm"
-                >
-                  {colorScheme === "dark" ? "Light Mode" : "Dark Mode"}
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
+                  회원가입
+                </Button>
+              </Group>
+            )}
           </Group>
         </Group>
       </Container>
@@ -215,8 +245,57 @@ export function AppHeader({
               color="brandYellow"
             />
           ))}
+          
+          <Divider my="sm" />
+          
+          <Box px="md" py="xs">
+            {isAuthenticated ? (
+              <Stack gap="xs">
+                <Text fw={500} size="sm">
+                  접속 계정: {nickname}
+                </Text>
+                <Button
+                  variant="default"
+                  radius="sm"
+                  fullWidth
+                  onClick={() => {
+                    onLogout();
+                    closeDrawer();
+                  }}
+                >
+                  로그아웃
+                </Button>
+              </Stack>
+            ) : (
+              <Stack gap="xs">
+                <Button
+                  variant="default"
+                  radius="sm"
+                  fullWidth
+                  onClick={() => {
+                    onTabChange("/login");
+                    closeDrawer();
+                  }}
+                >
+                  로그인
+                </Button>
+                <Button
+                  color="brandYellow"
+                  radius="sm"
+                  fullWidth
+                  onClick={() => {
+                    onTabChange("/register");
+                    closeDrawer();
+                  }}
+                >
+                  회원가입
+                </Button>
+              </Stack>
+            )}
+          </Box>
         </ScrollArea>
       </Drawer>
     </Box>
   );
 }
+

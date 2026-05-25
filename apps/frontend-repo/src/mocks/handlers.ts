@@ -179,6 +179,26 @@ export const handlers = [
     return HttpResponse.json(added);
   }),
 
+  http.patch('/api/transactions/:id', async ({ params, request }) => {
+    if (!IS_TEST) await delay();
+    const id = Number(params.id);
+    const body = await request.json() as Partial<TransactionDto>;
+    const index = MOCK_TRANSACTIONS.findIndex(transaction => transaction.id === id);
+
+    if (index === -1) {
+      return new HttpResponse(null, { status: 404 });
+    }
+
+    const updated = {
+      ...MOCK_TRANSACTIONS[index],
+      ...body,
+      id,
+    };
+
+    MOCK_TRANSACTIONS[index] = updated;
+    return HttpResponse.json(updated);
+  }),
+
 
 
   http.get("/api/sample", async () => {

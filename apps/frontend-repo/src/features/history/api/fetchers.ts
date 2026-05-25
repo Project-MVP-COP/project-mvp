@@ -1,5 +1,10 @@
 import { api } from '@/shared/api/axios';
-import type { TransactionDto, TransactionPageResult, SearchParams } from '../model/types';
+import type {
+  TransactionDto,
+  TransactionPageResult,
+  SearchParams,
+  UpdateTransactionPayload,
+} from '../model/types';
 
 export const fetchTransactions = async (): Promise<TransactionDto[]> => {
   const { data } = await api.get<TransactionDto[]>('/api/transactions');
@@ -27,5 +32,16 @@ export const uploadExcel = async (file: File): Promise<TransactionDto[]> => {
 
 export const bulkSaveTransactions = async (rows: TransactionDto[]): Promise<TransactionDto[]> => {
   const { data } = await api.post<TransactionDto[]>('/api/transactions/bulk', rows);
+  return data;
+};
+
+export const updateTransaction = async ({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: UpdateTransactionPayload;
+}): Promise<TransactionDto> => {
+  const { data } = await api.patch<TransactionDto>(`/api/transactions/${id}`, payload);
   return data;
 };

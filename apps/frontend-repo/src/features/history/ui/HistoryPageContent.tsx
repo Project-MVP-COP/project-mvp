@@ -120,6 +120,11 @@ export function HistoryPageContent() {
 
   const handlePageChange = (p: number) => setPage(p - 1);
 
+  const handleSavedTransaction = (updated: TransactionDto) => {
+    setSelectedTxn(updated);
+    closeDetail();
+  };
+
   return (
     <Box
       style={{
@@ -229,6 +234,7 @@ export function HistoryPageContent() {
           opened={detailOpened}
           onClose={closeDetail}
           transaction={selectedTxn}
+          onSaved={handleSavedTransaction}
         />
 
         <HistoryUploadModal opened={uploadOpened} onClose={closeUpload} />

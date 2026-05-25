@@ -52,7 +52,7 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_IP }}
           username: ubuntu
           key: ${{ secrets.LIGHTSAIL_KEY }}
-          source: "build/libs/*-SNAPSHOT.jar"
+          source: "apps/backend-repo/build/libs/*-SNAPSHOT.jar"
           target: "/opt/deploy_stage"
           strip_components: 4
           # apps/backend-repo/build/libs/xxx.jar
@@ -133,12 +133,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: "npm"
-          cache-dependency-path: apps/frontend-repo/package-lock.json
+          #cache: "npm"
+          #cache-dependency-path: apps/frontend-repo/package-lock.json
 
       - name: 3. 의존성 설치
         working-directory: apps/frontend-repo
-        run: npm ci
+        #run: npm ci
+        run: npm install
 
       - name: 4. Vite 프로젝트 빌드
         working-directory: apps/frontend-repo

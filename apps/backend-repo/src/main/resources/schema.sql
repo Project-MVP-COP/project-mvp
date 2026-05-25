@@ -5,3 +5,35 @@ CREATE TABLE temp (
     status     VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     updated_at TIMESTAMP  DEFAULT CURRENT_TIMESTAMP
 );
+
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
+    id BIGSERIAL,
+    login_id VARCHAR(50) NOT NULL,
+    nickname VARCHAR(50) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    status VARCHAR(20) DEFAULT 'active' NOT NULL,
+    last_login_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    
+    -- 제약 조건 정의
+    CONSTRAINT pk_users PRIMARY KEY (id),
+    CONSTRAINT uk_users_login_id UNIQUE (login_id),
+    CONSTRAINT uk_users_nickname UNIQUE (nickname),
+    CONSTRAINT chk_users_status CHECK (status IN ('active', 'suspended', 'deleted')),
+    CONSTRAINT chk_users_login_id_len CHECK (LENGTH(login_id) >= 2),
+    CONSTRAINT chk_users_nickname_len CHECK (LENGTH(nickname) >= 1)
+);
+
+-- 테이블 및 컬럼 주석(Comment) 추가
+COMMENT ON TABLE users IS '사용자 마스터 테이블';
+COMMENT ON COLUMN users.id IS '내부 식별자 (외부 노출 지양, FK 조인용)';
+COMMENT ON COLUMN users.login_id IS '사용자가 로그인 시 입력하는 ID (변경 불가)';
+COMMENT ON COLUMN users.nickname IS '화면에 표시되는 사용자 명 (변경 가능)';
+COMMENT ON COLUMN users.password_hash IS 'BCrypt 해시값';
+COMMENT ON COLUMN users.status IS '계정 상태 (active, suspended, deleted)';
+COMMENT ON COLUMN users.last_login_at IS '최종 로그인 시각';
+COMMENT ON COLUMN users.created_at IS '가입 시각';
+COMMENT ON COLUMN users.updated_at IS '최종 수정 시각';
+

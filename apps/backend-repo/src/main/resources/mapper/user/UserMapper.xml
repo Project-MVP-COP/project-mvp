@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cop.kbds.agilemvp.user.repository.UserMapper">
+
+    <resultMap id="UserResultMap" type="cop.kbds.agilemvp.user.service.User">
+        <constructor>
+            <arg column="id"            javaType="java.lang.Long"/>
+            <arg column="login_id"      javaType="java.lang.String"/>
+            <arg column="nickname"      javaType="java.lang.String"/>
+            <arg column="password_hash" javaType="java.lang.String"/>
+            <arg column="status"        javaType="java.lang.String"/>
+            <arg column="last_login_at" javaType="java.time.LocalDateTime"/>
+            <arg column="created_at"    javaType="java.time.LocalDateTime"/>
+            <arg column="updated_at"    javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (login_id, nickname, password_hash, status)
+        VALUES (#{loginId}, #{nickname}, #{passwordHash}, #{status})
+    </insert>
+
+    <select id="findById" resultMap="UserResultMap">
+        SELECT id, login_id, nickname, password_hash, status, last_login_at, created_at, updated_at
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByLoginId" resultMap="UserResultMap">
+        SELECT id, login_id, nickname, password_hash, status, last_login_at, created_at, updated_at
+        FROM users
+        WHERE login_id = #{loginId} AND status != 'deleted'
+    </select>
+
+    <select id="countByLoginId" resultType="int">
+        SELECT COUNT(*)
+        FROM users
+        WHERE login_id = #{loginId} AND status != 'deleted'
+    </select>
+
+    <select id="countByNickname" resultType="int">
+        SELECT COUNT(*)
+        FROM users
+        WHERE nickname = #{nickname} AND status != 'deleted'
+    </select>
+
+    <update id="update">
+        UPDATE users
+        SET last_login_at = #{lastLoginAt},
+            status = #{status},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+</mapper>

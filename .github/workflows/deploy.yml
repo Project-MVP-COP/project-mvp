@@ -63,7 +63,7 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_IP }}
           username: ubuntu
           key: ${{ secrets.LIGHTSAIL_KEY }}
-          source: "scripts/deploy.sh"
+          source: "apps/backend-repo/scripts/deploy.sh"
           target: "/opt/deploy_stage"
           strip_components: 3
           # apps/backend-repo/scripts/deploy.sh

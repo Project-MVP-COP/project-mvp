@@ -4,7 +4,7 @@ import { api } from "@/shared/api/axios";
 
 const globalErrorHandler = (error: unknown) => {
   // 중복 토스트 방지를 위해 처리 완료 플래그 확인
-  if (error && typeof error === "object" && (error as any).__handled) {
+  if (error && typeof error === "object" && (error as Record<string, unknown>).__handled) {
     return;
   }
 
@@ -16,7 +16,7 @@ const globalErrorHandler = (error: unknown) => {
 
   // 처리 완료 플래그 설정
   if (error && typeof error === "object") {
-    (error as any).__handled = true;
+    (error as Record<string, unknown>).__handled = true;
   }
 };
 

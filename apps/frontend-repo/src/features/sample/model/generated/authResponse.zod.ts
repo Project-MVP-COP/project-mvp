@@ -9,11 +9,10 @@
  */
 import { z as zod } from 'zod';
 
-
-
-export const SampleCreateRequest = zod.object({
-  "message": zod.string().min(1)
+export const AuthResponse = zod.object({
+  "accessToken": zod.string().optional(),
+  "nickname": zod.string().optional()
 })
 
-export type SampleCreateRequest = zod.input<typeof SampleCreateRequest>;
-export type SampleCreateRequestOutput = zod.output<typeof SampleCreateRequest>;
+export type AuthResponse = zod.input<typeof AuthResponse>;
+export type AuthResponseOutput = zod.output<typeof AuthResponse>;

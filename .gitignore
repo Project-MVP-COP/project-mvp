@@ -12,3 +12,6 @@ node_modules/
 
 # OS files
 .DS_Store
+
+# Static HTML
+index1.html

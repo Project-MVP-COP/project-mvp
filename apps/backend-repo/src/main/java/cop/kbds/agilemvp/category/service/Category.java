@@ -14,4 +14,13 @@ public class Category {
     private final String  color;
     private final Integer displayOrder;
     private final Boolean isDefault;
+
+    public static Category create(String name, String color, Integer displayOrder, Boolean isDefault) {
+        return Category.builder()
+                .name(name)
+                .color(color)
+                .displayOrder(displayOrder)
+                .isDefault(isDefault)
+                .build();
+    }
 }

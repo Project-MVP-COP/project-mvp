@@ -2,20 +2,21 @@ package cop.kbds.agilemvp.transaction.web;
 
 import cop.kbds.agilemvp.transaction.service.TransactionService;
 import cop.kbds.agilemvp.transaction.service.TransactionSummary;
-import org.springframework.http.ResponseEntity;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "transaction", description = "카드 이용내역 API")
 @RestController
 @RequestMapping("/api/transactions")
+@RequiredArgsConstructor
 public class TransactionController {
 
     private final TransactionService service;
-
-    public TransactionController(TransactionService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public List<TransactionResponse> findAll() {
@@ -33,38 +34,38 @@ public class TransactionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TransactionResponse> findById(@PathVariable Long id) {
-        TransactionResponse resp = service.findById(id);
-        if (resp == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(resp);
+    public TransactionResponse findById(@PathVariable Long id) {
+        return service.findById(id);
     }
 
     @PostMapping
-    public TransactionResponse add(@RequestBody TransactionRequest req) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public TransactionResponse add(@RequestBody @Valid TransactionRequest req) {
         return service.add(req);
     }
 
     @PostMapping("/bulk")
+    @ResponseStatus(HttpStatus.CREATED)
     public List<TransactionResponse> addBulk(@RequestBody List<TransactionRequest> list) {
         return service.addBulk(list);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TransactionResponse> update(@PathVariable Long id,
-                                                      @RequestBody TransactionRequest req) {
-        return ResponseEntity.ok(service.update(id, req));
+    public TransactionResponse update(@PathVariable Long id,
+                                      @RequestBody @Valid TransactionRequest req) {
+        return service.update(id, req);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
         service.delete(id);
-        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteAll() {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAll() {
         service.deleteAll();
-        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/reset")

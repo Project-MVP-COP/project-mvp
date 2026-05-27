@@ -1,13 +1,14 @@
 package cop.kbds.agilemvp.transaction.service;
 
-import cop.kbds.agilemvp.category.infra.CategoryMapper;
+import cop.kbds.agilemvp.category.infra.CategoryRepository;
 import cop.kbds.agilemvp.common.exception.BusinessException;
-import cop.kbds.agilemvp.common.exception.CommonErrorCode;
-import cop.kbds.agilemvp.transaction.infra.TransactionMapper;
-import cop.kbds.agilemvp.transaction.web.TransactionRequest;
-import cop.kbds.agilemvp.transaction.web.TransactionSearchRequest;
+import cop.kbds.agilemvp.transaction.infra.TransactionRepository;
+import cop.kbds.agilemvp.transaction.web.TransactionErrorCode;
 import cop.kbds.agilemvp.transaction.web.TransactionPageResponse;
+import cop.kbds.agilemvp.transaction.web.TransactionRequest;
 import cop.kbds.agilemvp.transaction.web.TransactionResponse;
+import cop.kbds.agilemvp.transaction.web.TransactionSearchRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -16,26 +17,22 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class TransactionService {
 
     private static final Long DUMMY_USER_ID = 1L;
 
-    private final TransactionMapper transactionMapper;
-    private final CategoryMapper    categoryMapper;
-
-    public TransactionService(TransactionMapper transactionMapper, CategoryMapper categoryMapper) {
-        this.transactionMapper = transactionMapper;
-        this.categoryMapper    = categoryMapper;
-    }
+    private final TransactionRepository transactionRepository;
+    private final CategoryRepository    categoryRepository;
 
     public List<TransactionResponse> findAll() {
-        return transactionMapper.findAll().stream().map(TransactionResponse::from).toList();
+        return transactionRepository.findAll().stream().map(TransactionResponse::from).toList();
     }
 
     public TransactionPageResponse search(TransactionSearchRequest params) {
-        List<TransactionResponse> data = transactionMapper.searchList(params)
+        List<TransactionResponse> data = transactionRepository.searchList(params)
                 .stream().map(TransactionResponse::from).toList();
-        TransactionSummary summary = transactionMapper.searchSummary(params);
+        TransactionSummary summary = transactionRepository.searchSummary(params);
         boolean hasMore = data.size() == params.getSize();
         return new TransactionPageResponse(
                 summary.getTotalCount(), summary.getApprovedCount(),
@@ -44,19 +41,20 @@ public class TransactionService {
     }
 
     public TransactionSummary summary(TransactionSearchRequest params) {
-        return transactionMapper.searchSummary(params);
+        return transactionRepository.searchSummary(params);
     }
 
     public TransactionResponse findById(Long id) {
-        Transaction t = transactionMapper.findById(id);
-        return t == null ? null : TransactionResponse.from(t);
+        Transaction t = transactionRepository.findById(id);
+        if (t == null) throw new BusinessException(TransactionErrorCode.TRANSACTION_NOT_FOUND);
+        return TransactionResponse.from(t);
     }
 
     public TransactionResponse add(TransactionRequest req) {
         req.setUserId(DUMMY_USER_ID);
         resolveCategoryId(req);
-        transactionMapper.insert(req);
-        return TransactionResponse.from(transactionMapper.findById(req.getId()));
+        transactionRepository.insert(req);
+        return TransactionResponse.from(transactionRepository.findById(req.getId()));
     }
 
     public List<TransactionResponse> addBulk(List<TransactionRequest> list) {
@@ -67,34 +65,34 @@ public class TransactionService {
             if (req.getCategoryId() == null && req.getCategoryName() != null) {
                 req.setCategoryId(catMap.getOrDefault(req.getCategoryName(), catMap.get("기타")));
             }
-            if (transactionMapper.existsByKey(req.getUserId(), req.getTransactionDate(),
+            if (transactionRepository.existsByKey(req.getUserId(), req.getTransactionDate(),
                     req.getMerchant(), req.getAmount(), req.getCardName())) continue;
-            transactionMapper.insert(req);
-            added.add(TransactionResponse.from(transactionMapper.findById(req.getId())));
+            transactionRepository.insert(req);
+            added.add(TransactionResponse.from(transactionRepository.findById(req.getId())));
         }
         return added;
     }
 
     public TransactionResponse update(Long id, TransactionRequest req) {
-        Transaction existing = transactionMapper.findById(id);
-        if (existing == null) throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
+        Transaction existing = transactionRepository.findById(id);
+        if (existing == null) throw new BusinessException(TransactionErrorCode.TRANSACTION_NOT_FOUND);
         req.setId(id);
         req.setUserId(existing.getUserId());
         resolveCategoryId(req);
-        transactionMapper.update(req);
-        return TransactionResponse.from(transactionMapper.findById(id));
+        transactionRepository.update(req);
+        return TransactionResponse.from(transactionRepository.findById(id));
     }
 
     public void delete(Long id) {
-        transactionMapper.delete(id);
+        transactionRepository.delete(id);
     }
 
     public void deleteAll() {
-        transactionMapper.deleteAll();
+        transactionRepository.deleteAll();
     }
 
     public List<TransactionResponse> reset() {
-        transactionMapper.deleteAll();
+        transactionRepository.deleteAll();
         insertDefaults();
         return findAll();
     }
@@ -110,7 +108,7 @@ public class TransactionService {
 
     private Map<String, Long> buildCategoryMap() {
         Map<String, Long> map = new HashMap<>();
-        categoryMapper.findAll().forEach(c -> map.put(c.getName(), c.getId()));
+        categoryRepository.findAll().forEach(c -> map.put(c.getName(), c.getId()));
         return map;
     }
 
@@ -211,7 +209,7 @@ public class TransactionService {
             req.setCardName(       (String)  r[4]);
             req.setInstallment(    (int)     r[5]);
             req.setStatus(         (String)  r[6]);
-            transactionMapper.insert(req);
+            transactionRepository.insert(req);
         }
     }
 }

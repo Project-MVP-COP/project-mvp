@@ -305,15 +305,15 @@ public class ExcelService {
             for (int r = 0; r < transactions.size(); r++) {
                 TransactionResponse t = transactions.get(r);
                 Row row = sheet.createRow(r + 1);
-                setCell(row, 0, t.getTransactionDate(), dataStyle);
-                setCell(row, 1, t.getMerchant(), dataStyle);
-                setCell(row, 2, t.getCategoryName(), dataStyle);
+                setCell(row, 0, t.transactionDate(), dataStyle);
+                setCell(row, 1, t.merchant(), dataStyle);
+                setCell(row, 2, t.categoryName(), dataStyle);
                 Cell amt = row.createCell(3);
-                amt.setCellValue(t.getAmount()); amt.setCellStyle(amountStyle);
-                setCell(row, 4, t.getCardName(), dataStyle);
+                amt.setCellValue(t.amount()); amt.setCellStyle(amountStyle);
+                setCell(row, 4, t.cardName(), dataStyle);
                 Cell inst = row.createCell(5);
-                inst.setCellValue(t.getInstallment()); inst.setCellStyle(dataStyle);
-                setCell(row, 6, t.getStatus(), dataStyle);
+                inst.setCellValue(t.installment()); inst.setCellStyle(dataStyle);
+                setCell(row, 6, t.status(), dataStyle);
             }
             int[] colWidths = {3500, 5000, 3500, 3500, 3500, 3000, 2500};
             for (int i = 0; i < colWidths.length; i++) sheet.setColumnWidth(i, colWidths[i]);

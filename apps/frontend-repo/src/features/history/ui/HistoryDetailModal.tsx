@@ -33,6 +33,7 @@ const inputStyles = {
 export function HistoryDetailModal({ opened, onClose, transaction, onSaved }: Props) {
   const updateTransactionMutation = useUpdateTransaction();
   const [memo, setMemo] = useState('');
+  const trimmedMemo = memo.trim();
 
   useEffect(() => {
     if (!transaction) return;
@@ -41,6 +42,14 @@ export function HistoryDetailModal({ opened, onClose, transaction, onSaved }: Pr
 
   const handleSave = async () => {
     if (!transaction) return;
+    if (!trimmedMemo) {
+      notifications.show({
+        color: 'yellow',
+        title: '메모를 입력해 주세요',
+        message: '저장하려면 메모 내용을 먼저 입력해야 합니다.',
+      });
+      return;
+    }
 
     try {
       const updated = await updateTransactionMutation.mutateAsync({
@@ -52,7 +61,7 @@ export function HistoryDetailModal({ opened, onClose, transaction, onSaved }: Pr
           cardName: transaction.cardName,
           installment: transaction.installment,
           status: transaction.status,
-          memo: memo.trim() || null,
+          memo: trimmedMemo,
         },
       });
 
@@ -208,6 +217,7 @@ export function HistoryDetailModal({ opened, onClose, transaction, onSaved }: Pr
             <Button
               radius="xl"
               onClick={handleSave}
+              disabled={!trimmedMemo}
               loading={updateTransactionMutation.isPending}
               style={{
                 backgroundColor: 'var(--kb-yellow)',

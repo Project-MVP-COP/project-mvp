@@ -12,6 +12,7 @@ import {
   Chip,
   LoadingOverlay,
   Card,
+  SimpleGrid,
 } from '@mantine/core';
 import { IconUpload } from '@tabler/icons-react';
 
@@ -62,6 +63,13 @@ const summaryChipStyle = {
   color: 'var(--text)',
 } as const;
 
+const summaryCardStyle = {
+  backgroundColor: 'var(--card)',
+  border: '1px solid var(--border)',
+  borderRadius: 24,
+  boxShadow: '0 10px 24px rgba(15, 23, 42, 0.08)',
+} as const;
+
 export function HistoryPageContent() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -87,6 +95,9 @@ export function HistoryPageContent() {
   const cancelledCount = pageResult?.cancelledCount ?? 0;
   const totalAmount = pageResult?.totalAmount ?? 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const cancelledAmount = transactions
+    .filter(txn => txn.status === '취소')
+    .reduce((sum, txn) => sum + txn.amount, 0);
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -159,6 +170,61 @@ export function HistoryPageContent() {
             </Button>
           </Group>
         </Card>
+
+        <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+          <Card
+            p="xl"
+            style={{
+              ...summaryCardStyle,
+              background: 'linear-gradient(135deg, rgba(255, 244, 199, 0.95), rgba(255, 249, 228, 0.9))',
+              border: '1px solid rgba(255, 204, 0, 0.55)',
+            }}
+          >
+            <Stack gap={6}>
+              <Text size="sm" fw={700} style={{ color: 'var(--text)', opacity: 0.7 }}>
+                이번달 총 지출
+              </Text>
+              <Text size="2.2rem" fw={900} lh={1.1} style={{ color: 'var(--text)' }}>
+                {fmt(totalAmount)}원
+              </Text>
+              <Text size="sm" style={{ color: 'var(--text)', opacity: 0.65 }}>
+                조회 결과 합계 {fmt(totalAmount)}원
+              </Text>
+            </Stack>
+          </Card>
+
+          <Card p="xl" style={summaryCardStyle}>
+            <Stack gap={6}>
+              <Text size="sm" fw={700} style={{ color: 'var(--text)', opacity: 0.7 }}>
+                승인 건수
+              </Text>
+              <Text size="2.2rem" fw={900} lh={1.1} style={{ color: 'var(--text)' }}>
+                {fmt(approvedCount)}건
+              </Text>
+              <Text size="sm" fw={700} style={{ color: '#16a34a' }}>
+                승인 내역 {fmt(Math.max(totalAmount - cancelledAmount, 0))}원
+              </Text>
+            </Stack>
+          </Card>
+
+          <Card p="xl" style={summaryCardStyle}>
+            <Stack gap={6}>
+              <Text size="sm" fw={700} style={{ color: 'var(--text)', opacity: 0.7 }}>
+                취소 건수
+              </Text>
+              <Text size="2.2rem" fw={900} lh={1.1} style={{ color: 'var(--text)' }}>
+                {fmt(cancelledCount)}건
+              </Text>
+              <Text
+                size="sm"
+                fw={700}
+                style={{ color: cancelledCount > 0 ? '#ef4444' : 'var(--text)', opacity: cancelledCount > 0 ? 1 : 0.65 }}
+              >
+                {cancelledCount > 0 ? `취소 합계 ${fmt(cancelledAmount)}원` : '취소 내역 없음'}
+              </Text>
+            </Stack>
+          </Card>
+        </SimpleGrid>
 
         <HistoryFilterBar
           filters={filters}

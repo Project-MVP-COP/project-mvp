@@ -1,6 +1,7 @@
 package cop.kbds.agilemvp.transaction.controller;
 
 import cop.kbds.agilemvp.transaction.service.Transaction;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public record TransactionResponse(
         Long   id,
@@ -12,6 +13,7 @@ public record TransactionResponse(
         Long   amount,
         String cardName,
         int    installment,
+        @Schema(allowableValues = {"승인", "취소"})
         String status,
         String memo
 ) {

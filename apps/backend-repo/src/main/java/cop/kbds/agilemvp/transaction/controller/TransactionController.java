@@ -1,7 +1,6 @@
 package cop.kbds.agilemvp.transaction.controller;
 
 import cop.kbds.agilemvp.transaction.service.TransactionService;
-import cop.kbds.agilemvp.transaction.service.TransactionSummary;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

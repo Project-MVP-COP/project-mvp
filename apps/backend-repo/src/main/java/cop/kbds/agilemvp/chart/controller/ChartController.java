@@ -1,9 +1,6 @@
 package cop.kbds.agilemvp.chart.controller;
 
-import cop.kbds.agilemvp.chart.service.BarMonth;
 import cop.kbds.agilemvp.chart.service.ChartService;
-import cop.kbds.agilemvp.chart.service.DonutSlice;
-import cop.kbds.agilemvp.chart.service.LineDay;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

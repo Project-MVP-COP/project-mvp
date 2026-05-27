@@ -1,7 +1,7 @@
 package cop.kbds.agilemvp.transaction.repository;
 
 import cop.kbds.agilemvp.transaction.service.Transaction;
-import cop.kbds.agilemvp.transaction.service.TransactionSummary;
+import cop.kbds.agilemvp.transaction.controller.TransactionSummary;
 import cop.kbds.agilemvp.transaction.controller.TransactionRequest;
 import cop.kbds.agilemvp.transaction.controller.TransactionSearchRequest;
 import org.apache.ibatis.annotations.Mapper;

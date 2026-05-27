@@ -1,6 +1,5 @@
 package cop.kbds.agilemvp.category.controller;
 
-import cop.kbds.agilemvp.category.service.Category;
 import cop.kbds.agilemvp.category.service.CategoryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,7 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @GetMapping
-    public List<Category> findAll() {
-        return categoryService.findAll();
+    public List<CategoryResponse> findAll() {
+        return categoryService.findAll().stream().map(CategoryResponse::from).toList();
     }
 }

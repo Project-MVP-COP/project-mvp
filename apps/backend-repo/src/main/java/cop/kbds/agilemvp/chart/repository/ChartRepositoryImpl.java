@@ -1,8 +1,8 @@
 package cop.kbds.agilemvp.chart.repository;
 
-import cop.kbds.agilemvp.chart.service.BarMonth;
-import cop.kbds.agilemvp.chart.service.DonutSlice;
-import cop.kbds.agilemvp.chart.service.LineDay;
+import cop.kbds.agilemvp.chart.controller.BarMonth;
+import cop.kbds.agilemvp.chart.controller.DonutSlice;
+import cop.kbds.agilemvp.chart.controller.LineDay;
 import cop.kbds.agilemvp.chart.controller.ChartSearchRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;

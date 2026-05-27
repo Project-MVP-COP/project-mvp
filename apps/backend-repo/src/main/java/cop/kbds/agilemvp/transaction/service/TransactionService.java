@@ -3,11 +3,12 @@ package cop.kbds.agilemvp.transaction.service;
 import cop.kbds.agilemvp.category.repository.CategoryRepository;
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.transaction.repository.TransactionRepository;
-import cop.kbds.agilemvp.transaction.controller.TransactionErrorCode;
+import cop.kbds.agilemvp.transaction.exception.TransactionErrorCode;
 import cop.kbds.agilemvp.transaction.controller.TransactionPageResponse;
 import cop.kbds.agilemvp.transaction.controller.TransactionRequest;
 import cop.kbds.agilemvp.transaction.controller.TransactionResponse;
 import cop.kbds.agilemvp.transaction.controller.TransactionSearchRequest;
+import cop.kbds.agilemvp.transaction.controller.TransactionSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -35,8 +36,8 @@ public class TransactionService {
         TransactionSummary summary = transactionRepository.searchSummary(params);
         boolean hasMore = data.size() == params.getSize();
         return new TransactionPageResponse(
-                summary.getTotalCount(), summary.getApprovedCount(),
-                summary.getCancelledCount(), summary.getTotalAmount(),
+                summary.totalCount(), summary.approvedCount(),
+                summary.cancelledCount(), summary.totalAmount(),
                 hasMore, data);
     }
 

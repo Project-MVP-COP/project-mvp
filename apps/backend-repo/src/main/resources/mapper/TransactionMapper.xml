@@ -21,7 +21,7 @@
         </constructor>
     </resultMap>
 
-    <resultMap id="summaryResultMap" type="cop.kbds.agilemvp.transaction.service.TransactionSummary">
+    <resultMap id="summaryResultMap" type="cop.kbds.agilemvp.transaction.controller.TransactionSummary">
         <constructor>
             <arg column="totalCount"     javaType="long"/>
             <arg column="approvedCount"  javaType="long"/>
@@ -104,7 +104,7 @@
     </sql>
 
     <!-- ── 목록 조회 (필터 + 정렬 + 페이징) ──────────────────── -->
-    <select id="searchList" parameterType="cop.kbds.agilemvp.transaction.web.TransactionSearchRequest"
+    <select id="searchList" parameterType="cop.kbds.agilemvp.transaction.controller.TransactionSearchRequest"
             resultMap="transactionResultMap">
         SELECT t.id, t.user_id, t.transaction_date, t.merchant,
                t.category_id, c.name AS category_name,
@@ -126,7 +126,7 @@
     </select>
 
     <!-- ── 집계 (전체 건수 · 승인/취소 건수 · 총 금액) ─────────── -->
-    <select id="searchSummary" parameterType="cop.kbds.agilemvp.transaction.web.TransactionSearchRequest"
+    <select id="searchSummary" parameterType="cop.kbds.agilemvp.transaction.controller.TransactionSearchRequest"
             resultMap="summaryResultMap">
         SELECT
             COUNT(*)                                                  AS totalCount,

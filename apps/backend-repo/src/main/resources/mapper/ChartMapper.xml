@@ -5,7 +5,7 @@
 <mapper namespace="cop.kbds.agilemvp.chart.repository.ChartMapper">
 
     <!-- ADR-B01: <constructor> 매핑 -->
-    <resultMap id="donutResultMap" type="cop.kbds.agilemvp.chart.service.DonutSlice">
+    <resultMap id="donutResultMap" type="cop.kbds.agilemvp.chart.controller.DonutSlice">
         <constructor>
             <arg column="name"  javaType="String"/>
             <arg column="value" javaType="long"/>
@@ -13,14 +13,14 @@
         </constructor>
     </resultMap>
 
-    <resultMap id="barResultMap" type="cop.kbds.agilemvp.chart.service.BarMonth">
+    <resultMap id="barResultMap" type="cop.kbds.agilemvp.chart.controller.BarMonth">
         <constructor>
             <arg column="month"  javaType="String"/>
             <arg column="amount" javaType="long"/>
         </constructor>
     </resultMap>
 
-    <resultMap id="lineResultMap" type="cop.kbds.agilemvp.chart.service.LineDay">
+    <resultMap id="lineResultMap" type="cop.kbds.agilemvp.chart.controller.LineDay">
         <constructor>
             <arg column="date"             javaType="String"/>
             <arg column="cumulativeAmount" javaType="long"/>

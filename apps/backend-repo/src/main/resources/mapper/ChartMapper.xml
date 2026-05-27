@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cop.kbds.agilemvp.chart.infra.ChartMapper">
+
+    <!-- ADR-B01: <constructor> 매핑 -->
+    <resultMap id="donutResultMap" type="cop.kbds.agilemvp.chart.service.DonutSlice">
+        <constructor>
+            <arg column="name"  javaType="String"/>
+            <arg column="value" javaType="long"/>
+            <arg column="color" javaType="String"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="barResultMap" type="cop.kbds.agilemvp.chart.service.BarMonth">
+        <constructor>
+            <arg column="month"  javaType="String"/>
+            <arg column="amount" javaType="long"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="lineResultMap" type="cop.kbds.agilemvp.chart.service.LineDay">
+        <constructor>
+            <arg column="date"             javaType="String"/>
+            <arg column="cumulativeAmount" javaType="long"/>
+        </constructor>
+    </resultMap>
+
+    <!-- Donut: 카테고리별 지출 (승인 only) -->
+    <!-- value 는 H2 예약어 → "value"로 쿼팅, ::date 는 H2 미지원 → CAST(...AS DATE) -->
+    <select id="donut" resultMap="donutResultMap">
+        SELECT
+            COALESCE(c.name, '미분류')   AS name,
+            SUM(t.amount)                AS "value",
+            COALESCE(c.color, '#64748b') AS color
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.status = '승인'
+          AND t.user_id = 1
+        <if test="dateStart != null and dateStart != ''">
+            AND t.transaction_date &gt;= CAST(#{dateStart} AS DATE)
+        </if>
+        <if test="dateEnd != null and dateEnd != ''">
+            AND t.transaction_date &lt;= CAST(#{dateEnd} AS DATE)
+        </if>
+        GROUP BY c.id, c.name, c.color
+        ORDER BY "value" DESC
+    </select>
+
+    <!-- Bar: 월별 지출 합계 (승인 only, 데이터 있는 월 전체) -->
+    <!-- month 는 H2 예약어 → "month"로 쿼팅 -->
+    <select id="bar" resultMap="barResultMap">
+        SELECT
+            TO_CHAR(t.transaction_date, 'YYYY-MM') AS "month",
+            SUM(t.amount)                           AS amount
+        FROM transactions t
+        WHERE t.status = '승인'
+          AND t.user_id = 1
+        GROUP BY TO_CHAR(t.transaction_date, 'YYYY-MM')
+        ORDER BY "month"
+    </select>
+
+    <!-- Line: 일별 누적 지출 (승인 only, window function) -->
+    <select id="line" resultMap="lineResultMap">
+        SELECT
+            TO_CHAR(transaction_date, 'YYYY-MM-DD')           AS "date",
+            SUM(SUM(amount)) OVER (ORDER BY transaction_date) AS cumulativeAmount
+        FROM transactions
+        WHERE status = '승인'
+          AND user_id = 1
+        <if test="dateStart != null and dateStart != ''">
+            AND transaction_date &gt;= CAST(#{dateStart} AS DATE)
+        </if>
+        <if test="dateEnd != null and dateEnd != ''">
+            AND transaction_date &lt;= CAST(#{dateEnd} AS DATE)
+        </if>
+        GROUP BY transaction_date
+        ORDER BY transaction_date
+    </select>
+
+</mapper>

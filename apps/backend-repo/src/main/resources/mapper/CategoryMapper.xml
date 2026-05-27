@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cop.kbds.agilemvp.category.infra.CategoryMapper">
+
+    <!-- ADR-B01: Setter 금지 → <constructor> 매핑으로 DB 결과 주입 -->
+    <resultMap id="categoryResultMap" type="cop.kbds.agilemvp.category.service.Category">
+        <constructor>
+            <idArg column="id"            javaType="Long"/>
+            <arg   column="name"          javaType="String"/>
+            <arg   column="color"         javaType="String"/>
+            <arg   column="display_order" javaType="int"/>
+            <arg   column="is_default"    javaType="boolean"/>
+        </constructor>
+    </resultMap>
+
+    <select id="findAll" resultMap="categoryResultMap">
+        SELECT id, name, color, display_order, is_default
+        FROM categories
+        ORDER BY display_order
+    </select>
+
+    <select id="findByName" resultMap="categoryResultMap">
+        SELECT id, name, color, display_order, is_default
+        FROM categories
+        WHERE name = #{name}
+    </select>
+
+</mapper>

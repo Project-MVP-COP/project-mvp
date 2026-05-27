@@ -11,7 +11,7 @@ import java.util.List;
 
 @Tag(name = "chart", description = "시각화 차트 API")
 @RestController
-@RequestMapping("/api/charts")
+@RequestMapping("/api/viz")
 @RequiredArgsConstructor
 public class ChartController {
 

@@ -1,7 +1,7 @@
 package cop.kbds.agilemvp.chart.service;
 
-import cop.kbds.agilemvp.chart.infra.ChartRepository;
-import cop.kbds.agilemvp.chart.web.ChartSearchRequest;
+import cop.kbds.agilemvp.chart.repository.ChartRepository;
+import cop.kbds.agilemvp.chart.controller.ChartSearchRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

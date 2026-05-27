@@ -1,13 +1,13 @@
 package cop.kbds.agilemvp.transaction.service;
 
-import cop.kbds.agilemvp.category.infra.CategoryRepository;
+import cop.kbds.agilemvp.category.repository.CategoryRepository;
 import cop.kbds.agilemvp.common.exception.BusinessException;
-import cop.kbds.agilemvp.transaction.infra.TransactionRepository;
-import cop.kbds.agilemvp.transaction.web.TransactionErrorCode;
-import cop.kbds.agilemvp.transaction.web.TransactionPageResponse;
-import cop.kbds.agilemvp.transaction.web.TransactionRequest;
-import cop.kbds.agilemvp.transaction.web.TransactionResponse;
-import cop.kbds.agilemvp.transaction.web.TransactionSearchRequest;
+import cop.kbds.agilemvp.transaction.repository.TransactionRepository;
+import cop.kbds.agilemvp.transaction.controller.TransactionErrorCode;
+import cop.kbds.agilemvp.transaction.controller.TransactionPageResponse;
+import cop.kbds.agilemvp.transaction.controller.TransactionRequest;
+import cop.kbds.agilemvp.transaction.controller.TransactionResponse;
+import cop.kbds.agilemvp.transaction.controller.TransactionSearchRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

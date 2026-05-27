@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.category.web;
+package cop.kbds.agilemvp.category.controller;
 
 import cop.kbds.agilemvp.category.service.Category;
 import cop.kbds.agilemvp.category.service.CategoryService;

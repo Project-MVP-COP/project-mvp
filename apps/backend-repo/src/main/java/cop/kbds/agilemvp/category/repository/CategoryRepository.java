@@ -1,12 +1,10 @@
-package cop.kbds.agilemvp.category.infra;
+package cop.kbds.agilemvp.category.repository;
 
 import cop.kbds.agilemvp.category.service.Category;
-import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
 
-@Mapper
-public interface CategoryMapper {
+public interface CategoryRepository {
     List<Category> findAll();
     Category findByName(String name);
 }

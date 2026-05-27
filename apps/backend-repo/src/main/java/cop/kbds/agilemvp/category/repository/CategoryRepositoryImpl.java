@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.category.infra;
+package cop.kbds.agilemvp.category.repository;
 
 import cop.kbds.agilemvp.category.service.Category;
 import lombok.RequiredArgsConstructor;

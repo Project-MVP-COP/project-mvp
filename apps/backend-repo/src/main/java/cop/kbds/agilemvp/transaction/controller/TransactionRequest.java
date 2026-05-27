@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.transaction.web;
+package cop.kbds.agilemvp.transaction.controller;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

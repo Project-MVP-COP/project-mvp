@@ -1,7 +1,7 @@
 package cop.kbds.agilemvp.excel.service;
 
-import cop.kbds.agilemvp.transaction.web.TransactionRequest;
-import cop.kbds.agilemvp.transaction.web.TransactionResponse;
+import cop.kbds.agilemvp.transaction.controller.TransactionRequest;
+import cop.kbds.agilemvp.transaction.controller.TransactionResponse;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;

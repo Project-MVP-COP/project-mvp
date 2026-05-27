@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.chart.web;
+package cop.kbds.agilemvp.chart.controller;
 
 import cop.kbds.agilemvp.chart.service.BarMonth;
 import cop.kbds.agilemvp.chart.service.ChartService;

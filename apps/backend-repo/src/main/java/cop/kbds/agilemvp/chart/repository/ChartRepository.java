@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.chart.infra;
+package cop.kbds.agilemvp.chart.repository;
 
 import cop.kbds.agilemvp.chart.service.BarMonth;
 import cop.kbds.agilemvp.chart.service.DonutSlice;

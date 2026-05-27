@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="cop.kbds.agilemvp.transaction.infra.TransactionMapper">
+<mapper namespace="cop.kbds.agilemvp.transaction.repository.TransactionMapper">
 
     <!-- ADR-B01: Setter 금지 → <constructor> 매핑으로 DB 결과 주입 -->
     <resultMap id="transactionResultMap" type="cop.kbds.agilemvp.transaction.service.Transaction">

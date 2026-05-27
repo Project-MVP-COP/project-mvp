@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.transaction.web;
+package cop.kbds.agilemvp.transaction.controller;
 
 import cop.kbds.agilemvp.common.exception.ErrorCode;
 import lombok.Getter;

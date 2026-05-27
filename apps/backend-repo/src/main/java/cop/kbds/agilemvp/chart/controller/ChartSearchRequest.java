@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.chart.web;
+package cop.kbds.agilemvp.chart.controller;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

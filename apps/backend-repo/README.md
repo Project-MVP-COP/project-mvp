@@ -8,6 +8,7 @@
 - **프레임워크**: Spring Boot 4
 - **ORM / 데이터베이스 접근**: MyBatis
 - **데이터베이스**: H2 (로컬/테스트), PostgreSQL (운영 - prod 프로파일)
+- **보안 / 인증**: Spring Security, JWT (JJWT)
 - **빌드 툴**: Gradle
 
 ## 📦 주요 프로젝트 의존성 (Dependencies)
@@ -24,6 +25,8 @@
 - **Spring Boot DevTools** (`spring-boot-devtools`): 개발 편의성(자동 재시작 등) 제공 기능
 - **Test 라이브러리**: Validation, WebMVC, MyBatis 전용 테스트 모듈 및 JUnit Platform 지원
 - **SpringDoc OpenAPI** (`springdoc-openapi-starter-webmvc-ui:3.0.3`): Swagger UI를 통한 API 문서화 및 테스트 도구 제공
+- **Spring Boot Starter Security** (`spring-boot-starter-security`): 인증/인가 처리를 위한 보안 프레임워크 핵심 모듈
+- **JJWT (Java JWT)** (`io.jsonwebtoken:jjwt-api:0.13.0`): 비밀키 서명을 활용한 무만료 퓨어 JWT 생성 및 검증 라이브러리
 
 ---
 
@@ -131,6 +134,10 @@ API 테스트 도구 (Postman 등) 또는 웹 브라우저를 통해 다음 URL�
 - **Patch (부분 수정)**: `PATCH http://localhost:8080/api/sample/1` (Body: `{ "status": "INACTIVE" }`)
 - **Delete (삭제)**: `DELETE http://localhost:8080/api/sample/1`
 - **전역 예외 처리 테스트**: `GET http://localhost:8080/api/sample/error`
+- **Auth (회원가입)**: `POST http://localhost:8080/api/auth/register` (Body: `{ "loginId": "testuser", "nickname": "테스터", "password": "password123!" }`)
+- **Auth (로그인)**: `POST http://localhost:8080/api/auth/login` (Body: `{ "loginId": "testuser", "password": "password123!" }`)
+- **User (본인 상세 조회)**: `GET http://localhost:8080/api/user/me` (Header: `Authorization: Bearer <token>`)
+- **User (회원 탈퇴)**: `DELETE http://localhost:8080/api/user` (Header: `Authorization: Bearer <token>`)
 
 ---
 
@@ -143,9 +150,12 @@ API 테스트 도구 (Postman 등) 또는 웹 브라우저를 통해 다음 URL�
 │   │   ├── java
 │   │   │   └── cop.kbds.agilemvp
 │   │   │       ├── common (공통 아키텍처 및 유효성 검증)
-│   │   │       └── sample (3계층 구조의 레퍼런스 패키지)
+│   │   │       ├── sample (3계층 구조의 레퍼런스 패키지)
+│   │   │       ├── user (회원 관리 도메인 - 독립 패키지)
+│   │   │       └── auth (JWT/Security 기반 인증 도메인 - User에 의존)
 │   │       ├── mapper
-│   │       │   └── sample (MyBatis 쿼리 XML)
+│   │       │   ├── sample (MyBatis 쿼리 XML)
+│   │       │   └── user (회원 MyBatis 쿼리 XML)
 │   │       ├── application.yml (기본 설정 - H2)
 │   │       ├── application-prod.yml (운영 설정 - PostgreSQL)
 │   │       └── schema.sql / data.sql (DB 초기화 스크립트)
@@ -598,6 +608,12 @@ BusinessValidator.validateNonNull(order, CommonErrorCode.ENTITY_NOT_FOUND);
 - **Context**: 장애 발생 시 요청부터 응답까지의 흐름을 추적할 수 있어야 합니다.
 - **Decision**: 모든 요청에 고유한 UUID를 발급하여 SLF4J MDC(`traceId`)에 저장하고, 응답 헤더 및 RFC 9457 ProblemDetail 에러 응답 확장에 포함합니다.
 
+#### ADR-B05: 인증 및 회원 도메인 단방향 의존성 규격
+
+- **Context**: 회원(User) 정보와 인증(Auth) 처리는 복잡도가 높은 독립적 관심사이나, 강하게 결합되기 쉽습니다. 상호 참조가 발생하면 의존성 지옥에 빠져 도메인 격리가 훼손됩니다.
+- **Decision**: `User` 도메인과 `Auth` 도메인을 완전히 격리하고, `Auth -> User` 단방향 의존성 흐름만 허용합니다. (예: `AuthService`가 `UserService`를 호출하지만, `UserService` 내에는 어떠한 JWT나 Security 라이브러리 의존성도 가지지 않음)
+- **Consequences**: 결합도가 낮아져 추후 인증 수단 교체나 회원 서비스 독립 확장이 용이해지며, 도메인의 무결성이 안전하게 보호됩니다.
+
 #### ADR-B05: 데이터베이스 프로파일 분리 전략
 
 - **Context**: 로컬 개발에서는 별도 DB 설치 없이 빠르게 실행할 수 있어야 하고, 운영 환경에서는 PostgreSQL에 안전하게 접속해야 합니다. DB 접속 정보가 코드에 포함되면 보안 사고로 이어질 수 있습니다.
@@ -609,7 +625,27 @@ BusinessValidator.validateNonNull(order, CommonErrorCode.ENTITY_NOT_FOUND);
 
 ---
 
+## 🔐 JWT 기반 인증 및 회원가입 (MVP)
+
+본 프로젝트는 MVP 딜리버리를 목표로 하여 **만료되지 않는 가장 단순하고 퓨어한 JWT** 및 **Spring Security**를 활용한 무상태(Stateless) 인증 체계를 구현하고 있습니다.
+
+### 1. 주요 특징
+- **패스워드 암호화**: BCrypt 해시 함수(`BCryptPasswordEncoder`)를 활용한 비밀번호 단방향 암호화 보관.
+- **단방향 의존성**: `Auth` 패키지가 `User` 패키지를 참조하는 구조를 엄격히 준수하여 도메인 간 결합도를 최적화했습니다.
+- **Stateless 필터 체인**: JWT 필터(`JwtAuthenticationFilter`)를 활용하여 HTTP 요청당 `Authorization: Bearer <token>` 헤더를 파싱하고 SecurityContext 인증을 조율합니다.
+- **로그인 시각 자동 업데이트**: 로그인 성공 검증이 완료되는 즉시, 데이터베이스의 최종 로그인 일시(`last_login_at`) 필드가 현재 시각으로 자동 업데이트됩니다.
+- **보안 강화 소프트 탈퇴**: 회원 탈퇴(`DELETE /api/user`) 시, 타인의 ID 조작을 원천적으로 막기 위해 인자로 식별 정보를 받지 않고, 오직 인증 헤더의 JWT 세션 정보에서만 본인의 `loginId`를 추출하여 계정 상태를 소프트 삭제(`status = 'deleted'`) 처리합니다. 탈퇴 처리된 사용자는 추후 로그인 조회 대상에서 자동으로 배제됩니다.
+
+### 2. API 규격
+- **회원가입**: `POST /api/auth/register` (Body: `{ "loginId": "...", "nickname": "...", "password": "..." }`) -> `201 Created`
+- **로그인**: `POST /api/auth/login` (Body: `{ "loginId": "...", "password": "..." }` -> Response: `{ "accessToken": "...", "nickname": "..." }`) -> `200 OK`
+- **본인 정보 조회**: `GET /api/user/me` (Header: `Authorization: Bearer <token>`) -> Response: `{ "id": 1, "loginId": "...", "nickname": "...", "status": "active", "lastLoginAt": "...", "createdAt": "..." }` -> `200 OK`
+- **회원 탈퇴(본인)**: `DELETE /api/user` (Header: `Authorization: Bearer <token>`) -> `204 No Content`
+
+---
+
 ## 🔗 관련 문서 바로가기
 
 - **[전체 프로젝트 루트 (Root)](../../README.md)**
 - **[프론트엔드 레파지토리 (React)](../frontend-repo/README.md)**
+

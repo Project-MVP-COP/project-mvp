@@ -7,7 +7,7 @@
 - **언어**: Java 25
 - **프레임워크**: Spring Boot 4
 - **ORM / 데이터베이스 접근**: MyBatis
-- **데이터베이스**: H2 데이터베이스 (로컬/테스트 환경), 추후 PostgreSQL 적용 예정
+- **데이터베이스**: H2 (로컬/테스트), PostgreSQL (운영 - prod 프로파일)
 - **보안 / 인증**: Spring Security, JWT (JJWT)
 - **빌드 툴**: Gradle
 
@@ -20,6 +20,7 @@
 - **MyBatis Spring Boot Starter** (`mybatis-spring-boot-starter:4.0.1`): MyBatis와 Spring Boot 연동을 위한 스타터 모듈
 - **H2 Database** (`com.h2database:h2`): 로컬 및 테스트 환경을 위한 인메모리 데이터베이스
   - `spring-boot-h2console`: H2 DB 접근을 위한 웹 콘솔 제공
+- **PostgreSQL** (`org.postgresql:postgresql`): 운영(prod) 환경을 위한 RDBMS 드라이버
 - **Lombok** (`org.projectlombok:lombok`): 어노테이션 기반 보일러플레이트 코드 자동 생성
 - **Spring Boot DevTools** (`spring-boot-devtools`): 개발 편의성(자동 재시작 등) 제공 기능
 - **Test 라이브러리**: Validation, WebMVC, MyBatis 전용 테스트 모듈 및 JUnit Platform 지원
@@ -155,7 +156,8 @@ API 테스트 도구 (Postman 등) 또는 웹 브라우저를 통해 다음 URL�
 │   │       ├── mapper
 │   │       │   ├── sample (MyBatis 쿼리 XML)
 │   │       │   └── user (회원 MyBatis 쿼리 XML)
-│   │       ├── application.yml (설정 파일)
+│   │       ├── application.yml (기본 설정 - H2)
+│   │       ├── application-prod.yml (운영 설정 - PostgreSQL)
 │   │       └── schema.sql / data.sql (DB 초기화 스크립트)
 │   └── test
 │       └── java (단위 및 통합 테스트 코드)
@@ -611,6 +613,15 @@ BusinessValidator.validateNonNull(order, CommonErrorCode.ENTITY_NOT_FOUND);
 - **Context**: 회원(User) 정보와 인증(Auth) 처리는 복잡도가 높은 독립적 관심사이나, 강하게 결합되기 쉽습니다. 상호 참조가 발생하면 의존성 지옥에 빠져 도메인 격리가 훼손됩니다.
 - **Decision**: `User` 도메인과 `Auth` 도메인을 완전히 격리하고, `Auth -> User` 단방향 의존성 흐름만 허용합니다. (예: `AuthService`가 `UserService`를 호출하지만, `UserService` 내에는 어떠한 JWT나 Security 라이브러리 의존성도 가지지 않음)
 - **Consequences**: 결합도가 낮아져 추후 인증 수단 교체나 회원 서비스 독립 확장이 용이해지며, 도메인의 무결성이 안전하게 보호됩니다.
+
+#### ADR-B05: 데이터베이스 프로파일 분리 전략
+
+- **Context**: 로컬 개발에서는 별도 DB 설치 없이 빠르게 실행할 수 있어야 하고, 운영 환경에서는 PostgreSQL에 안전하게 접속해야 합니다. DB 접속 정보가 코드에 포함되면 보안 사고로 이어질 수 있습니다.
+- **Decision**: Spring Profile을 활용하여 환경별 설정을 분리합니다.
+  - `application.yml` (기본): H2 인메모리 DB — 로컬 개발 및 테스트용
+  - `application-prod.yml` (운영): PostgreSQL — `${DB_URL}`, `${DB_USERNAME}`, `${DB_PASSWORD}` 환경변수 참조
+  - 운영 배포 시 `--spring.profiles.active=prod`로 실행하며, DB 접속 정보는 GitHub Secrets → deploy.sh를 통해 JVM 시스템 프로퍼티(`-D`)로 주입됩니다.
+- **Consequences**: DB 접속 정보가 코드베이스에 노출되지 않으며, 로컬 개발자는 별도 DB 설정 없이 즉시 실행할 수 있습니다.
 
 ---
 

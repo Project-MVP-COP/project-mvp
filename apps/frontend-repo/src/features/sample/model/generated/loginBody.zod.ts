@@ -11,9 +11,11 @@ import { z as zod } from 'zod';
 
 
 
-export const SampleCreateRequest = zod.object({
-  "message": zod.string().min(1)
+
+export const LoginBody = zod.object({
+  "loginId": zod.string().min(1),
+  "password": zod.string().min(1)
 })
 
-export type SampleCreateRequest = zod.input<typeof SampleCreateRequest>;
-export type SampleCreateRequestOutput = zod.output<typeof SampleCreateRequest>;
+export type LoginBody = zod.input<typeof LoginBody>;
+export type LoginBodyOutput = zod.output<typeof LoginBody>;

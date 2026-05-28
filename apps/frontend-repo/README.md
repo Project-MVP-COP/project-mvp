@@ -244,6 +244,7 @@ FSD(Feature-Sliced Design) 세그먼트 명칭을 차용하여 관심사를 분�
 │   │   ├── model/               # problemDetail.ts (전역 표준 예외 스키마)
 │   │   └── ui/                  # 디자인 시스템 및 UI 유틸 (toast, AppHeader, NotFoundPage 등)
 │   ├── features                 # 📦 [도메인 모듈] 철저히 캡슐화된 기능 단위
+│   │   ├── auth                 # 🔑 [신설] 인증 및 회원 도메인 (Zustand 통합 세션, RHF 비제어 폼)
 │   │   └── sample               # [예시: Sample 도메인 패키지]
 │   │       ├── model/           # 🟢 [순수 영역] 타입, Zod 스키마, 순수 비즈니스 로직 (core.ts)
 │   │       │   └── generated/   # ⚠️ [자동 생성] Orval로 생성된 DTO 타입 및 Zod 스키마 (수정 금지)
@@ -399,6 +400,15 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           colorScheme: state.colorScheme === "dark" ? "light" : "dark",
         })),
+      
+      // [신설] 전역 인증 세션 관리 (새로고침 영속화)
+      accessToken: null,
+      nickname: null,
+      isAuthenticated: false,
+      setSession: (token, nickname) =>
+        set({ accessToken: token, nickname, isAuthenticated: true }),
+      clearSession: () =>
+        set({ accessToken: null, nickname: null, isAuthenticated: false }),
     }),
     { name: "app-storage" },
   ),
@@ -413,8 +423,8 @@ export const useAppStore = create<AppState>()(
 
 ### 1. 모킹 계층 구조
 
-- **`src/mocks/db.ts`**: 인메모리 가상 데이터베이스. 매 테스트 전 `resetSamples()`로 초기화 권장.
-- **`src/mocks/handlers.ts`**: HTTP 요청을 가로채어 가상 DB와 연결하는 인터셉터.
+- **`src/mocks/db.ts`**: 인메모리 가상 데이터베이스. 매 테스트 전 `resetAllMocks()`로 초기화 권장 (가상 `User` 테이블 추가).
+- **`src/mocks/handlers.ts`**: HTTP 요청을 가로채어 가상 DB와 연결하는 인터셉터. 회원가입/로그인/본인상세/회원탈퇴 모의 인터셉터 제공.
 - **`src/mocks/browser.ts` / `server.ts`**: 개발 환경(Browser) 및 테스트 환경(Node) 구동 설정.
 
 ### 2. 신규 API 모킹 방법
@@ -434,6 +444,7 @@ export const useAppStore = create<AppState>()(
 `createMemoryRouter`를 활용하여 `UI → Router → API(MSW) → UI` 전체 파이프라인을 검증합니다.
 
 - **위치**: `src/features/sample/SampleIntegration.test.tsx`
+- **인증 통합 테스트 위치**: `src/features/auth/AuthIntegration.test.tsx` (가상 DB 연계 회원가입 및 로그인 성공/실패 시나리오 Full Flow 검증)
 
 ### 2. 테스트 작성 원칙
 
@@ -497,6 +508,20 @@ export const useAppStore = create<AppState>()(
 - **Context**: 초기에는 수동으로 타입을 작성했으나, FE/BE 간 스펙 불일치 위험이 큽니다.
 - **Decision**: Orval을 사용하여 백엔드 OpenAPI 명세를 파싱, Zod 스키마와 TypeScript 타입을 `model/generated/` 폴더에 자동 생성합니다.
 - **Consequences**: 백엔드 변경 사항이 즉시 타입 에러로 감지되어 개발 생산성과 안정성이 획기적으로 향상됩니다.
+
+#### ADR-F09: 로그인/회원가입의 레이아웃 외부 격리 및 삼중창(RHF+Router+Query) 시너지 수립
+
+- **Context**: 
+  1. 미인증 상태에서도 카드 이용내역 레이아웃 헤더 쉘이 노출되어 오인지가 발생했습니다.
+  2. 일반 상태 관리 방식(useState)의 대량 입력을 수반하는 폼은 매 키 입력마다 불필요한 전체 뷰 리렌더링을 유발하여 입력 반응 속도가 떨어지는 문제가 있었습니다.
+- **Decision**:
+  1. **레이아웃 전격 격리**: `/login` 및 `/register` 라우트를 공통 레이아웃(`<Layout />`) 바깥(루트 레벨)으로 완전히 꺼내어, 헤더 쉘이 배제된 온전한 단독 풀 스크린 그라데이션 화면으로 렌더링되게 격리합니다.
+  2. **삼중창 설계 수립**:
+     - **React Hook Form(RHF)**: Zod 검증(`zodResolver`)을 얹어 실시간 유효성을 비제어로 처리하여 렌더링 성능을 극대화합니다.
+     - **React Router Action**: RHF 성공 데이터를 수집받아 비동기 API 통신, Zustand 스토어 갱신, 성공 토스트 및 `redirect("/")` 처리를 단독 오케스트레이션하여 `Fat UI` 현상을 차단합니다.
+     - **Zustand AppStore & Axios**: 로그인 성공 시 `useAppStore` 세션을 갱신하고 `axios.ts` 요청 인터셉터에서 이를 실시간 포착하여 Bearer 헤더를 자동 발송시킵니다.
+  3. **보안 가드 가동**: 루트 `/` 접속 시 세션 여부를 판별해 미인증자를 즉각 `/login`으로 튕겨내는 가드(`rootLoader`)를 장착합니다.
+- **Consequences**: 프리미엄 수준의 독립 쉘 레이아웃과 빈틈없는 보안 리다이렉트 흐름이 수립되었고, RHF 적용으로 극도로 향상된 폼 응답 성능을 보장받습니다.
 
 ## 🛡️ 아키텍처 가드레일 (Architectural Guardrails)
 

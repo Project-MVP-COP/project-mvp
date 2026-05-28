@@ -2,7 +2,7 @@
  * ⚠️  AUTO-GENERATED FILE — DO NOT EDIT MANUALLY
  * 
  * Source : AgileMVP API v0.0.1
- * Generated: 2026-05-25T04:41:55.774Z
+ * Generated: 2026-05-25T04:41:55.834Z
  * 
  * Regenerate: pnpm generate:api
  *             (백엔드 서버 기동 필요: localhost:8080)
@@ -11,9 +11,9 @@ import { z as zod } from 'zod';
 
 
 
-export const SampleCreateRequest = zod.object({
+export const SampleUpdateRequest = zod.object({
   "message": zod.string().min(1)
 })
 
-export type SampleCreateRequest = zod.input<typeof SampleCreateRequest>;
-export type SampleCreateRequestOutput = zod.output<typeof SampleCreateRequest>;
+export type SampleUpdateRequest = zod.input<typeof SampleUpdateRequest>;
+export type SampleUpdateRequestOutput = zod.output<typeof SampleUpdateRequest>;

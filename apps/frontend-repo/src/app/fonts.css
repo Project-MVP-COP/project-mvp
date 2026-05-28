@@ -12,6 +12,8 @@
   --text: #212529;
   --border: #e9ecef;
   --kb-yellow: #ffcc00;
+  --accent-card-bg: linear-gradient(135deg, rgba(255, 204, 0, 0.18), rgba(255, 220, 60, 0.12));
+  --accent-card-border: rgba(200, 155, 0, 0.6);
 }
 
 [data-mantine-color-scheme='dark'] {
@@ -20,6 +22,8 @@
   --text: #ececec;
   --border: #2c2c2c;
   --kb-yellow: #ffcc00;
+  --accent-card-bg: linear-gradient(135deg, rgba(180, 140, 40, 0.35), rgba(150, 110, 20, 0.25));
+  --accent-card-border: rgba(180, 140, 40, 0.6);
 }
 
 html,

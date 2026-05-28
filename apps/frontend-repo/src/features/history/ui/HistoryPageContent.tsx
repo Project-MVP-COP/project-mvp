@@ -70,6 +70,12 @@ const summaryCardStyle = {
   boxShadow: '0 10px 24px rgba(15, 23, 42, 0.08)',
 } as const;
 
+const accentCardStyle = {
+  ...summaryCardStyle,
+  background: 'var(--accent-card-bg)',
+  border: '1px solid var(--accent-card-border)',
+} as const;
+
 export function HistoryPageContent() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -174,11 +180,7 @@ export function HistoryPageContent() {
         <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
           <Card
             p="xl"
-            style={{
-              ...summaryCardStyle,
-              background: 'linear-gradient(135deg, rgba(255, 244, 199, 0.95), rgba(255, 249, 228, 0.9))',
-              border: '1px solid rgba(255, 204, 0, 0.55)',
-            }}
+            style={accentCardStyle}
           >
             <Stack gap={6}>
               <Text size="sm" fw={700} style={{ color: 'var(--text)', opacity: 0.7 }}>

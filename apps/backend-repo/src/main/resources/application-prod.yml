@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      keepalive-time: 60000
+      max-lifetime: 600000
+      connection-test-query: SELECT 1
+  h2:
+    console:
+      enabled: false
+  sql:
+    init:
+      mode: never

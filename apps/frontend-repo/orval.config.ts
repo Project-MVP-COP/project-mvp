@@ -56,4 +56,41 @@ export default defineConfig({
       },
     },
   },
+
+  /**
+   * 'auth-api': 인증 및 회원 도메인을 위한 생성 타겟 그룹.
+   */
+  'auth-api': {
+    input: {
+      target: 'http://localhost:8080/api-docs',
+      filters: {
+        tags: ['auth', 'user'],
+      },
+    },
+    output: {
+      client: 'zod',
+      mode: 'single',
+      target: 'src/features/auth/model/generated/schemas.ts',
+      schemas: {
+        path: 'src/features/auth/model/generated',
+        type: 'zod',
+      },
+      override: {
+        header: (info) =>
+          [
+            `/**`,
+            ` * ⚠️  AUTO-GENERATED FILE — DO NOT EDIT MANUALLY`,
+            ` * `,
+            ` * Source : ${info.title ?? 'OpenAPI'} v${info.version ?? 'unknown'}`,
+            ` * Generated: ${new Date().toISOString()}`,
+            ` * `,
+            ` * Regenerate: pnpm generate:api`,
+            ` *             (백엔드 서버 기동 필요: localhost:8080)`,
+            ` */`,
+            ``,
+          ].join('\n'),
+      },
+    },
+  },
 });
+

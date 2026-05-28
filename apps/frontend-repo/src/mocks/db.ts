@@ -101,3 +101,73 @@ export const db = {
     return true;
   },
 };
+
+/**
+ * [가상 사용자 데이터베이스]
+ */
+export interface User {
+  id: number;
+  loginId: string;
+  nickname: string;
+  password?: string;
+  status: "active" | "suspended" | "deleted";
+  lastLoginAt?: string;
+  createdAt: string;
+}
+
+const INITIAL_USERS: User[] = [
+  {
+    id: 1,
+    loginId: "testuser",
+    nickname: "테스터",
+    password: "password123!",
+    status: "active",
+    lastLoginAt: "2026-05-25 13:00:00",
+    createdAt: "2026-05-25 10:00:00",
+  },
+];
+
+let nextUserId = 2;
+let users: User[] = [...INITIAL_USERS];
+
+export const resetUsers = () => {
+  users = [...INITIAL_USERS];
+  nextUserId = 2;
+};
+
+// 기존 resetSamples에 사용자 목록 초기화도 결합
+const originalResetSamples = resetSamples;
+export const resetAllMocks = () => {
+  originalResetSamples();
+  resetUsers();
+};
+
+export const dbUser = {
+  getAll: () => users,
+  
+  findByLoginId: (loginId: string) => users.find((u) => u.loginId === loginId),
+  
+  create: (data: { loginId: string; nickname: string; password?: string }) => {
+    const newUser: User = {
+      id: nextUserId++,
+      loginId: data.loginId,
+      nickname: data.nickname,
+      password: data.password,
+      status: "active",
+      createdAt: getCurrentTime(),
+    };
+    users.push(newUser);
+    return newUser;
+  },
+
+  delete: (loginId: string) => {
+    const index = users.findIndex((u) => u.loginId === loginId);
+    if (index === -1) return false;
+    users[index] = {
+      ...users[index],
+      status: "deleted",
+    };
+    return true;
+  },
+};
+

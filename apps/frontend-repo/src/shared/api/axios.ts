@@ -8,6 +8,27 @@ export const api = axios.create({
   },
 });
 
+// 모든 API 요청 시 로컬 스토리지에서 토큰을 직접 추출하여 Authorization 헤더에 자동 탑재 (FSD 순환 의존 방지)
+api.interceptors.request.use(
+  (config) => {
+    const storageStr = typeof window !== "undefined" ? localStorage.getItem("app-storage") : null;
+    if (storageStr) {
+      try {
+        const parsed = JSON.parse(storageStr);
+        const token = parsed?.state?.accessToken;
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (e) {
+        console.error("Failed to parse app-storage for token injection:", e);
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -22,3 +43,4 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+

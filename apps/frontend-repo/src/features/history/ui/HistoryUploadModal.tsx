@@ -11,7 +11,7 @@ import {
   Badge,
   ScrollArea,
 } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
+import { toast } from '@/shared/ui/toast';
 import { useUploadExcel, useBulkSave } from '../api/mutations';
 import type { TransactionDto } from '../model/types';
 import { CATEGORY_COLORS } from '../model/constants';
@@ -44,12 +44,7 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
     e.target.value = '';
     if (!file) return;
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
-      notifications.show({
-        title: '업로드 실패',
-        message: '엑셀 파일(.xlsx, .xls)만 선택할 수 있습니다.',
-        color: 'red',
-        autoClose: 3000,
-      });
+      toast.error('엑셀 파일(.xlsx, .xls)만 선택할 수 있습니다.', { title: '업로드 실패', autoClose: 3000 });
       return;
     }
 
@@ -59,29 +54,14 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
     uploadMutation.mutate(file, {
       onSuccess: rows => {
         if (rows.length === 0) {
-          notifications.show({
-            title: '파싱 완료',
-            message: '미리보기할 데이터가 없습니다.',
-            color: 'blue',
-            autoClose: 3000,
-          });
+          toast.info('미리보기할 데이터가 없습니다.', { title: '파싱 완료', autoClose: 3000 });
         } else {
           setParsedRows(rows);
-          notifications.show({
-            title: '파싱 완료',
-            message: `${rows.length}건을 불러왔습니다.`,
-            color: 'blue',
-            autoClose: 3000,
-          });
+          toast.info(`${rows.length}건을 불러왔습니다.`, { title: '파싱 완료', autoClose: 3000 });
         }
       },
       onError: () => {
-        notifications.show({
-          title: '파싱 오류',
-          message: '서버에서 엑셀 파일을 읽는 중 오류가 발생했습니다.',
-          color: 'red',
-          autoClose: 3000,
-        });
+        toast.error('서버에서 엑셀 파일을 읽는 중 오류가 발생했습니다.', { title: '파싱 오류', autoClose: 3000 });
       },
     });
   };
@@ -91,21 +71,11 @@ export function HistoryUploadModal({ opened, onClose }: Props) {
     bulkMutation.mutate(parsedRows, {
       onSuccess: added => {
         const skipped = parsedRows.length - added.length;
-        notifications.show({
-          title: '저장 완료',
-          message: `${added.length}건 저장${skipped > 0 ? `, ${skipped}건 중복 제외` : ''}`,
-          color: 'green',
-          autoClose: 3000,
-        });
+        toast.success(`${added.length}건 저장${skipped > 0 ? `, ${skipped}건 중복 제외` : ''}`, { title: '저장 완료', autoClose: 3000 });
         handleClose();
       },
       onError: () => {
-        notifications.show({
-          title: '저장 오류',
-          message: '서버 저장 중 오류가 발생했습니다.',
-          color: 'red',
-          autoClose: 3000,
-        });
+        toast.error('서버 저장 중 오류가 발생했습니다.', { title: '저장 오류', autoClose: 3000 });
       },
     });
   };

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Badge, Box, Button, Divider, Drawer, Grid, Group, Stack, Text, Textarea } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-
+import { toast } from '@/shared/ui/toast';
 import { useUpdateTransaction } from '../api/mutations';
 import { CATEGORY_COLORS } from '../model/constants';
 import type { TransactionDto } from '../model/types';
@@ -43,11 +42,7 @@ export function HistoryDetailModal({ opened, onClose, transaction, onSaved }: Pr
   const handleSave = async () => {
     if (!transaction) return;
     if (!trimmedMemo) {
-      notifications.show({
-        color: 'yellow',
-        title: '메모를 입력해 주세요',
-        message: '저장하려면 메모 내용을 먼저 입력해야 합니다.',
-      });
+      toast.warning('저장하려면 메모 내용을 먼저 입력해야 합니다.', { title: '메모를 입력해 주세요' });
       return;
     }
 
@@ -65,19 +60,10 @@ export function HistoryDetailModal({ opened, onClose, transaction, onSaved }: Pr
         },
       });
 
-      notifications.show({
-        color: 'teal',
-        title: '저장 완료',
-        message: '메모가 저장되었습니다.',
-      });
-
+      toast.success('메모가 저장되었습니다.', { title: '저장 완료' });
       onSaved(updated);
     } catch {
-      notifications.show({
-        color: 'red',
-        title: '저장 실패',
-        message: '메모를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.',
-      });
+      toast.error('메모를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.', { title: '저장 실패' });
     }
   };
 

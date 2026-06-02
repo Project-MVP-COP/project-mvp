@@ -142,6 +142,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: 3. 의존성 설치
+        working-directory: apps/frontend-repo
         run: pnpm install
 
       - name: 4. Vite 프로젝트 빌드

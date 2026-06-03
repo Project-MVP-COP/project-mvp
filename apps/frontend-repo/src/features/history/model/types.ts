@@ -15,12 +15,12 @@ export interface TransactionDto {
 export type TransactionStatus = '승인' | '취소';
 
 export interface UpdateTransactionPayload {
-  merchant: string;
-  categoryName: string;
-  amount: number;
-  cardName: string;
-  installment: number;
-  status: TransactionStatus;
+  merchant?: string;
+  categoryName?: string;
+  amount?: number;
+  cardName?: string;
+  installment?: number;
+  status?: TransactionStatus;
   memo?: string | null;
 }
 
@@ -29,6 +29,7 @@ export interface TransactionPageResult {
   approvedCount: number;
   cancelledCount: number;
   totalAmount: number;
+  cancelledAmount: number;
   hasMore: boolean;
   data: TransactionDto[];
 }

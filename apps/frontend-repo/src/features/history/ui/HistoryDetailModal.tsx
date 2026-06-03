@@ -50,12 +50,6 @@ export function HistoryDetailModal({ opened, onClose, transaction, onSaved }: Pr
       const updated = await updateTransactionMutation.mutateAsync({
         id: transaction.id,
         payload: {
-          merchant: transaction.merchant,
-          categoryName: transaction.categoryName,
-          amount: transaction.amount,
-          cardName: transaction.cardName,
-          installment: transaction.installment,
-          status: transaction.status,
           memo: trimmedMemo,
         },
       });

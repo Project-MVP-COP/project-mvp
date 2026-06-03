@@ -122,6 +122,9 @@ export const handlers = [
     const approvedCount  = approved.length;
     const cancelledCount = result.length - approvedCount;
     const totalAmount = approved.reduce((s, t) => s + t.amount, 0);
+    const cancelledAmount = result
+      .filter(t => t.status === '취소')
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
 
     const sortField = p.sortField ?? 'date';
     const sortOrder = p.sortOrder ?? 'desc';
@@ -140,7 +143,15 @@ export const handlers = [
     const pageData = result.slice(page * size, page * size + size);
     const hasMore  = page * size + size < totalCount;
 
-    return HttpResponse.json({ totalCount, approvedCount, cancelledCount, totalAmount, hasMore, data: pageData });
+    return HttpResponse.json({
+      totalCount,
+      approvedCount,
+      cancelledCount,
+      totalAmount,
+      cancelledAmount,
+      hasMore,
+      data: pageData,
+    });
   }),
 
   // ── 엑셀 업로드 (Step 1: 파싱) ──────────────────────────────────

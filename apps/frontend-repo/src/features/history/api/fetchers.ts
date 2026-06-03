@@ -42,6 +42,6 @@ export const updateTransaction = async ({
   id: number;
   payload: UpdateTransactionPayload;
 }): Promise<TransactionDto> => {
-  const { data } = await api.put<TransactionDto>(`/api/transactions/${id}`, payload);
+  const { data } = await api.patch<TransactionDto>(`/api/transactions/${id}`, payload);
   return data;
 };

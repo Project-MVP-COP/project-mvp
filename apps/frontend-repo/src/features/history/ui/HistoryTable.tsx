@@ -32,6 +32,8 @@ const tableCardStyle = {
   boxShadow: '0 10px 20px rgba(0, 0, 0, 0.05)',
 } as const;
 
+const memoColumnWidth = 220;
+
 export function HistoryTable({ data, page, totalPages, onPageChange, onRowClick, isLoading }: Props) {
   if (isLoading) {
     return (
@@ -96,7 +98,7 @@ export function HistoryTable({ data, page, totalPages, onPageChange, onRowClick,
               <Table.Th>카드</Table.Th>
               <Table.Th>할부</Table.Th>
               <Table.Th>상태</Table.Th>
-              <Table.Th miw={60}>메모</Table.Th>
+              <Table.Th w={memoColumnWidth}>메모</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -152,10 +154,12 @@ export function HistoryTable({ data, page, totalPages, onPageChange, onRowClick,
                     {txn.status}
                   </Badge>
                 </Table.Td>
-                <Table.Td>
+                <Table.Td w={memoColumnWidth}>
                   <Text
                     size="sm"
                     style={{
+                      display: 'block',
+                      maxWidth: memoColumnWidth,
                       textDecoration: 'inherit',
                       color: 'inherit',
                       opacity: txn.memo?.trim() ? 1 : 0.55,

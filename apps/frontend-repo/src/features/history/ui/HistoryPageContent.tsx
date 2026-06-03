@@ -100,6 +100,7 @@ export function HistoryPageContent() {
   const approvedCount = pageResult?.approvedCount ?? 0;
   const cancelledCount = pageResult?.cancelledCount ?? 0;
   const totalAmount = pageResult?.totalAmount ?? 0;
+  const cancelledAmount = pageResult?.cancelledAmount ?? 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
@@ -217,9 +218,9 @@ export function HistoryPageContent() {
               <Text
                 size="sm"
                 fw={700}
-                style={{ color: cancelledCount > 0 ? '#ef4444' : 'var(--text)', opacity: cancelledCount > 0 ? 1 : 0.65 }}
+                style={{ color: cancelledAmount > 0 ? '#ef4444' : 'var(--text)', opacity: cancelledAmount > 0 ? 1 : 0.65 }}
               >
-                {cancelledCount > 0 ? '취소 내역 있음' : '취소 내역 없음'}
+                취소 합계 {fmt(cancelledAmount)}원
               </Text>
             </Stack>
           </Card>

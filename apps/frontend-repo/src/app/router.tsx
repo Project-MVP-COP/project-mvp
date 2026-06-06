@@ -4,6 +4,9 @@ import { loginAction, registerAction } from "@/features/auth/routes/action";
 import { SamplePage } from "@/features/sample/routes/SamplePage";
 import { action as sampleAction } from "@/features/sample/routes/action";
 import { loader as sampleLoader } from "@/features/sample/routes/loader";
+import { WashingPage } from "@/features/washing/routes/WashingPage";
+import { action as washingAction } from "@/features/washing/routes/action";
+import { loader as washingLoader } from "@/features/washing/routes/loader";
 import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import { NotFoundPage } from "@/shared/ui/NotFoundPage";
 import { createBrowserRouter, redirect, Navigate } from "react-router";
@@ -52,6 +55,12 @@ export const router = createBrowserRouter([
         element: <SamplePage />,
         loader: sampleLoader(queryClient),
         action: sampleAction(queryClient),
+      },
+      {
+        path: "washing",
+        element: <WashingPage />,
+        loader: washingLoader(queryClient),
+        action: washingAction(queryClient),
       },
       {
         path: "*",

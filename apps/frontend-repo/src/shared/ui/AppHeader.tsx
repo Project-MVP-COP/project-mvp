@@ -10,20 +10,25 @@ import {
   Group,
   Menu,
   NavLink,
-  rem,
   ScrollArea,
   Stack,
   Tabs,
   Text,
   Title,
+  rem,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
+  IconBrush,
+  IconChartLine,
   IconChevronDown,
+  IconLayoutGrid,
   IconLogout,
   IconMoon,
   IconSettings,
+  IconSparkles,
   IconSun,
+  IconTool,
 } from "@tabler/icons-react";
 import { useState } from "react";
 
@@ -31,11 +36,11 @@ const userAvatarDefault =
   "https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-5.png";
 
 const navTabs = [
-  { label: "내역관리", value: "/history" },
-  { label: "시각화", value: "/stats" },
-  { label: "개인화", value: "/personal" },
-  { label: "설정", value: "/settings" },
-  { label: "샘플", value: "/sample" },
+  { label: "내역 세척 및 관리", value: "/washing", icon: IconBrush },
+  { label: "규칙 엔진 빌더", value: "/rules", icon: IconTool, disabled: true },
+  { label: "피벗 분석", value: "/pivot", icon: IconLayoutGrid, disabled: true },
+  { label: "미래 가치 시뮬레이터", value: "/sim", icon: IconChartLine, disabled: true },
+  { label: "샘플", value: "/sample", icon: IconSparkles },
 ];
 
 interface AppHeaderProps {
@@ -48,9 +53,9 @@ interface AppHeaderProps {
   onLogout: () => void;
 }
 
-/**
- * 공용 헤더 컴포넌트
- */
+const getActiveTab = (pathname: string | null) =>
+  navTabs.find((tab) => pathname?.startsWith(tab.value))?.value ?? "/washing";
+
 export function AppHeader({
   colorScheme,
   onToggleColorScheme,
@@ -63,7 +68,7 @@ export function AppHeader({
   const [drawerOpened, { toggle: toggleDrawer, close: closeDrawer }] =
     useDisclosure(false);
   const [userMenuOpened, setUserMenuOpened] = useState(false);
-
+  const resolvedActiveTab = getActiveTab(activeTab);
 
   return (
     <Box component="header">
@@ -76,16 +81,15 @@ export function AppHeader({
               hiddenFrom="sm"
               size="sm"
             />
-            <Title
-              order={3}
-              style={{
-                cursor: "pointer",
-                color: "var(--mantine-color-brandYellow-filled)",
-              }}
-              onClick={() => onTabChange("/")}
+            <Button
+              variant="subtle"
+              color="brandYellow"
+              px={0}
+              onClick={() => onTabChange("/washing")}
+              leftSection={<IconSparkles size={18} />}
             >
-              카드 이용내역 관리
-            </Title>
+              <Title order={3}>Card Horizon</Title>
+            </Button>
           </Group>
 
           <Group gap="sm">
@@ -114,15 +118,10 @@ export function AppHeader({
               >
                 <Menu.Target>
                   <Button
-                    variant="subtle"
+                    variant={userMenuOpened ? "light" : "subtle"}
                     color="gray"
                     px="xs"
                     h={38}
-                    style={{
-                      backgroundColor: userMenuOpened
-                        ? "var(--mantine-color-default-hover)"
-                        : undefined,
-                    }}
                   >
                     <Group gap={7}>
                       <Avatar
@@ -150,22 +149,6 @@ export function AppHeader({
                     onClick={onLogout}
                   >
                     로그아웃
-                  </Menu.Item>
-
-                  <Menu.Divider />
-
-                  <Menu.Item
-                    leftSection={
-                      colorScheme === "dark" ? (
-                        <IconSun size={16} stroke={1.5} />
-                      ) : (
-                        <IconMoon size={16} stroke={1.5} />
-                      )
-                    }
-                    onClick={onToggleColorScheme}
-                    hiddenFrom="sm"
-                  >
-                    {colorScheme === "dark" ? "Light Mode" : "Dark Mode"}
                   </Menu.Item>
                 </Menu.Dropdown>
               </Menu>
@@ -197,26 +180,49 @@ export function AppHeader({
 
       <Container size="xl" visibleFrom="sm">
         <Tabs
-          value={activeTab}
-          onChange={(value) => onTabChange(value || "/")}
-          variant="outline"
+          value={resolvedActiveTab}
+          onChange={(value) => onTabChange(value || "/washing")}
           styles={{
             list: {
+              gap: rem(6),
               borderBottom: 0,
+              paddingBottom: rem(8),
               "--tabs-list-border-width": "0",
             },
             tab: {
-              fontWeight: 500,
-              height: rem(38),
+              minHeight: rem(42),
+              paddingInline: rem(16),
+              borderRadius: rem(12),
+              fontWeight: 700,
+              color: "var(--mantine-color-dimmed)",
+              backgroundColor: "transparent",
+              transition:
+                "background-color 150ms ease, color 150ms ease, box-shadow 150ms ease",
+            },
+            tabSection: {
+              marginInlineEnd: rem(8),
             },
           }}
         >
           <Tabs.List>
-            {navTabs.map((tab) => (
-              <Tabs.Tab key={tab.value} value={tab.value}>
-                {tab.label}
-              </Tabs.Tab>
-            ))}
+            {navTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = resolvedActiveTab === tab.value;
+
+              return (
+                <Tabs.Tab
+                  key={tab.value}
+                  value={tab.value}
+                  disabled={tab.disabled}
+                  leftSection={<Icon size={16} />}
+                  bg={isActive ? "brandYellow" : undefined}
+                  c={isActive ? "black" : "dimmed"}
+                  bd={isActive ? "1px solid var(--mantine-color-brandYellow-6)" : undefined}
+                >
+                  {tab.label}
+                </Tabs.Tab>
+              );
+            })}
           </Tabs.List>
         </Tabs>
       </Container>
@@ -232,22 +238,31 @@ export function AppHeader({
       >
         <ScrollArea h="calc(100vh - 80px)" mx="-md">
           <Divider my="sm" />
-          {navTabs.map((tab) => (
-            <NavLink
-              key={tab.value}
-              label={tab.label}
-              active={activeTab === tab.value}
-              onClick={() => {
-                onTabChange(tab.value);
-                closeDrawer();
-              }}
-              fw={activeTab === tab.value ? 700 : 500}
-              color="brandYellow"
-            />
-          ))}
-          
+          {navTabs.map((tab) => {
+            const Icon = tab.icon;
+
+            return (
+              <NavLink
+                key={tab.value}
+                label={tab.label}
+                leftSection={<Icon size={18} />}
+                active={resolvedActiveTab === tab.value}
+                disabled={tab.disabled}
+                onClick={() => {
+                  if (tab.disabled) {
+                    return;
+                  }
+                  onTabChange(tab.value);
+                  closeDrawer();
+                }}
+                fw={resolvedActiveTab === tab.value ? 700 : 500}
+                color="brandYellow"
+              />
+            );
+          })}
+
           <Divider my="sm" />
-          
+
           <Box px="md" py="xs">
             {isAuthenticated ? (
               <Stack gap="xs">
@@ -298,4 +313,3 @@ export function AppHeader({
     </Box>
   );
 }
-

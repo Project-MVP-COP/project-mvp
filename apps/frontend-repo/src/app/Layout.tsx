@@ -32,7 +32,7 @@ export function Layout() {
   };
 
   return (
-    <AppShell header={{ height: { base: 60, sm: 100 } }} padding="md">
+    <AppShell header={{ height: { base: 150, sm: 168 } }} padding="md">
       <NavigationProgress color="brandYellow" />
 
       <AppShell.Header
@@ -52,7 +52,7 @@ export function Layout() {
 
 
       <AppShell.Main>
-        <Box pos="relative" mih="calc(100vh - 100px)" mx="auto" maw={1400}>
+        <Box pos="relative" mih="calc(100vh - 168px)" mx="auto" maw={1400}>
           <LoadingOverlay
             visible={isNavigating}
             zIndex={1000}

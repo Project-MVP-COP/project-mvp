@@ -16,12 +16,13 @@
         <result property="installment"     column="installment"/>
         <result property="status"          column="status"/>
         <result property="memo"            column="memo"/>
+        <result property="tag"             column="tag"/>
     </resultMap>
 
     <select id="findAll" resultMap="transactionResultMap">
         SELECT t.id, t.user_id, t.transaction_date, t.merchant,
                t.category_id, c.name AS category_name,
-               t.amount, t.card_name, t.installment, t.status, t.memo
+               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag
         FROM transactions t
         LEFT JOIN categories c ON t.category_id = c.id
         WHERE t.user_id = #{userId}
@@ -31,7 +32,7 @@
     <select id="findById" resultMap="transactionResultMap">
         SELECT t.id, t.user_id, t.transaction_date, t.merchant,
                t.category_id, c.name AS category_name,
-               t.amount, t.card_name, t.installment, t.status, t.memo
+               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag
         FROM transactions t
         LEFT JOIN categories c ON t.category_id = c.id
         WHERE t.id = #{id}
@@ -56,7 +57,11 @@
     </update>
 
     <update id="updateCategory">
-        UPDATE transactions SET category_id = #{categoryId} WHERE id = #{id}
+        UPDATE transactions
+        SET category_id = #{categoryId},
+            tag         = '#개별세척',
+            updated_at  = NOW()
+        WHERE id = #{id}
     </update>
 
     <delete id="delete">
@@ -101,7 +106,7 @@
             resultMap="transactionResultMap">
         SELECT t.id, t.user_id, t.transaction_date, t.merchant,
                t.category_id, c.name AS category_name,
-               t.amount, t.card_name, t.installment, t.status, t.memo
+               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag
         FROM transactions t
         LEFT JOIN categories c ON t.category_id = c.id
         <include refid="searchWhere"/>

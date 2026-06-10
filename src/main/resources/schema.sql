@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     installment      INTEGER      NOT NULL DEFAULT 1,
     status           VARCHAR(20)  NOT NULL DEFAULT '승인',
     memo             TEXT,
+    tag              VARCHAR(100),
     created_at       TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_transactions_user     FOREIGN KEY (user_id)     REFERENCES users(id)      ON DELETE CASCADE,
@@ -49,3 +50,4 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions(user_id, t
 CREATE INDEX IF NOT EXISTS idx_transactions_category  ON transactions(category_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_status    ON transactions(status);
 CREATE INDEX IF NOT EXISTS idx_transactions_merchant  ON transactions(merchant);
+

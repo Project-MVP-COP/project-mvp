@@ -21,4 +21,5 @@ public class TransactionDto {
     private Integer installment;
     private String  status;
     private String  memo;
+    private String  tag;
 }

@@ -1,5 +1,7 @@
 package com.example.demo.excel.service;
 
+import com.example.demo.common.exception.BusinessException;
+import com.example.demo.common.exception.CommonErrorCode;
 import com.example.demo.excel.dto.TransactionDto;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -178,7 +180,7 @@ public class ExcelService {
                 if (m.contains(kw.toLowerCase())) return rule[0];
             }
         }
-        return "기타";
+        return null;
     }
 
     /* ── 신한카드 파서 ──────────────────────────────────────────── */
@@ -187,7 +189,7 @@ public class ExcelService {
     private List<TransactionDto> parseShinhancardFormat(Workbook wb) {
         Sheet sheet = wb.getSheetAt(0);
         Row headerRow = findHeaderRow(sheet, "거래일");
-        if (headerRow == null) throw new IllegalArgumentException("[신한카드] 헤더 행을 찾을 수 없습니다.");
+        if (headerRow == null) throw new BusinessException(CommonErrorCode.INVALID_INPUT,"[신한카드] 헤더 행을 찾을 수 없습니다.");
 
         Map<String, Integer> ci = buildColIndex(headerRow);
         List<TransactionDto> result = new ArrayList<>();
@@ -234,7 +236,7 @@ public class ExcelService {
     private List<TransactionDto> parseKbFormat(Workbook wb) {
         Sheet sheet = wb.getSheetAt(0);
         Row headerRow = findHeaderRow(sheet, "이용하신곳");
-        if (headerRow == null) throw new IllegalArgumentException("[KB국민카드] 헤더 행을 찾을 수 없습니다.");
+        if (headerRow == null) throw new BusinessException(CommonErrorCode.INVALID_INPUT,"[KB국민카드] 헤더 행을 찾을 수 없습니다.");
 
         Map<String, Integer> ci = buildColIndex(headerRow);
         List<TransactionDto> result = new ArrayList<>();
@@ -277,12 +279,12 @@ public class ExcelService {
     private List<TransactionDto> parseTemplateFormat(Workbook wb) {
         Sheet sheet = wb.getSheetAt(0);
         Row headerRow = sheet.getRow(0);
-        if (headerRow == null) throw new IllegalArgumentException("엑셀 헤더가 없습니다.");
+        if (headerRow == null) throw new BusinessException(CommonErrorCode.INVALID_INPUT,"엑셀 헤더가 없습니다.");
 
         Map<String, Integer> ci = buildColIndex(headerRow);
         List<String> missing = new ArrayList<>();
         for (String h : HEADERS) if (!ci.containsKey(h)) missing.add(h);
-        if (!missing.isEmpty()) throw new IllegalArgumentException("컬럼 누락: " + String.join(", ", missing));
+        if (!missing.isEmpty()) throw new BusinessException(CommonErrorCode.INVALID_INPUT,"컬럼 누락: " + String.join(", ", missing));
 
         List<TransactionDto> result = new ArrayList<>();
         long tempId = 1;
@@ -302,11 +304,11 @@ public class ExcelService {
             String status      = getCellString(row, ci.get("상태"));
 
             if (!date.matches("\\d{4}-\\d{2}-\\d{2}"))
-                throw new IllegalArgumentException((r + 1) + "행: 날짜 형식 오류 (YYYY-MM-DD)");
+                throw new BusinessException(CommonErrorCode.INVALID_INPUT,(r + 1) + "행: 날짜 형식 오류 (YYYY-MM-DD)");
             if (!VALID_CATEGORIES.contains(category))
-                throw new IllegalArgumentException((r + 1) + "행: 유효하지 않은 카테고리 '" + category + "'");
+                throw new BusinessException(CommonErrorCode.INVALID_INPUT,(r + 1) + "행: 유효하지 않은 카테고리 '" + category + "'");
             if (!VALID_STATUSES.contains(status))
-                throw new IllegalArgumentException((r + 1) + "행: 상태는 '승인' 또는 '취소'여야 합니다.");
+                throw new BusinessException(CommonErrorCode.INVALID_INPUT,(r + 1) + "행: 상태는 '승인' 또는 '취소'여야 합니다.");
 
             result.add(TransactionDto.builder()
                     .id(tempId++).transactionDate(date).merchant(merchant).categoryName(category)
@@ -319,16 +321,20 @@ public class ExcelService {
 
     /* ── 공개 메서드 ────────────────────────────────────────────── */
 
-    public List<TransactionDto> parseUpload(MultipartFile file) throws IOException {
+    public List<TransactionDto> parseUpload(MultipartFile file) {
         try (Workbook wb = WorkbookFactory.create(file.getInputStream())) {
             BankType bankType = detectBankType(wb);
             return switch (bankType) {
                 case SHINHAN  -> parseShinhancardFormat(wb);
                 case KB       -> parseKbFormat(wb);
                 case TEMPLATE -> parseTemplateFormat(wb);
-                case UNKNOWN  -> throw new IllegalArgumentException(
+                case UNKNOWN  -> throw new BusinessException(CommonErrorCode.INVALID_INPUT,
                         "지원하지 않는 엑셀 형식입니다. 신한카드 / KB국민카드 / 서비스 양식 파일만 업로드 가능합니다.");
             };
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException(CommonErrorCode.INVALID_INPUT, "파일을 읽을 수 없습니다: " + e.getMessage());
         }
     }
 

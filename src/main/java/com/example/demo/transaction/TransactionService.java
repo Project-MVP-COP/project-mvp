@@ -63,7 +63,7 @@ public class TransactionService {
         for (TransactionDto dto : list) {
             dto.setUserId(userId);
             if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
-                dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.get("기타")));
+                dto.setCategoryId(catMap.get(dto.getCategoryName()));
             }
             if (mapper.existsByKey(dto.getUserId(), dto.getTransactionDate(),
                                    dto.getMerchant(), dto.getAmount(), dto.getCardName())) continue;

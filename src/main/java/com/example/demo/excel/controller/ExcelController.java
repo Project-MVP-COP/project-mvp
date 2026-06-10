@@ -2,9 +2,9 @@ package com.example.demo.excel.controller;
 
 import com.example.demo.excel.dto.TransactionDto;
 import com.example.demo.excel.service.ExcelService;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,55 +16,35 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/excel")
+@RequiredArgsConstructor
 public class ExcelController {
 
     private final ExcelService excelService;
 
-    public ExcelController(ExcelService excelService) {
-        this.excelService = excelService;
-    }
-
     @GetMapping("/template")
-    public ResponseEntity<byte[]> downloadTemplate() throws IOException {
+    public void downloadTemplate(HttpServletResponse response) throws IOException {
         byte[] bytes = excelService.generateTemplate();
-        return ResponseEntity.ok()
-                .headers(excelHeaders("카드이용내역_양식.xlsx"))
-                .body(bytes);
+        setExcelHeaders(response, "카드이용내역_양식.xlsx");
+        response.getOutputStream().write(bytes);
     }
 
     @PostMapping("/download")
-    public ResponseEntity<byte[]> downloadData(@RequestBody List<TransactionDto> transactions) throws IOException {
+    public void downloadData(@RequestBody List<TransactionDto> transactions,
+                             HttpServletResponse response) throws IOException {
         byte[] bytes = excelService.exportToExcel(transactions);
-        String filename = "카드이용내역_" + LocalDate.now() + ".xlsx";
-        return ResponseEntity.ok()
-                .headers(excelHeaders(filename))
-                .body(bytes);
+        setExcelHeaders(response, "카드이용내역_" + LocalDate.now() + ".xlsx");
+        response.getOutputStream().write(bytes);
     }
 
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadExcel(@RequestPart("file") MultipartFile file) {
-        if (file.isEmpty()) return ResponseEntity.badRequest().body("파일이 비어있습니다.");
-
-        String name = file.getOriginalFilename();
-        if (name == null || (!name.endsWith(".xlsx") && !name.endsWith(".xls")))
-            return ResponseEntity.badRequest().body(".xlsx 또는 .xls 파일만 업로드 가능합니다.");
-
-        try {
-            List<TransactionDto> parsed = excelService.parseUpload(file);
-            return ResponseEntity.ok(parsed);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().body("파일 처리 오류: " + e.getMessage());
-        }
+    @PostMapping(value = "/upload", consumes = "multipart/form-data")
+    @ResponseStatus(HttpStatus.OK)
+    public List<TransactionDto> uploadExcel(@RequestPart("file") MultipartFile file) {
+        return excelService.parseUpload(file);
     }
 
-    private HttpHeaders excelHeaders(String filename) {
+    private void setExcelHeaders(HttpServletResponse response, String filename) {
         String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encoded + "\"");
-        return headers;
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + encoded + "\"");
     }
 }

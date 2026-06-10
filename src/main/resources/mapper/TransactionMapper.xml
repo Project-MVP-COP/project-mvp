@@ -55,6 +55,10 @@
         WHERE id = #{id}
     </update>
 
+    <update id="updateCategory">
+        UPDATE transactions SET category_id = #{categoryId} WHERE id = #{id}
+    </update>
+
     <delete id="delete">
         DELETE FROM transactions WHERE id = #{id}
     </delete>

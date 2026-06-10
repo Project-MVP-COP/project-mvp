@@ -2,6 +2,7 @@ package com.example.demo.transaction;
 
 import com.example.demo.excel.dto.TransactionDto;
 import com.example.demo.user.service.User;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -52,6 +53,13 @@ public class TransactionController {
     public BulkUploadResult addBulk(@RequestBody List<TransactionDto> list,
                                     @AuthenticationPrincipal User currentUser) {
         return service.addBulk(list, currentUser.getId());
+    }
+
+    @PatchMapping("/{id}/category")
+    public TransactionDto patchCategory(@PathVariable Long id,
+                                        @RequestBody @Valid CategoryPatchRequest request,
+                                        @AuthenticationPrincipal User currentUser) {
+        return service.patchCategory(id, request.categoryId(), currentUser.getId());
     }
 
     @PutMapping("/{id}")

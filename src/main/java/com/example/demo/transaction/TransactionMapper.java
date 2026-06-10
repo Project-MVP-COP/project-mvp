@@ -21,6 +21,8 @@ public interface TransactionMapper {
 
     void update(TransactionDto dto);
 
+    void updateCategory(@Param("id") Long id, @Param("categoryId") Long categoryId);
+
     void delete(@Param("id") Long id);
 
     void deleteAll(@Param("userId") Long userId);

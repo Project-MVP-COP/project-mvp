@@ -85,6 +85,14 @@ public class TransactionService {
         return dto;
     }
 
+    public TransactionDto patchCategory(Long id, Long categoryId, Long userId) {
+        TransactionDto existing = mapper.findById(id);
+        if (existing == null) throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
+        if (!existing.getUserId().equals(userId)) throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        mapper.updateCategory(id, categoryId);
+        return mapper.findById(id);
+    }
+
     public void delete(Long id) {
         mapper.delete(id);
     }

@@ -25,9 +25,4 @@ public interface TransactionMapper {
 
     void deleteAll(@Param("userId") Long userId);
 
-    boolean existsByKey(@Param("userId")          Long   userId,
-                        @Param("transactionDate") String transactionDate,
-                        @Param("merchant")        String merchant,
-                        @Param("amount")          Long   amount,
-                        @Param("cardName")        String cardName);
 }

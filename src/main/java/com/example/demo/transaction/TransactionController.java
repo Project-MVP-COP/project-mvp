@@ -49,8 +49,8 @@ public class TransactionController {
 
     @PostMapping("/bulk")
     @ResponseStatus(HttpStatus.CREATED)
-    public List<TransactionDto> addBulk(@RequestBody List<TransactionDto> list,
-                                        @AuthenticationPrincipal User currentUser) {
+    public BulkUploadResult addBulk(@RequestBody List<TransactionDto> list,
+                                    @AuthenticationPrincipal User currentUser) {
         return service.addBulk(list, currentUser.getId());
     }
 

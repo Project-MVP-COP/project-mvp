@@ -4,9 +4,9 @@ import com.example.demo.category.CategoryMapper;
 import com.example.demo.common.exception.BusinessException;
 import com.example.demo.common.exception.CommonErrorCode;
 import com.example.demo.excel.dto.TransactionDto;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,20 +57,22 @@ public class TransactionService {
         return dto;
     }
 
-    public List<TransactionDto> addBulk(List<TransactionDto> list, Long userId) {
+    public BulkUploadResult addBulk(List<TransactionDto> list, Long userId) {
         Map<String, Long> catMap = buildCategoryMap();
-        List<TransactionDto> added = new ArrayList<>();
+        int added = 0, skipped = 0;
         for (TransactionDto dto : list) {
             dto.setUserId(userId);
             if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
                 dto.setCategoryId(catMap.get(dto.getCategoryName()));
             }
-            if (mapper.existsByKey(dto.getUserId(), dto.getTransactionDate(),
-                                   dto.getMerchant(), dto.getAmount(), dto.getCardName())) continue;
-            mapper.insert(dto);
-            added.add(dto);
+            try {
+                mapper.insert(dto);
+                added++;
+            } catch (DataIntegrityViolationException e) {
+                skipped++;
+            }
         }
-        return added;
+        return new BulkUploadResult(added, skipped);
     }
 
     public TransactionDto update(Long id, TransactionDto dto) {

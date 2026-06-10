@@ -127,14 +127,5 @@
         <include refid="searchWhere"/>
     </select>
 
-    <select id="existsByKey" resultType="boolean">
-        SELECT COUNT(*) > 0
-        FROM transactions
-        WHERE user_id          = #{userId}
-          AND transaction_date = CAST(#{transactionDate} AS DATE)
-          AND merchant         = #{merchant}
-          AND amount           = #{amount}
-          AND card_name        = #{cardName}
-    </select>
 
 </mapper>

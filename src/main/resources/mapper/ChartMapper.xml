@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.chart.ChartMapper">
+
+    <!-- Donut: category spending breakdown (승인 only) -->
+    <select id="donut" resultType="com.example.demo.chart.DonutChartDto">
+        SELECT
+            COALESCE(c.name, '미분류')  AS name,
+            SUM(t.amount)               AS value,
+            COALESCE(c.color, '#64748b') AS color
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.status = '승인'
+          AND t.user_id = #{userId}
+        <if test="dateStart != null and dateStart != ''">
+            AND t.transaction_date &gt;= #{dateStart}::date
+        </if>
+        <if test="dateEnd != null and dateEnd != ''">
+            AND t.transaction_date &lt;= #{dateEnd}::date
+        </if>
+        GROUP BY c.id, c.name, c.color
+        ORDER BY value DESC
+    </select>
+
+    <!-- Bar: monthly totals (승인 only, all months with data) -->
+    <select id="bar" resultType="com.example.demo.chart.BarChartDto">
+        SELECT
+            TO_CHAR(t.transaction_date, 'YYYY-MM') AS month,
+            SUM(t.amount)                           AS amount
+        FROM transactions t
+        WHERE t.status = '승인'
+          AND t.user_id = #{userId}
+        GROUP BY TO_CHAR(t.transaction_date, 'YYYY-MM')
+        ORDER BY month
+    </select>
+
+    <!-- Line: daily cumulative spending (승인 only) -->
+    <select id="line" resultType="com.example.demo.chart.LineChartDto">
+        SELECT
+            TO_CHAR(transaction_date, 'YYYY-MM-DD')               AS date,
+            SUM(SUM(amount)) OVER (ORDER BY transaction_date)     AS cumulativeAmount
+        FROM transactions
+        WHERE status = '승인'
+          AND user_id = 1
+        <if test="dateStart != null and dateStart != ''">
+            AND transaction_date &gt;= #{dateStart}::date
+        </if>
+        <if test="dateEnd != null and dateEnd != ''">
+            AND transaction_date &lt;= #{dateEnd}::date
+        </if>
+        GROUP BY transaction_date
+        ORDER BY transaction_date
+    </select>
+
+</mapper>

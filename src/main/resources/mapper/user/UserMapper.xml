@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.user.repository.UserMapper">
+
+    <resultMap id="userResultMap" type="com.example.demo.user.service.User">
+        <constructor>
+            <arg column="id"            javaType="long"/>
+            <arg column="login_id"      javaType="string"/>
+            <arg column="nickname"      javaType="string"/>
+            <arg column="password_hash" javaType="string"/>
+            <arg column="status"        javaType="string"/>
+            <arg column="last_login_at" javaType="java.time.LocalDateTime"/>
+            <arg column="created_at"    javaType="java.time.LocalDateTime"/>
+            <arg column="updated_at"    javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (login_id, nickname, password_hash, status)
+        VALUES (#{loginId}, #{nickname}, #{passwordHash}, #{status})
+    </insert>
+
+    <select id="findById" resultMap="userResultMap">
+        SELECT id, login_id, nickname, password_hash, status, last_login_at, created_at, updated_at
+        FROM users WHERE id = #{id}
+    </select>
+
+    <select id="findByLoginId" resultMap="userResultMap">
+        SELECT id, login_id, nickname, password_hash, status, last_login_at, created_at, updated_at
+        FROM users WHERE login_id = #{loginId}
+    </select>
+
+    <select id="countByLoginId" resultType="int">
+        SELECT COUNT(*) FROM users WHERE login_id = #{loginId}
+    </select>
+
+    <select id="countByNickname" resultType="int">
+        SELECT COUNT(*) FROM users WHERE nickname = #{nickname}
+    </select>
+
+    <update id="update">
+        UPDATE users
+        SET last_login_at = #{lastLoginAt},
+            status        = #{status},
+            updated_at    = #{updatedAt}
+        WHERE login_id = #{loginId}
+    </update>
+
+</mapper>

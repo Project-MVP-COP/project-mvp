@@ -9,7 +9,7 @@ import java.util.List;
 @Mapper
 public interface TransactionMapper {
 
-    List<TransactionDto> findAll();
+    List<TransactionDto> findAll(@Param("userId") Long userId);
 
     List<TransactionDto> searchList(TransactionSearchDto params);
 
@@ -23,7 +23,7 @@ public interface TransactionMapper {
 
     void delete(@Param("id") Long id);
 
-    void deleteAll();
+    void deleteAll(@Param("userId") Long userId);
 
     boolean existsByKey(@Param("userId")          Long   userId,
                         @Param("transactionDate") String transactionDate,

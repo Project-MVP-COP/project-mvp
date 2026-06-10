@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class TransactionSearchDto {
+    private Long   userId;
     private String dateStart;
     private String dateEnd;
     private String categoryName;

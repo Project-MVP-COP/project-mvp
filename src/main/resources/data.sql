@@ -1,6 +1,6 @@
 -- dummy user
 INSERT INTO users (login_id, nickname, password_hash, status) VALUES
-('dummy_user', '테스트유저', '$2a$10$dummyhashplaceholderonly', 'active');
+('dummy_user', '테스트유저', '$2a$10$lZ5xJrVmQKn6BbEZOM14L.H552C2hBzVrvgPixgBw8qE/nK4H1vYW', 'active');
 
 -- categories (IDs: 식음료=1, 쇼핑=2, 교통=3, 의료/건강=4, 문화/여가=5, 편의점=6, 주유=7, 통신=8, 교육=9, 기타=10)
 INSERT INTO categories (name, color, display_order, is_default) VALUES

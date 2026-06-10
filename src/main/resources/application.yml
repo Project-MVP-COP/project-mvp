@@ -9,3 +9,6 @@ mybatis:
   type-aliases-package: com.example.demo.domain
   configuration:
     map-underscore-to-camel-case: true
+
+jwt:
+  secret: ${JWT_SECRET:demo-secret-key-must-be-at-least-32-bytes-long-for-hmac}

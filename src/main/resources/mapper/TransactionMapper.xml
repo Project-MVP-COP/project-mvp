@@ -24,6 +24,7 @@
                t.amount, t.card_name, t.installment, t.status, t.memo
         FROM transactions t
         LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.user_id = #{userId}
         ORDER BY t.transaction_date DESC, t.id DESC
     </select>
 
@@ -59,12 +60,12 @@
     </delete>
 
     <delete id="deleteAll">
-        DELETE FROM transactions
+        DELETE FROM transactions WHERE user_id = #{userId}
     </delete>
 
     <!-- ── 공통 WHERE 절 ─────────────────────────────────────── -->
     <sql id="searchWhere">
-        WHERE t.user_id = 1
+        WHERE t.user_id = #{userId}
         <if test="dateStart != null and dateStart != ''">
             AND t.transaction_date &gt;= CAST(#{dateStart} AS DATE)
         </if>

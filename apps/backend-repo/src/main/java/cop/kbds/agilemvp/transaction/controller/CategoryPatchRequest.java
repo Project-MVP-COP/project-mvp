@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.transaction;
+package cop.kbds.agilemvp.transaction.controller;
 
 import jakarta.validation.constraints.NotNull;
 

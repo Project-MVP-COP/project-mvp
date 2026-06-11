@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.category;
+package cop.kbds.agilemvp.category.controller;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

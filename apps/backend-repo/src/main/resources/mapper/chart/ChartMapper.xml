@@ -2,9 +2,9 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="cop.kbds.agilemvp.chart.ChartMapper">
+<mapper namespace="cop.kbds.agilemvp.chart.repository.ChartMapper">
 
-    <select id="donut" resultType="cop.kbds.agilemvp.chart.DonutChartDto">
+    <select id="donut" resultType="cop.kbds.agilemvp.chart.controller.DonutChartDto">
         SELECT
             COALESCE(c.name, '미분류')   AS name,
             SUM(t.amount)                AS value,
@@ -23,7 +23,7 @@
         ORDER BY value DESC
     </select>
 
-    <select id="bar" resultType="cop.kbds.agilemvp.chart.BarChartDto">
+    <select id="bar" resultType="cop.kbds.agilemvp.chart.controller.BarChartDto">
         SELECT
             TO_CHAR(t.transaction_date, 'YYYY-MM') AS month,
             SUM(t.amount)                           AS amount
@@ -34,7 +34,7 @@
         ORDER BY month
     </select>
 
-    <select id="line" resultType="cop.kbds.agilemvp.chart.LineChartDto">
+    <select id="line" resultType="cop.kbds.agilemvp.chart.controller.LineChartDto">
         SELECT
             TO_CHAR(transaction_date, 'YYYY-MM-DD')           AS date,
             SUM(SUM(amount)) OVER (ORDER BY transaction_date) AS cumulativeAmount

@@ -1,7 +1,8 @@
-package cop.kbds.agilemvp.transaction;
+package cop.kbds.agilemvp.transaction.controller;
 
-import cop.kbds.agilemvp.excel.dto.TransactionDto;
+import cop.kbds.agilemvp.transaction.service.TransactionService;
 import cop.kbds.agilemvp.user.service.User;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "transaction", description = "카드이용내역 API")
 @RestController
 @RequestMapping("/api/transactions")
 @RequiredArgsConstructor

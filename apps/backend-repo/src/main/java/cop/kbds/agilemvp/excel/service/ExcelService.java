@@ -2,7 +2,7 @@ package cop.kbds.agilemvp.excel.service;
 
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.common.exception.CommonErrorCode;
-import cop.kbds.agilemvp.excel.dto.TransactionDto;
+import cop.kbds.agilemvp.transaction.controller.TransactionDto;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;

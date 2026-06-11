@@ -1,4 +1,4 @@
-package cop.kbds.agilemvp.chart;
+package cop.kbds.agilemvp.chart.controller;
 
 import lombok.Data;
 

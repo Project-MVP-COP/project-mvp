@@ -1,7 +1,8 @@
 package cop.kbds.agilemvp.excel.controller;
 
-import cop.kbds.agilemvp.excel.dto.TransactionDto;
 import cop.kbds.agilemvp.excel.service.ExcelService;
+import cop.kbds.agilemvp.transaction.controller.TransactionDto;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 
+@Tag(name = "excel", description = "엑셀 다운로드/업로드 API")
 @RestController
 @RequestMapping("/api/excel")
 @RequiredArgsConstructor

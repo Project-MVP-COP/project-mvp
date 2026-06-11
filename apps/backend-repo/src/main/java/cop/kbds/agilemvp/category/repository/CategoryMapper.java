@@ -1,5 +1,6 @@
-package cop.kbds.agilemvp.category;
+package cop.kbds.agilemvp.category.repository;
 
+import cop.kbds.agilemvp.category.controller.CategoryDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

@@ -2,9 +2,9 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="cop.kbds.agilemvp.transaction.TransactionMapper">
+<mapper namespace="cop.kbds.agilemvp.transaction.repository.TransactionMapper">
 
-    <resultMap id="transactionResultMap" type="cop.kbds.agilemvp.excel.dto.TransactionDto">
+    <resultMap id="transactionResultMap" type="cop.kbds.agilemvp.transaction.controller.TransactionDto">
         <id     property="id"              column="id"/>
         <result property="userId"          column="user_id"/>
         <result property="transactionDate" column="transaction_date"/>
@@ -100,7 +100,7 @@
         </if>
     </sql>
 
-    <select id="searchList" parameterType="cop.kbds.agilemvp.transaction.TransactionSearchDto"
+    <select id="searchList" parameterType="cop.kbds.agilemvp.transaction.controller.TransactionSearchDto"
             resultMap="transactionResultMap">
         SELECT t.id, t.user_id, t.transaction_date, t.merchant,
                t.category_id, c.name AS category_name,
@@ -121,8 +121,8 @@
         LIMIT #{size} OFFSET #{offset}
     </select>
 
-    <select id="searchSummary" parameterType="cop.kbds.agilemvp.transaction.TransactionSearchDto"
-            resultType="cop.kbds.agilemvp.transaction.TransactionSummaryDto">
+    <select id="searchSummary" parameterType="cop.kbds.agilemvp.transaction.controller.TransactionSearchDto"
+            resultType="cop.kbds.agilemvp.transaction.controller.TransactionSummaryDto">
         SELECT
             COUNT(*)                                                  AS totalCount,
             SUM(CASE WHEN t.status = '승인' THEN 1 ELSE 0 END)       AS approvedCount,

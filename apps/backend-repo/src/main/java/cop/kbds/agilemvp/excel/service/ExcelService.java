@@ -128,7 +128,7 @@ public class ExcelService {
                 if (m.contains(kw.toLowerCase())) return rule[0];
             }
         }
-        return null;
+        return "기타";
     }
 
     private List<TransactionDto> parseShinhancardFormat(Workbook wb) {

@@ -1,5 +1,6 @@
 package cop.kbds.agilemvp.transaction.controller;
 
+import cop.kbds.agilemvp.common.annotation.FeatureToggle;
 import cop.kbds.agilemvp.transaction.service.TransactionService;
 import cop.kbds.agilemvp.user.service.User;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,8 +40,9 @@ public class TransactionController {
     }
 
     @GetMapping("/{id}")
-    public TransactionDto findById(@PathVariable Long id) {
-        return service.findById(id);
+    public TransactionDto findById(@PathVariable Long id,
+                                   @AuthenticationPrincipal User currentUser) {
+        return service.findById(id, currentUser.getId());
     }
 
     @PostMapping
@@ -65,14 +67,17 @@ public class TransactionController {
     }
 
     @PutMapping("/{id}")
-    public TransactionDto update(@PathVariable Long id, @RequestBody TransactionDto dto) {
-        return service.update(id, dto);
+    public TransactionDto update(@PathVariable Long id,
+                                 @RequestBody TransactionDto dto,
+                                 @AuthenticationPrincipal User currentUser) {
+        return service.update(id, dto, currentUser.getId());
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        service.delete(id);
+    public void delete(@PathVariable Long id,
+                       @AuthenticationPrincipal User currentUser) {
+        service.delete(id, currentUser.getId());
     }
 
     @DeleteMapping
@@ -81,6 +86,7 @@ public class TransactionController {
         service.deleteAll(currentUser.getId());
     }
 
+    @FeatureToggle("transaction.reset")
     @PostMapping("/reset")
     public List<TransactionDto> reset(@AuthenticationPrincipal User currentUser) {
         return service.reset(currentUser.getId());

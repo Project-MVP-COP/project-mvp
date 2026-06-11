@@ -59,7 +59,7 @@
     <update id="updateCategory">
         UPDATE transactions
         SET category_id = #{categoryId},
-            tag         = '#개별세척',
+            tag         = #{tag},
             updated_at  = NOW()
         WHERE id = #{id}
     </update>

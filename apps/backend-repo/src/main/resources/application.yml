@@ -40,3 +40,5 @@ feature:
   toggle:
     sample:
       hidden-endpoint: false
+    transaction:
+      reset: true

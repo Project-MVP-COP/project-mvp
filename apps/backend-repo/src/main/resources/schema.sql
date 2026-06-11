@@ -21,7 +21,7 @@ CREATE TABLE users (
     CONSTRAINT pk_users PRIMARY KEY (id),
     CONSTRAINT uk_users_login_id UNIQUE (login_id),
     CONSTRAINT uk_users_nickname UNIQUE (nickname),
-    CONSTRAINT chk_users_status CHECK (status IN ('active', 'suspended', 'deleted')),
+    CONSTRAINT chk_users_status CHECK (status = 'active' OR status = 'suspended' OR status = 'deleted'),
     CONSTRAINT chk_users_login_id_len CHECK (LENGTH(login_id) >= 2),
     CONSTRAINT chk_users_nickname_len CHECK (LENGTH(nickname) >= 1)
 );

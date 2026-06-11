@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cop.kbds.agilemvp.transaction.TransactionMapper">
+
+    <resultMap id="transactionResultMap" type="cop.kbds.agilemvp.excel.dto.TransactionDto">
+        <id     property="id"              column="id"/>
+        <result property="userId"          column="user_id"/>
+        <result property="transactionDate" column="transaction_date"/>
+        <result property="merchant"        column="merchant"/>
+        <result property="categoryId"      column="category_id"/>
+        <result property="categoryName"    column="category_name"/>
+        <result property="amount"          column="amount"/>
+        <result property="cardName"        column="card_name"/>
+        <result property="installment"     column="installment"/>
+        <result property="status"          column="status"/>
+        <result property="memo"            column="memo"/>
+        <result property="tag"             column="tag"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="transactionResultMap">
+        SELECT t.id, t.user_id, t.transaction_date, t.merchant,
+               t.category_id, c.name AS category_name,
+               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.user_id = #{userId}
+        ORDER BY t.transaction_date DESC, t.id DESC
+    </select>
+
+    <select id="findById" resultMap="transactionResultMap">
+        SELECT t.id, t.user_id, t.transaction_date, t.merchant,
+               t.category_id, c.name AS category_name,
+               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO transactions (user_id, transaction_date, merchant, category_id, amount, card_name, installment, status, memo)
+        VALUES (#{userId}, CAST(#{transactionDate} AS DATE), #{merchant}, #{categoryId}, #{amount}, #{cardName}, #{installment}, #{status}, #{memo})
+    </insert>
+
+    <update id="update">
+        UPDATE transactions
+        SET transaction_date = CAST(#{transactionDate} AS DATE),
+            merchant         = #{merchant},
+            category_id      = #{categoryId},
+            amount           = #{amount},
+            card_name        = #{cardName},
+            installment      = #{installment},
+            status           = #{status},
+            memo             = #{memo}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateCategory">
+        UPDATE transactions
+        SET category_id = #{categoryId},
+            tag         = '#개별세척',
+            updated_at  = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM transactions WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteAll">
+        DELETE FROM transactions WHERE user_id = #{userId}
+    </delete>
+
+    <sql id="searchWhere">
+        WHERE t.user_id = #{userId}
+        <if test="dateStart != null and dateStart != ''">
+            AND t.transaction_date &gt;= CAST(#{dateStart} AS DATE)
+        </if>
+        <if test="dateEnd != null and dateEnd != ''">
+            AND t.transaction_date &lt;= CAST(#{dateEnd} AS DATE)
+        </if>
+        <if test="categoryName != null and categoryName != ''">
+            AND c.name = #{categoryName}
+        </if>
+        <if test="amountMin != null">
+            AND t.amount &gt;= #{amountMin}
+        </if>
+        <if test="amountMax != null">
+            AND t.amount &lt;= #{amountMax}
+        </if>
+        <if test="cardName != null and cardName != ''">
+            AND t.card_name = #{cardName}
+        </if>
+        <if test="status != null and status != ''">
+            AND t.status = #{status}
+        </if>
+        <if test="search != null and search != ''">
+            AND t.merchant LIKE '%' || #{search} || '%'
+        </if>
+    </sql>
+
+    <select id="searchList" parameterType="cop.kbds.agilemvp.transaction.TransactionSearchDto"
+            resultMap="transactionResultMap">
+        SELECT t.id, t.user_id, t.transaction_date, t.merchant,
+               t.category_id, c.name AS category_name,
+               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        <include refid="searchWhere"/>
+        <choose>
+            <when test="sortField == 'amount'">  ORDER BY t.amount</when>
+            <when test="sortField == 'merchant'">ORDER BY t.merchant</when>
+            <otherwise>                          ORDER BY t.transaction_date</otherwise>
+        </choose>
+        <choose>
+            <when test="sortOrder == 'asc'"> ASC</when>
+            <otherwise> DESC</otherwise>
+        </choose>
+        , t.id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="searchSummary" parameterType="cop.kbds.agilemvp.transaction.TransactionSearchDto"
+            resultType="cop.kbds.agilemvp.transaction.TransactionSummaryDto">
+        SELECT
+            COUNT(*)                                                  AS totalCount,
+            SUM(CASE WHEN t.status = '승인' THEN 1 ELSE 0 END)       AS approvedCount,
+            SUM(CASE WHEN t.status = '취소' THEN 1 ELSE 0 END)       AS cancelledCount,
+            SUM(CASE WHEN t.status = '승인' THEN t.amount ELSE 0 END) AS totalAmount
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        <include refid="searchWhere"/>
+    </select>
+
+</mapper>

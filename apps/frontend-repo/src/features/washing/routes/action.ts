@@ -1,15 +1,19 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { fetchTransactionById } from "@/features/washing/api/fetchers";
 import {
   applyBulkWash,
   importMockTransactions,
-  updateTransactionCategory,
+  updateTransaction,
 } from "@/features/washing/api/mutations";
 import { washingKeys } from "@/features/washing/api/queries";
 import { parseWashingCommand } from "@/features/washing/model/core";
+import type { ActionResult } from "@/features/washing/model/types";
+
+export type { ActionResult };
 
 export const action =
   (queryClient: QueryClient) =>
-  async ({ request }: { request: Request }) => {
+  async ({ request }: { request: Request }): Promise<ActionResult> => {
     const formData = await request.formData();
     const command = parseWashingCommand(formData);
 
@@ -17,23 +21,28 @@ export const action =
       switch (command.type) {
         case "bulk_wash":
           await applyBulkWash(command.payload);
-          break;
-        case "update_category":
-          await updateTransactionCategory(command.id, {
-            category: command.category,
+          await queryClient.invalidateQueries({ queryKey: washingKeys.all });
+          return { intent: "bulk_wash", count: command.payload.ids.length };
+        case "update_category": {
+          const tx = await fetchTransactionById(command.id);
+          await updateTransaction(command.id, {
+            ...tx,
+            categoryId: command.categoryId,
+            categoryName: command.categoryName,
           });
-          break;
+          await queryClient.invalidateQueries({ queryKey: washingKeys.all });
+          return { intent: "update_category" };
+        }
         case "import_mock":
           await importMockTransactions();
-          break;
+          await queryClient.invalidateQueries({ queryKey: washingKeys.all });
+          return { intent: "import_mock" };
         default:
-          break;
+          await queryClient.invalidateQueries({ queryKey: washingKeys.all });
+          return { intent: command.type, error: true };
       }
     } catch (error) {
       console.error("Washing action error:", error);
-      throw error;
+      return { intent: command.type, error: true };
     }
-
-    await queryClient.invalidateQueries({ queryKey: washingKeys.all });
-    return null;
   };

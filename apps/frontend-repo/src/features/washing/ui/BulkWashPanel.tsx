@@ -13,8 +13,10 @@ import {
   Title,
 } from "@mantine/core";
 import { IconSparkles, IconWashDryclean } from "@tabler/icons-react";
-import { useState } from "react";
-import { useNavigation, useSubmit } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { useActionData, useNavigation, useSubmit } from "react-router";
+import { toast } from "@/shared/ui/toast";
+import type { ActionResult } from "@/features/washing/model/types";
 import {
   formatAmount,
   getUnclassifiedTransactions,
@@ -28,6 +30,21 @@ interface BulkWashPanelProps {
 export function BulkWashPanel({ overview }: BulkWashPanelProps) {
   const submit = useSubmit();
   const navigation = useNavigation();
+  const actionData = useActionData<ActionResult>();
+  const seenAction = useRef<unknown>(null);
+
+  useEffect(() => {
+    if (!actionData || actionData === seenAction.current) return;
+    seenAction.current = actionData;
+    if (actionData.intent !== "bulk_wash") return;
+    if (actionData.error) {
+      toast.error("일괄 세척에 실패했습니다.");
+    } else {
+      toast.success(`${actionData.count}건 세척 완료`);
+      setSelectedIds([]);
+    }
+  }, [actionData]);
+
   const unclassifiedTransactions = getUnclassifiedTransactions(
     overview.transactions,
   );
@@ -39,7 +56,9 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
     unclassifiedTransactions.some((transaction) => transaction.id === id),
   );
   const selectedCount = validSelectedIds.length;
-  const isSubmitting = navigation.state === "submitting";
+  const isSubmitting =
+    navigation.state === "submitting" &&
+    navigation.formData?.get("intent") === "bulk_wash";
 
   const toggleAll = (checked: boolean) => {
     setSelectedIds(

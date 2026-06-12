@@ -11,7 +11,7 @@ export function WashingPageContent() {
     <Container size="xl">
       <Stack gap="xl">
         <BulkWashPanel overview={overview} />
-        <SourceDataManagementPanel overview={overview} />
+        <SourceDataManagementPanel />
       </Stack>
     </Container>
   );

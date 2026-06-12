@@ -7,7 +7,7 @@ import type {
 
 export type WashingCommand =
   | { type: "bulk_wash"; payload: BulkWashRequest }
-  | { type: "update_category"; id: number; category: string | null }
+  | { type: "update_category"; id: number; categoryId: number | null; categoryName: string | null }
   | { type: "import_mock" }
   | { type: "unknown" };
 
@@ -29,12 +29,25 @@ export const parseWashingCommand = (formData: FormData): WashingCommand => {
           category: extractString(formData, "category"),
         },
       };
-    case "update_category":
+    case "update_category": {
+      const catRaw = (formData.get("category") as string) ?? "";
+      let categoryId: number | null = null;
+      let categoryName: string | null = null;
+      if (catRaw !== "") {
+        const colonIdx = catRaw.indexOf(":");
+        if (colonIdx !== -1) {
+          const parsedId = Number(catRaw.substring(0, colonIdx));
+          categoryId = parsedId === 0 ? null : parsedId;
+          categoryName = catRaw.substring(colonIdx + 1) || null;
+        }
+      }
       return {
         type: "update_category",
         id: extractNumber(formData, "id"),
-        category: normalizeCategory(formData.get("category")),
+        categoryId,
+        categoryName,
       };
+    }
     case "import_mock":
       return { type: "import_mock" };
     default:

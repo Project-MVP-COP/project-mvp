@@ -19,3 +19,34 @@ export const WashingOverviewSchema = z.object({
   transactions: z.array(WashingTransactionSchema),
   lastImportedAt: z.string(),
 });
+
+export const TransactionDtoSchema = z.object({
+  id: z.number(),
+  userId: z.number(),
+  transactionDate: z.string(),
+  merchant: z.string(),
+  categoryId: z.number().nullable().optional(),
+  categoryName: z.string().nullable().optional(),
+  amount: z.number(),
+  cardName: z.string(),
+  installment: z.number(),
+  status: z.enum(["승인", "취소"]),
+  memo: z.string().nullable().optional(),
+});
+
+export const TransactionDtoListSchema = z.array(TransactionDtoSchema);
+
+export const CategoryDtoSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  color: z.string(),
+  displayOrder: z.number(),
+  isDefault: z.boolean(),
+});
+
+export const CategoryDtoListSchema = z.array(CategoryDtoSchema);
+
+export const BulkAddResponseSchema = z.object({
+  added: TransactionDtoListSchema,
+  skippedCount: z.number(),
+});

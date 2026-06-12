@@ -70,7 +70,8 @@ public class TransactionService {
     @Transactional
     public BulkUploadResult addBulk(List<TransactionDto> list, Long userId) {
         Map<String, Long> catMap = buildCategoryMap();
-        int added = 0, skipped = 0;
+        List<TransactionDto> added = new java.util.ArrayList<>();
+        int skippedCount = 0;
         for (TransactionDto dto : list) {
             dto.setUserId(userId);
             if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
@@ -78,12 +79,12 @@ public class TransactionService {
             }
             try {
                 transactionRepository.insert(dto);
-                added++;
+                added.add(dto);
             } catch (DataIntegrityViolationException e) {
-                skipped++;
+                skippedCount++;
             }
         }
-        return new BulkUploadResult(added, skipped);
+        return new BulkUploadResult(added, skippedCount);
     }
 
     @Transactional

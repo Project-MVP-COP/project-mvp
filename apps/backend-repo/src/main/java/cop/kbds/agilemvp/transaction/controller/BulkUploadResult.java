@@ -1,3 +1,5 @@
 package cop.kbds.agilemvp.transaction.controller;
 
-public record BulkUploadResult(int added, int skipped) {}
+import java.util.List;
+
+public record BulkUploadResult(List<TransactionDto> added, int skippedCount) {}

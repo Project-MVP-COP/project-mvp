@@ -1,0 +1,15 @@
+# project-mvp CODEOWNERS
+
+# 폴더별 PR 승인 담당자 지정
+
+# BE 코드 변경 시 BE 팀원 승인 필요
+
+apps/backend-repo/ @
+
+# FE 코드 변경 시 FE 팀원 승인 필요
+
+apps/frontend-repo/ @
+
+# CI/CD 설정 변경 시 devops(본인) 승인
+
+.github/@cbq3737

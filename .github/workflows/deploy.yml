@@ -6,7 +6,7 @@ name: Project MVP CI/CD Deploy
 on:
   push:
     branches:
-      - CI/CD
+      - main
   workflow_dispatch: # GitHub UI에서 수동 실행 버튼
 
 jobs:

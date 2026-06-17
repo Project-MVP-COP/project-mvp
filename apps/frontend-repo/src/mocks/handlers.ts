@@ -178,6 +178,14 @@ export const handlers = [
     return HttpResponse.json(tx);
   }),
 
+  http.delete("/api/transactions/:id", async ({ params }) => {
+    if (!IS_TEST) await delay();
+    const id = Number(params.id);
+    const success = dbLedger.delete(id);
+    if (!success) return new HttpResponse(null, { status: 404 });
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.put("/api/transactions/:id", async ({ params, request }) => {
     if (!IS_TEST) await delay();
     const id = Number(params.id);

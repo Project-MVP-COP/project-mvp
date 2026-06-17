@@ -499,6 +499,13 @@ export const dbLedger = {
     return [...ledgerTransactions];
   },
 
+  delete: (id: number) => {
+    const index = ledgerTransactions.findIndex((tx) => tx.id === id);
+    if (index === -1) return false;
+    ledgerTransactions.splice(index, 1);
+    return true;
+  },
+
   bulkAdd: (items: Omit<LedgerTransaction, "id">[]) => {
     const added: LedgerTransaction[] = [];
     for (const item of items) {

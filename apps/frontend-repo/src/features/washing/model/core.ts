@@ -9,6 +9,7 @@ export type WashingCommand =
   | { type: "bulk_wash"; payload: BulkWashRequest }
   | { type: "update_category"; id: number; categoryId: number | null; categoryName: string | null }
   | { type: "import_mock" }
+  | { type: "delete_transaction"; id: number }
   | { type: "unknown" };
 
 export const DEFAULT_WASHING_FILTERS: WashingFilters = {
@@ -50,6 +51,8 @@ export const parseWashingCommand = (formData: FormData): WashingCommand => {
     }
     case "import_mock":
       return { type: "import_mock" };
+    case "delete_transaction":
+      return { type: "delete_transaction", id: extractNumber(formData, "id") };
     default:
       return { type: "unknown" };
   }

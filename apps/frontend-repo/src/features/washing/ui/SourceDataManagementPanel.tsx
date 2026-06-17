@@ -1,5 +1,4 @@
 import {
-  Badge,
   Box,
   Button,
   Group,
@@ -14,6 +13,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { IconArrowsSort, IconSortAscending, IconSortDescending, IconDatabaseImport, IconFileSpreadsheet, IconSearch } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Form, useActionData, useNavigation, useSubmit } from "react-router";
@@ -60,21 +60,6 @@ const buildCategoryOptions = (tx: TransactionDto, categories: CategoryDto[]) => 
   return opts;
 };
 
-const getStatusBadge = (tx: TransactionDto) => {
-  if (!isTransactionClassified(tx)) {
-    return (
-      <Badge color="red" variant="light">
-        세척 대기
-      </Badge>
-    );
-  }
-  return (
-    <Badge color="yellow" variant="light">
-      수동 분류
-    </Badge>
-  );
-};
-
 const filterLedgerTransactions = (
   transactions: TransactionDto[],
   filters: WashingFilters,
@@ -83,8 +68,7 @@ const filterLedgerTransactions = (
     const keyword = filters.merchantKeyword.trim().toLowerCase();
     const matchesMerchant =
       keyword === "" ||
-      tx.merchant.toLowerCase().includes(keyword) ||
-      (tx.memo ?? "").toLowerCase().includes(keyword);
+      tx.merchant.toLowerCase().includes(keyword);
 
     const classified = isTransactionClassified(tx);
     const matchesCategory =
@@ -155,6 +139,11 @@ export function SourceDataManagementPanel() {
     navigation.formData?.get("intent") === "update_category" &&
     navigation.formData?.get("id") === String(txId);
 
+  const isDeleteSubmitting = (txId: number) =>
+    navigation.state === "submitting" &&
+    navigation.formData?.get("intent") === "delete_transaction" &&
+    navigation.formData?.get("id") === String(txId);
+
   const resetFilters = useCallback(() => {
     setFilters(DEFAULT_WASHING_FILTERS);
     setCurrentPage(1);
@@ -183,6 +172,15 @@ export function SourceDataManagementPanel() {
         toast.error("카테고리 저장에 실패했습니다.");
       } else {
         toast.success("카테고리가 저장됐습니다.");
+      }
+    }
+
+    if (actionData.intent === "delete_transaction") {
+      if (actionData.error) {
+        toast.error("원천 데이터 삭제에 실패했습니다.");
+      } else {
+        toast.success("원천 데이터가 삭제됐습니다.");
+        resetFilters();
       }
     }
   }, [actionData, resetFilters]);
@@ -230,7 +228,7 @@ export function SourceDataManagementPanel() {
         <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
           <TextInput
             label="가맹점 검색"
-            placeholder="가맹점 또는 설명 검색"
+            placeholder="가맹점 검색"
             leftSection={<IconSearch size={14} />}
             value={filters.merchantKeyword}
             onChange={(event) => {
@@ -287,8 +285,9 @@ export function SourceDataManagementPanel() {
                     )}
                   </Box>
                 </Table.Th>
-                <Table.Th>가맹점</Table.Th>
-                <Table.Th>카드</Table.Th>
+                <Table.Th>가맹점명</Table.Th>
+                <Table.Th>카드사</Table.Th>
+                <Table.Th>카테고리</Table.Th>
                 <Table.Th ta="right" style={{ cursor: "pointer" }} onClick={() => handleSort("amount")}>
                   <Box component="span" w="100%" style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
                     {sortField === "amount" ? (
@@ -299,9 +298,8 @@ export function SourceDataManagementPanel() {
                     금액
                   </Box>
                 </Table.Th>
-                <Table.Th>상태</Table.Th>
-                <Table.Th>규칙 / 태그</Table.Th>
-                <Table.Th>카테고리 변경</Table.Th>
+                <Table.Th>매핑 적용 규칙/태그</Table.Th>
+                <Table.Th>동작</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -318,42 +316,78 @@ export function SourceDataManagementPanel() {
                   <Table.Tr key={tx.id}>
                     <Table.Td>{tx.transactionDate}</Table.Td>
                     <Table.Td>
-                      <Stack gap={2}>
-                        <Text fw={600}>{tx.merchant}</Text>
-                        <Text size="xs" c="dimmed">
-                          {tx.memo ?? ""}
-                        </Text>
-                      </Stack>
+                      <Text fw={600}>{tx.merchant}</Text>
                     </Table.Td>
                     <Table.Td>{tx.cardName}</Table.Td>
+                    <Table.Td>
+                      <NativeSelect
+                        form={`category-form-${tx.id}`}
+                        key={`${tx.id}-${tx.categoryId ?? ""}-${tx.categoryName ?? ""}`}
+                        name="category"
+                        defaultValue={buildCategoryValue(tx, categories)}
+                        data={buildCategoryOptions(tx, categories)}
+                      />
+                    </Table.Td>
                     <Table.Td ta="right" fw={700}>
                       {formatAmount(tx.amount)}원
                     </Table.Td>
-                    <Table.Td>{getStatusBadge(tx)}</Table.Td>
                     <Table.Td>
-                      <Stack gap={4}>
-                        <Text size="sm">수동 분류 필요</Text>
-                        <Badge color="gray" variant="light" w="fit-content">
-                          {tx.status}
-                        </Badge>
-                      </Stack>
+                      <Text size="sm">수동 분류 필요</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="update_category" />
-                        <input type="hidden" name="id" value={tx.id} />
-                        <Group align="flex-end" wrap="nowrap">
-                          <NativeSelect
-                            key={`${tx.id}-${tx.categoryId ?? ""}-${tx.categoryName ?? ""}`}
-                            name="category"
-                            defaultValue={buildCategoryValue(tx, categories)}
-                            data={buildCategoryOptions(tx, categories)}
-                          />
+                      <Group wrap="nowrap" gap="xs">
+                        <Form method="post" id={`category-form-${tx.id}`}>
+                          <input type="hidden" name="intent" value="update_category" />
+                          <input type="hidden" name="id" value={tx.id} />
                           <Button type="submit" size="xs" loading={isCategoryUpdateSubmitting(tx.id)}>
                             저장
                           </Button>
-                        </Group>
-                      </Form>
+                        </Form>
+                        <Button
+                          size="xs"
+                          color="red"
+                          variant="light"
+                          loading={isDeleteSubmitting(tx.id)}
+                          onClick={() =>
+                            modals.openConfirmModal({
+                              title: "원천 데이터 삭제",
+                              children: (
+                                <Stack gap="xs">
+                                  <Text size="sm">아래 항목을 삭제하시겠습니까?</Text>
+                                  <Stack gap={4}>
+                                    <Group justify="space-between">
+                                      <Text size="sm" c="dimmed">일자</Text>
+                                      <Text size="sm">{tx.transactionDate}</Text>
+                                    </Group>
+                                    <Group justify="space-between">
+                                      <Text size="sm" c="dimmed">가맹점</Text>
+                                      <Text size="sm" fw={600}>{tx.merchant}</Text>
+                                    </Group>
+                                    <Group justify="space-between">
+                                      <Text size="sm" c="dimmed">카드사</Text>
+                                      <Text size="sm">{tx.cardName}</Text>
+                                    </Group>
+                                    <Group justify="space-between">
+                                      <Text size="sm" c="dimmed">금액</Text>
+                                      <Text size="sm" fw={600}>{formatAmount(tx.amount)}원</Text>
+                                    </Group>
+                                  </Stack>
+                                </Stack>
+                              ),
+                              labels: { confirm: "삭제", cancel: "취소" },
+                              confirmProps: { color: "red" },
+                              onConfirm: () => {
+                                const formData = new FormData();
+                                formData.append("intent", "delete_transaction");
+                                formData.append("id", String(tx.id));
+                                submit(formData, { method: "post" });
+                              },
+                            })
+                          }
+                        >
+                          삭제
+                        </Button>
+                      </Group>
                     </Table.Td>
                   </Table.Tr>
                 ))

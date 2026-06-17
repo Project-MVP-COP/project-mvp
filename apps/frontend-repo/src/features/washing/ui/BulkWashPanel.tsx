@@ -159,14 +159,9 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
                         aria-label={`${transaction.merchantName} 선택`}
                       />
                     </Table.Td>
-                    <Table.Td>{transaction.occurredAt}</Table.Td>
+                    <Table.Td>{transaction.occurredAt.slice(0, 10)}</Table.Td>
                     <Table.Td>
-                      <Stack gap={2}>
-                        <Text fw={600}>{transaction.merchantName}</Text>
-                        <Text size="xs" c="dimmed">
-                          {transaction.description}
-                        </Text>
-                      </Stack>
+                      <Text fw={600}>{transaction.merchantName}</Text>
                     </Table.Td>
                     <Table.Td>{transaction.cardLabel}</Table.Td>
                     <Table.Td ta="right" fw={700}>

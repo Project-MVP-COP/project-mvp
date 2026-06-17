@@ -1,5 +1,5 @@
-import { http, HttpResponse, delay } from "msw";
-import { db, dbUser } from "./db";
+import { delay, http, HttpResponse } from "msw";
+import { db, dbLedger, dbUser, dbWashing } from "./db";
 
 const IS_TEST = import.meta.env.MODE === "test";
 
@@ -16,11 +16,11 @@ export const handlers = [
         type: "about:blank",
         title: "Bad Request",
         status: 400,
-        detail: "강제로 발생시킨 비즈니스 예외 테스트입니다.",
+        detail: "강제로 발생시키는 비즈니스 예외 테스트입니다.",
         instance: "/api/sample/error",
         errorCode: "SAMPLE_LIMIT_EXCEEDED",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }),
 
@@ -36,7 +36,7 @@ export const handlers = [
 
   http.post("/api/sample", async ({ request }) => {
     if (!IS_TEST) await delay();
-    const data = await request.json() as Record<string, unknown>;
+    const data = (await request.json()) as Record<string, unknown>;
     const newSample = db.create({ message: data.message as string });
     return HttpResponse.json(newSample, { status: 201 });
   }),
@@ -44,26 +44,26 @@ export const handlers = [
   http.put("/api/sample/:id", async ({ params, request }) => {
     if (!IS_TEST) await delay();
     const id = Number(params.id);
-    const data = await request.json() as Record<string, unknown>;
+    const data = (await request.json()) as Record<string, unknown>;
     const updated = db.update(id, { message: data.message as string });
-    
+
     if (!updated) {
       return new HttpResponse(null, { status: 404 });
     }
-    
+
     return HttpResponse.json(updated);
   }),
 
   http.patch("/api/sample/:id", async ({ params, request }) => {
     if (!IS_TEST) await delay();
     const id = Number(params.id);
-    const data = await request.json() as Record<string, unknown>;
+    const data = (await request.json()) as Record<string, unknown>;
     const updated = db.patch(id, data);
-    
+
     if (!updated) {
       return new HttpResponse(null, { status: 404 });
     }
-    
+
     return HttpResponse.json(updated);
   }),
 
@@ -71,19 +71,183 @@ export const handlers = [
     if (!IS_TEST) await delay();
     const id = Number(params.id);
     const success = db.delete(id);
-    
+
     if (!success) {
       return new HttpResponse(null, { status: 404 });
     }
-    
+
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // [POST] 회원 가입
+  http.get("/api/washing/overview", async () => {
+    if (!IS_TEST) await delay();
+    return HttpResponse.json(dbWashing.getOverview());
+  }),
+
+  http.post("/api/washing/bulk-classify", async ({ request }) => {
+    if (!IS_TEST) await delay();
+    const body = (await request.json()) as {
+      ids?: number[];
+      category?: string;
+    };
+
+    if (!body.category || !Array.isArray(body.ids) || body.ids.length === 0) {
+      return HttpResponse.json(
+        {
+          type: "about:blank",
+          title: "Bad Request",
+          status: 400,
+          detail: "일괄 세척 대상과 카테고리가 필요합니다.",
+          instance: "/api/washing/bulk-classify",
+          errorCode: "WASH001",
+        },
+        { status: 400 },
+      );
+    }
+
+    const overview = dbWashing.bulkClassify(body.ids, body.category);
+
+    const matchedLedgerCategory = dbLedger.getCategories().find(
+      (c) => c.name === body.category,
+    );
+    overview.transactions
+      .filter((tx) => body.ids!.includes(tx.id) && tx.ledgerId != null)
+      .forEach((tx) => {
+        dbLedger.update(tx.ledgerId!, {
+          categoryId: matchedLedgerCategory?.id ?? null,
+          categoryName: body.category,
+        });
+      });
+
+    return HttpResponse.json(overview);
+  }),
+
+  http.patch(
+    "/api/washing/transactions/:id/category",
+    async ({ params, request }) => {
+      if (!IS_TEST) await delay();
+      const id = Number(params.id);
+      const body = (await request.json()) as { category?: string | null };
+      const updated = dbWashing.updateCategory(id, body.category ?? null);
+
+      if (!updated) {
+        return new HttpResponse(null, { status: 404 });
+      }
+
+      return HttpResponse.json(updated);
+    },
+  ),
+
+  http.post("/api/washing/import-mock", async () => {
+    if (!IS_TEST) await delay();
+    const today = new Date().toISOString().slice(0, 10);
+    const mockItems: Omit<import("./db").LedgerTransaction, "id">[] = [
+      {
+        userId: 1, transactionDate: today,
+        merchant: "메가MGC커피", categoryId: null, categoryName: null,
+        amount: 3900, cardName: "현대 Zero", installment: 1, status: "승인",
+        memo: "출근길 커피",
+      },
+      {
+        userId: 1, transactionDate: today,
+        merchant: "오늘의집", categoryId: null, categoryName: null,
+        amount: 78200, cardName: "토스뱅크", installment: 1, status: "승인",
+        memo: "소형 가구 결제",
+      },
+    ];
+    const added = dbLedger.bulkAdd(mockItems);
+    added.forEach((tx) => dbWashing.addFromLedger(tx));
+    return HttpResponse.json(dbWashing.getOverview(), { status: 201 });
+  }),
+
+  http.get("/api/transactions", async () => {
+    if (!IS_TEST) await delay();
+    return HttpResponse.json(dbLedger.getAll());
+  }),
+
+  http.post("/api/transactions/reset", async () => {
+    if (!IS_TEST) await delay();
+    return HttpResponse.json(dbLedger.reset());
+  }),
+
+  http.get("/api/transactions/:id", async ({ params }) => {
+    if (!IS_TEST) await delay();
+    const id = Number(params.id);
+    const tx = dbLedger.getById(id);
+    if (!tx) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json(tx);
+  }),
+
+  http.put("/api/transactions/:id", async ({ params, request }) => {
+    if (!IS_TEST) await delay();
+    const id = Number(params.id);
+    const body = (await request.json()) as Record<string, unknown>;
+    const updated = dbLedger.update(id, body as Parameters<typeof dbLedger.update>[1]);
+    if (!updated) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json(updated);
+  }),
+
+  http.get("/api/categories", async () => {
+    if (!IS_TEST) await delay();
+    return HttpResponse.json(dbLedger.getCategories());
+  }),
+
+  http.post("/api/excel/upload", async () => {
+    if (!IS_TEST) await delay();
+    const parsed: Omit<import("./db").LedgerTransaction, "id">[] = [
+      {
+        userId: 1, transactionDate: "2026-06-10",
+        merchant: "GS25 강남점", categoryId: null, categoryName: null,
+        amount: 4200, cardName: "신한 Deep", installment: 1, status: "승인",
+        memo: "편의점",
+      },
+      {
+        userId: 1, transactionDate: "2026-06-10",
+        merchant: "CGV 강남", categoryId: null, categoryName: null,
+        amount: 15000, cardName: "현대 Zero", installment: 1, status: "승인",
+        memo: "영화 관람",
+      },
+      {
+        userId: 1, transactionDate: "2026-06-11",
+        merchant: "이마트 역삼점", categoryId: null, categoryName: null,
+        amount: 67800, cardName: "삼성 taptap", installment: 1, status: "승인",
+        memo: "주간 장보기",
+      },
+      {
+        userId: 1, transactionDate: "2026-06-11",
+        merchant: "KT 통신요금", categoryId: null, categoryName: null,
+        amount: 55000, cardName: "토스뱅크", installment: 1, status: "승인",
+        memo: "6월 통신비",
+      },
+      {
+        userId: 1, transactionDate: "2026-06-12",
+        merchant: "스타벅스 역삼점", categoryId: null, categoryName: null,
+        amount: 6500, cardName: "신한 Deep", installment: 1, status: "승인",
+        memo: null,
+      },
+    ];
+    const withTempId = parsed.map((item, idx) => ({ ...item, id: 9000 + idx + 1 }));
+    return HttpResponse.json(withTempId);
+  }),
+
+  http.post("/api/transactions/bulk", async ({ request }) => {
+    if (!IS_TEST) await delay();
+    const body = (await request.json()) as Omit<import("./db").LedgerTransaction, "id">[];
+    const added = dbLedger.bulkAdd(body);
+    added
+      .filter((tx) => tx.categoryId == null)
+      .forEach((tx) => dbWashing.addFromLedger(tx));
+    return HttpResponse.json({ added, skippedCount: body.length - added.length }, { status: 200 });
+  }),
+
   http.post("/api/auth/register", async ({ request }) => {
     if (!IS_TEST) await delay();
-    const body = await request.json() as { loginId: string; nickname: string; password?: string };
-    
+    const body = (await request.json()) as {
+      loginId: string;
+      nickname: string;
+      password?: string;
+    };
+
     const existing = dbUser.findByLoginId(body.loginId);
     if (existing) {
       return HttpResponse.json(
@@ -95,7 +259,7 @@ export const handlers = [
           instance: "/api/auth/register",
           errorCode: "ATH004",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -104,15 +268,17 @@ export const handlers = [
       nickname: body.nickname,
       password: body.password,
     });
-    
+
     return HttpResponse.json(created, { status: 201 });
   }),
 
-  // [POST] 로그인
   http.post("/api/auth/login", async ({ request }) => {
     if (!IS_TEST) await delay();
-    const body = await request.json() as { loginId: string; password?: string };
-    
+    const body = (await request.json()) as {
+      loginId: string;
+      password?: string;
+    };
+
     const user = dbUser.findByLoginId(body.loginId);
     if (!user || user.password !== body.password || user.status === "deleted") {
       return HttpResponse.json(
@@ -124,69 +290,71 @@ export const handlers = [
           instance: "/api/auth/login",
           errorCode: "ATH001",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    return HttpResponse.json({
-      accessToken: "mock-jwt-token-for-" + user.loginId,
-      nickname: user.nickname,
-    }, { status: 200 });
+    return HttpResponse.json(
+      {
+        accessToken: `mock-jwt-token-for-${user.loginId}`,
+        nickname: user.nickname,
+      },
+      { status: 200 },
+    );
   }),
 
-  // [GET] 본인 상세 정보 조회
   http.get("/api/user/me", async ({ request }) => {
     if (!IS_TEST) await delay();
     const authHeader = request.headers.get("Authorization");
-    
+
     if (!authHeader || !authHeader.startsWith("Bearer mock-jwt-token-for-")) {
       return HttpResponse.json(
         {
           type: "about:blank",
           title: "Unauthorized",
           status: 401,
-          detail: "인증 토큰이 누락되었거나 유효하지 않습니다.",
+          detail: "인증 토큰이 없거나 유효하지 않습니다.",
           instance: "/api/user/me",
           errorCode: "ATH003",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const loginId = authHeader.replace("Bearer mock-jwt-token-for-", "");
     const user = dbUser.findByLoginId(loginId);
-    
+
     if (!user || user.status === "deleted") {
       return HttpResponse.json(
         {
           type: "about:blank",
           title: "Unauthorized",
           status: 401,
-          detail: "사용자를 찾을 수 없거나 탈퇴되었습니다.",
+          detail: "사용자를 찾을 수 없거나 탈퇴했습니다.",
           instance: "/api/user/me",
           errorCode: "ATH002",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // 비밀번호 필드를 제거한 순수 사용자 응답 객체 반환
-    const userResponse = {
-      id: user.id,
-      loginId: user.loginId,
-      nickname: user.nickname,
-      status: user.status,
-      lastLoginAt: user.lastLoginAt,
-      createdAt: user.createdAt,
-    };
-    return HttpResponse.json(userResponse, { status: 200 });
+    return HttpResponse.json(
+      {
+        id: user.id,
+        loginId: user.loginId,
+        nickname: user.nickname,
+        status: user.status,
+        lastLoginAt: user.lastLoginAt,
+        createdAt: user.createdAt,
+      },
+      { status: 200 },
+    );
   }),
 
-  // [DELETE] 회원 탈퇴 (본인)
   http.delete("/api/user", async ({ request }) => {
     if (!IS_TEST) await delay();
     const authHeader = request.headers.get("Authorization");
-    
+
     if (!authHeader || !authHeader.startsWith("Bearer mock-jwt-token-for-")) {
       return HttpResponse.json(
         {
@@ -197,13 +365,13 @@ export const handlers = [
           instance: "/api/user",
           errorCode: "ATH003",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const loginId = authHeader.replace("Bearer mock-jwt-token-for-", "");
     const success = dbUser.delete(loginId);
-    
+
     if (!success) {
       return HttpResponse.json(
         {
@@ -214,11 +382,10 @@ export const handlers = [
           instance: "/api/user",
           errorCode: "USR001",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return new HttpResponse(null, { status: 204 });
   }),
 ];
-

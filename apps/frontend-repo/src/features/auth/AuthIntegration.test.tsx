@@ -48,12 +48,12 @@ describe("Auth 기능 단독 통합 테스트 Flow (MSW 연동)", () => {
         {
           path: "/login",
           element: <LoginPage />,
-          action: loginAction(queryClient),
+          action: loginAction(),
         },
         {
           path: "/register",
           element: <RegisterPage />,
-          action: registerAction(queryClient),
+          action: registerAction(),
         },
       ],
       { initialEntries: [initialPath] }

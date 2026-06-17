@@ -1,10 +1,3 @@
-/**
- * [가상 데이터베이스]
- * 
- * MSW 핸들러와 테스트 코드에서 공유하는 인메모리 데이터 저장소입니다.
- * 핸들러(인터셉터)와 상태 관리 로직을 분리하여 구조적 명확성을 확보합니다.
- */
-
 export interface Sample {
   id: number;
   message: string;
@@ -37,30 +30,25 @@ const INITIAL_SAMPLES: Sample[] = [
   },
 ];
 
-let nextId = 4;
+let nextSampleId = 4;
 let samples: Sample[] = [...INITIAL_SAMPLES];
 
-const getCurrentTime = () => new Date().toISOString().replace('T', ' ').substring(0, 19);
+const getCurrentTime = () =>
+  new Date().toISOString().replace("T", " ").substring(0, 19);
 
-/**
- * DB 상태를 초기화합니다. (테스트의 beforeEach 등에서 사용)
- */
 export const resetSamples = () => {
   samples = [...INITIAL_SAMPLES];
-  nextId = 4;
+  nextSampleId = 4;
 };
 
-/**
- * 데이터 접근 및 조작 메서드
- */
 export const db = {
   getAll: () => samples,
-  
-  getById: (id: number) => samples.find((s) => s.id === id),
-  
+
+  getById: (id: number) => samples.find((sample) => sample.id === id),
+
   create: (data: { message: string }) => {
     const newSample: Sample = {
-      id: nextId++,
+      id: nextSampleId++,
       message: data.message,
       status: "ACTIVE",
       urgent: false,
@@ -69,11 +57,13 @@ export const db = {
     samples.push(newSample);
     return newSample;
   },
-  
+
   update: (id: number, data: { message: string }) => {
-    const index = samples.findIndex((s) => s.id === id);
-    if (index === -1) return null;
-    
+    const index = samples.findIndex((sample) => sample.id === id);
+    if (index === -1) {
+      return null;
+    }
+
     samples[index] = {
       ...samples[index],
       message: data.message,
@@ -81,11 +71,13 @@ export const db = {
     };
     return samples[index];
   },
-  
+
   patch: (id: number, data: Partial<Sample>) => {
-    const index = samples.findIndex((s) => s.id === id);
-    if (index === -1) return null;
-    
+    const index = samples.findIndex((sample) => sample.id === id);
+    if (index === -1) {
+      return null;
+    }
+
     samples[index] = {
       ...samples[index],
       ...data,
@@ -93,18 +85,18 @@ export const db = {
     };
     return samples[index];
   },
-  
+
   delete: (id: number) => {
-    const index = samples.findIndex((s) => s.id === id);
-    if (index === -1) return false;
+    const index = samples.findIndex((sample) => sample.id === id);
+    if (index === -1) {
+      return false;
+    }
+
     samples.splice(index, 1);
     return true;
   },
 };
 
-/**
- * [가상 사용자 데이터베이스]
- */
 export interface User {
   id: number;
   loginId: string;
@@ -135,19 +127,17 @@ export const resetUsers = () => {
   nextUserId = 2;
 };
 
-// 기존 resetSamples에 사용자 목록 초기화도 결합
-const originalResetSamples = resetSamples;
-export const resetAllMocks = () => {
-  originalResetSamples();
-  resetUsers();
-};
-
 export const dbUser = {
   getAll: () => users,
-  
-  findByLoginId: (loginId: string) => users.find((u) => u.loginId === loginId),
-  
-  create: (data: { loginId: string; nickname: string; password?: string }) => {
+
+  findByLoginId: (loginId: string) =>
+    users.find((user) => user.loginId === loginId),
+
+  create: (data: {
+    loginId: string;
+    nickname: string;
+    password?: string;
+  }) => {
     const newUser: User = {
       id: nextUserId++,
       loginId: data.loginId,
@@ -161,8 +151,11 @@ export const dbUser = {
   },
 
   delete: (loginId: string) => {
-    const index = users.findIndex((u) => u.loginId === loginId);
-    if (index === -1) return false;
+    const index = users.findIndex((user) => user.loginId === loginId);
+    if (index === -1) {
+      return false;
+    }
+
     users[index] = {
       ...users[index],
       status: "deleted",
@@ -171,3 +164,367 @@ export const dbUser = {
   },
 };
 
+export interface WashingTransactionRecord {
+  id: number;
+  occurredAt: string;
+  merchantName: string;
+  description: string;
+  cardLabel: string;
+  amount: number;
+  category: string | null;
+  isClassified: boolean;
+  matchedRuleLabel: string | null;
+  tag: string;
+  source: "CARD" | "BANK" | "CASH";
+  ledgerId?: number;
+}
+
+const WASHING_CATEGORIES = [
+  "식비",
+  "교통",
+  "생활",
+  "구독",
+  "의료",
+  "여가",
+  "업무",
+];
+
+const INITIAL_WASHING_TRANSACTIONS: WashingTransactionRecord[] = [
+  {
+    id: 101,
+    occurredAt: "2026-06-01 08:12",
+    merchantName: "스타벅스 성수역점",
+    description: "아메리카노 외 1건",
+    cardLabel: "현대 Zero",
+    amount: 11200,
+    category: "식비",
+    isClassified: true,
+    matchedRuleLabel: "규칙: 스타벅스 -> 식비",
+    tag: "카페",
+    source: "CARD",
+    ledgerId: 16,
+  },
+  {
+    id: 102,
+    occurredAt: "2026-06-01 18:22",
+    merchantName: "배달의민족",
+    description: "저녁 주문",
+    cardLabel: "신한 Deep",
+    amount: 26800,
+    category: null,
+    isClassified: false,
+    matchedRuleLabel: null,
+    tag: "배달",
+    source: "CARD",
+    ledgerId: 17,
+  },
+  {
+    id: 103,
+    occurredAt: "2026-06-02 07:50",
+    merchantName: "서울교통공사",
+    description: "후불 교통",
+    cardLabel: "신한 Deep",
+    amount: 1450,
+    category: "교통",
+    isClassified: true,
+    matchedRuleLabel: "규칙: 서울교통공사 -> 교통",
+    tag: "지하철",
+    source: "CARD",
+    ledgerId: 18,
+  },
+  {
+    id: 104,
+    occurredAt: "2026-06-02 12:40",
+    merchantName: "쿠팡",
+    description: "생활용품 구매",
+    cardLabel: "삼성 taptap",
+    amount: 38700,
+    category: null,
+    isClassified: false,
+    matchedRuleLabel: null,
+    tag: "온라인쇼핑",
+    source: "CARD",
+    ledgerId: 19,
+  },
+  {
+    id: 105,
+    occurredAt: "2026-06-03 09:30",
+    merchantName: "넷플릭스",
+    description: "정기결제",
+    cardLabel: "현대 Zero",
+    amount: 17000,
+    category: "구독",
+    isClassified: true,
+    matchedRuleLabel: "규칙: 넷플릭스 -> 구독",
+    tag: "OTT",
+    source: "CARD",
+    ledgerId: 20,
+  },
+  {
+    id: 106,
+    occurredAt: "2026-06-03 21:18",
+    merchantName: "네이버페이",
+    description: "결제대행",
+    cardLabel: "토스뱅크",
+    amount: 53000,
+    category: null,
+    isClassified: false,
+    matchedRuleLabel: null,
+    tag: "PG",
+    source: "BANK",
+    ledgerId: 21,
+  },
+  {
+    id: 107,
+    occurredAt: "2026-06-04 14:12",
+    merchantName: "올리브영",
+    description: "건강용품",
+    cardLabel: "삼성 taptap",
+    amount: 21400,
+    category: "생활",
+    isClassified: true,
+    matchedRuleLabel: null,
+    tag: "드럭스토어",
+    source: "CARD",
+    ledgerId: 22,
+  },
+];
+
+let nextWashingId = 108;
+let washingTransactions: WashingTransactionRecord[] = [
+  ...INITIAL_WASHING_TRANSACTIONS,
+];
+let washingLastImportedAt = "2026-06-06 18:30:00";
+
+export const resetWashingTransactions = () => {
+  washingTransactions = [...INITIAL_WASHING_TRANSACTIONS];
+  nextWashingId = 108;
+  washingLastImportedAt = "2026-06-06 18:30:00";
+};
+
+export const dbWashing = {
+  getOverview: () => ({
+    categories: [...WASHING_CATEGORIES],
+    transactions: washingTransactions,
+    lastImportedAt: washingLastImportedAt,
+  }),
+
+  bulkClassify: (ids: number[], category: string) => {
+    washingTransactions = washingTransactions.map((transaction) =>
+      ids.includes(transaction.id)
+        ? {
+            ...transaction,
+            category,
+            isClassified: true,
+            matchedRuleLabel: null,
+            tag: "수동 일괄 세척",
+          }
+        : transaction,
+    );
+    washingLastImportedAt = getCurrentTime();
+    return dbWashing.getOverview();
+  },
+
+  updateCategory: (id: number, category: string | null) => {
+    const index = washingTransactions.findIndex(
+      (transaction) => transaction.id === id,
+    );
+    if (index === -1) {
+      return null;
+    }
+
+    washingTransactions[index] = {
+      ...washingTransactions[index],
+      category,
+      isClassified: category !== null,
+      matchedRuleLabel:
+        category === null
+          ? null
+          : washingTransactions[index].matchedRuleLabel,
+      tag: category === null ? "수동 검토 필요" : washingTransactions[index].tag,
+    };
+    washingLastImportedAt = getCurrentTime();
+    return washingTransactions[index];
+  },
+
+  addFromLedger: (tx: LedgerTransaction) => {
+    const record: WashingTransactionRecord = {
+      id: nextWashingId++,
+      occurredAt: tx.transactionDate,
+      merchantName: tx.merchant,
+      description: tx.memo ?? "",
+      cardLabel: tx.cardName,
+      amount: tx.amount,
+      category: null,
+      isClassified: false,
+      matchedRuleLabel: null,
+      tag: "엑셀 유입",
+      source: "CARD",
+      ledgerId: tx.id,
+    };
+    washingTransactions.push(record);
+    washingLastImportedAt = getCurrentTime();
+    return record;
+  },
+
+  importMockBatch: () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const imported: WashingTransactionRecord[] = [
+      {
+        id: nextWashingId++,
+        occurredAt: `${today} 08:08`,
+        merchantName: "메가MGC커피",
+        description: "출근길 커피",
+        cardLabel: "현대 Zero",
+        amount: 3900,
+        category: null,
+        isClassified: false,
+        matchedRuleLabel: null,
+        tag: "신규 유입",
+        source: "CARD",
+      },
+      {
+        id: nextWashingId++,
+        occurredAt: `${today} 19:48`,
+        merchantName: "오늘의집",
+        description: "소형 가구 결제",
+        cardLabel: "토스뱅크",
+        amount: 78200,
+        category: null,
+        isClassified: false,
+        matchedRuleLabel: null,
+        tag: "신규 유입",
+        source: "BANK",
+      },
+    ];
+
+    washingTransactions = [...imported, ...washingTransactions];
+    washingLastImportedAt = getCurrentTime();
+    return dbWashing.getOverview();
+  },
+};
+
+export interface LedgerCategory {
+  id: number;
+  name: string;
+  color: string;
+  displayOrder: number;
+  isDefault: boolean;
+}
+
+export interface LedgerTransaction {
+  id: number;
+  userId: number;
+  transactionDate: string;
+  merchant: string;
+  categoryId: number | null;
+  categoryName: string | null;
+  amount: number;
+  cardName: string;
+  installment: number;
+  status: "승인" | "취소";
+  memo: string | null;
+}
+
+const LEDGER_CATEGORIES: LedgerCategory[] = [
+  { id: 1, name: "식음료", color: "#f97316", displayOrder: 10, isDefault: true },
+  { id: 2, name: "쇼핑", color: "#8b5cf6", displayOrder: 20, isDefault: true },
+  { id: 3, name: "교통", color: "#3b82f6", displayOrder: 30, isDefault: true },
+  { id: 4, name: "의료/건강", color: "#ef4444", displayOrder: 40, isDefault: true },
+  { id: 5, name: "문화/여가", color: "#ec4899", displayOrder: 50, isDefault: true },
+  { id: 6, name: "편의점", color: "#10b981", displayOrder: 60, isDefault: true },
+  { id: 7, name: "주유", color: "#6b7280", displayOrder: 70, isDefault: true },
+  { id: 8, name: "통신", color: "#06b6d4", displayOrder: 80, isDefault: true },
+  { id: 9, name: "교육", color: "#f59e0b", displayOrder: 90, isDefault: true },
+  { id: 10, name: "기타", color: "#64748b", displayOrder: 100, isDefault: true },
+];
+
+const INITIAL_LEDGER_TRANSACTIONS: LedgerTransaction[] = [
+  // 2026-05
+  { id: 1,  userId: 1, transactionDate: "2026-05-02", merchant: "GS25 역삼점",        categoryId: 6,    categoryName: "편의점",   amount: 3800,  cardName: "신한 Deep",   installment: 1, status: "승인", memo: "간식" },
+  { id: 2,  userId: 1, transactionDate: "2026-05-05", merchant: "현대자동차 주유소",   categoryId: 7,    categoryName: "주유",     amount: 82000, cardName: "현대 Zero",   installment: 1, status: "승인", memo: "주유 풀탱크" },
+  { id: 3,  userId: 1, transactionDate: "2026-05-07", merchant: "에이블리",           categoryId: null, categoryName: null,       amount: 34500, cardName: "삼성 taptap", installment: 1, status: "승인", memo: null },
+  { id: 4,  userId: 1, transactionDate: "2026-05-09", merchant: "서울아산병원",       categoryId: 4,    categoryName: "의료/건강", amount: 15000, cardName: "KB국민카드",  installment: 1, status: "승인", memo: "외래 진료" },
+  { id: 5,  userId: 1, transactionDate: "2026-05-12", merchant: "메가박스 코엑스",    categoryId: 5,    categoryName: "문화/여가", amount: 28000, cardName: "현대 Zero",   installment: 1, status: "승인", memo: "영화 2인" },
+  { id: 6,  userId: 1, transactionDate: "2026-05-14", merchant: "KT 통신요금",        categoryId: 8,    categoryName: "통신",     amount: 55000, cardName: "토스뱅크",    installment: 1, status: "승인", memo: "5월 통신비" },
+  { id: 7,  userId: 1, transactionDate: "2026-05-16", merchant: "배달의민족",         categoryId: null, categoryName: null,       amount: 31500, cardName: "신한 Deep",   installment: 1, status: "승인", memo: "저녁 배달" },
+  { id: 8,  userId: 1, transactionDate: "2026-05-19", merchant: "이마트 역삼점",      categoryId: 1,    categoryName: "식음료",   amount: 74200, cardName: "삼성 taptap", installment: 1, status: "승인", memo: "주간 장보기" },
+  { id: 9,  userId: 1, transactionDate: "2026-05-21", merchant: "카카오택시",         categoryId: 3,    categoryName: "교통",     amount: 8900,  cardName: "토스뱅크",    installment: 1, status: "승인", memo: null },
+  { id: 10, userId: 1, transactionDate: "2026-05-22", merchant: "유데미",             categoryId: 9,    categoryName: "교육",     amount: 19800, cardName: "KB국민카드",  installment: 1, status: "승인", memo: "React 강의" },
+  { id: 11, userId: 1, transactionDate: "2026-05-24", merchant: "다이소 강남점",      categoryId: null, categoryName: null,       amount: 12000, cardName: "신한 Deep",   installment: 1, status: "승인", memo: null },
+  { id: 12, userId: 1, transactionDate: "2026-05-26", merchant: "스타벅스 선릉점",    categoryId: 1,    categoryName: "식음료",   amount: 9500,  cardName: "현대 Zero",   installment: 1, status: "승인", memo: "카페 미팅" },
+  { id: 13, userId: 1, transactionDate: "2026-05-28", merchant: "쿠팡",              categoryId: null, categoryName: null,       amount: 56300, cardName: "삼성 taptap", installment: 1, status: "승인", memo: "생활용품" },
+  { id: 14, userId: 1, transactionDate: "2026-05-29", merchant: "롯데시네마 건대",    categoryId: 5,    categoryName: "문화/여가", amount: 14000, cardName: "KB국민카드",  installment: 1, status: "승인", memo: null },
+  { id: 15, userId: 1, transactionDate: "2026-05-30", merchant: "서울교통공사",       categoryId: 3,    categoryName: "교통",     amount: 1450,  cardName: "신한 Deep",   installment: 1, status: "승인", memo: "후불 교통" },
+  // 2026-06
+  { id: 16, userId: 1, transactionDate: "2026-06-01", merchant: "스타벅스 성수역점",  categoryId: 1,    categoryName: "식음료",   amount: 11200, cardName: "현대 Zero",   installment: 1, status: "승인", memo: "아메리카노 외 1건" },
+  { id: 17, userId: 1, transactionDate: "2026-06-01", merchant: "배달의민족",         categoryId: null, categoryName: null,       amount: 26800, cardName: "신한 Deep",   installment: 1, status: "승인", memo: "저녁 주문" },
+  { id: 18, userId: 1, transactionDate: "2026-06-02", merchant: "서울교통공사",       categoryId: 3,    categoryName: "교통",     amount: 1450,  cardName: "신한 Deep",   installment: 1, status: "승인", memo: "후불 교통" },
+  { id: 19, userId: 1, transactionDate: "2026-06-02", merchant: "쿠팡",              categoryId: null, categoryName: null,       amount: 38700, cardName: "삼성 taptap", installment: 1, status: "승인", memo: "생활용품 구매" },
+  { id: 20, userId: 1, transactionDate: "2026-06-03", merchant: "넷플릭스",          categoryId: 5,    categoryName: "문화/여가", amount: 17000, cardName: "현대 Zero",   installment: 1, status: "승인", memo: "정기결제" },
+  { id: 21, userId: 1, transactionDate: "2026-06-03", merchant: "네이버페이",         categoryId: null, categoryName: null,       amount: 53000, cardName: "토스뱅크",    installment: 1, status: "승인", memo: "결제대행" },
+  { id: 22, userId: 1, transactionDate: "2026-06-04", merchant: "올리브영",          categoryId: 2,    categoryName: "쇼핑",     amount: 21400, cardName: "삼성 taptap", installment: 1, status: "승인", memo: "건강용품" },
+  { id: 23, userId: 1, transactionDate: "2026-06-05", merchant: "GS주유소 강남",      categoryId: 7,    categoryName: "주유",     amount: 91000, cardName: "현대 Zero",   installment: 1, status: "승인", memo: null },
+  { id: 24, userId: 1, transactionDate: "2026-06-06", merchant: "당근마켓",           categoryId: null, categoryName: null,       amount: 45000, cardName: "토스뱅크",    installment: 1, status: "승인", memo: "중고 거래" },
+  { id: 25, userId: 1, transactionDate: "2026-06-07", merchant: "교보문고 강남점",    categoryId: 9,    categoryName: "교육",     amount: 27500, cardName: "KB국민카드",  installment: 1, status: "승인", memo: "개발 서적" },
+  { id: 26, userId: 1, transactionDate: "2026-06-08", merchant: "맥도날드 역삼점",    categoryId: 1,    categoryName: "식음료",   amount: 9800,  cardName: "신한 Deep",   installment: 1, status: "승인", memo: "점심" },
+  { id: 27, userId: 1, transactionDate: "2026-06-09", merchant: "무신사",            categoryId: null, categoryName: null,       amount: 62000, cardName: "삼성 taptap", installment: 3, status: "승인", memo: "봄 의류" },
+  { id: 28, userId: 1, transactionDate: "2026-06-10", merchant: "세브란스병원",       categoryId: 4,    categoryName: "의료/건강", amount: 22000, cardName: "KB국민카드",  installment: 1, status: "승인", memo: "치과 치료" },
+  { id: 29, userId: 1, transactionDate: "2026-06-11", merchant: "CU 선릉역점",       categoryId: 6,    categoryName: "편의점",   amount: 5200,  cardName: "토스뱅크",    installment: 1, status: "승인", memo: null },
+  { id: 30, userId: 1, transactionDate: "2026-06-11", merchant: "T머니",             categoryId: 3,    categoryName: "교통",     amount: 50000, cardName: "신한 Deep",   installment: 1, status: "취소", memo: "충전 취소" },
+];
+
+let ledgerTransactions: LedgerTransaction[] = [...INITIAL_LEDGER_TRANSACTIONS];
+let nextLedgerId = 31;
+
+export const resetLedgerTransactions = () => {
+  ledgerTransactions = [...INITIAL_LEDGER_TRANSACTIONS];
+  nextLedgerId = 31;
+};
+
+export const dbLedger = {
+  getAll: () => [...ledgerTransactions],
+
+  getById: (id: number) => ledgerTransactions.find((tx) => tx.id === id) ?? null,
+
+  update: (id: number, data: Partial<LedgerTransaction>) => {
+    const index = ledgerTransactions.findIndex((tx) => tx.id === id);
+    if (index === -1) return null;
+    ledgerTransactions[index] = { ...ledgerTransactions[index], ...data };
+    return ledgerTransactions[index];
+  },
+
+  reset: () => {
+    resetLedgerTransactions();
+    return [...ledgerTransactions];
+  },
+
+  bulkAdd: (items: Omit<LedgerTransaction, "id">[]) => {
+    const added: LedgerTransaction[] = [];
+    for (const item of items) {
+      const isDuplicate = ledgerTransactions.some(
+        (tx) =>
+          tx.userId === item.userId &&
+          tx.transactionDate === item.transactionDate &&
+          tx.merchant === item.merchant &&
+          tx.amount === item.amount &&
+          tx.cardName === item.cardName,
+      );
+      if (!isDuplicate) {
+        const newTx: LedgerTransaction = { ...item, id: nextLedgerId++ };
+        ledgerTransactions.push(newTx);
+        added.push(newTx);
+      }
+    }
+    return added;
+  },
+
+  getCategories: () => [...LEDGER_CATEGORIES].sort((a, b) => a.displayOrder - b.displayOrder),
+};
+
+export const resetAllMocks = () => {
+  resetSamples();
+  resetUsers();
+  resetWashingTransactions();
+  resetLedgerTransactions();
+};

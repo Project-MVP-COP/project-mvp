@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cop.kbds.agilemvp.category.repository.CategoryMapper">
+
+    <resultMap id="categoryResultMap" type="cop.kbds.agilemvp.category.controller.CategoryDto">
+        <id     property="id"           column="id"/>
+        <result property="name"         column="name"/>
+        <result property="color"        column="color"/>
+        <result property="displayOrder" column="display_order"/>
+        <result property="isDefault"    column="is_default"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="categoryResultMap">
+        SELECT id, name, color, display_order, is_default
+        FROM categories
+        ORDER BY display_order
+    </select>
+
+    <select id="findByName" resultMap="categoryResultMap">
+        SELECT id, name, color, display_order, is_default
+        FROM categories
+        WHERE name = #{name}
+    </select>
+
+</mapper>

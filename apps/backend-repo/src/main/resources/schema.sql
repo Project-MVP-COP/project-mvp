@@ -21,7 +21,7 @@ CREATE TABLE users (
     CONSTRAINT pk_users PRIMARY KEY (id),
     CONSTRAINT uk_users_login_id UNIQUE (login_id),
     CONSTRAINT uk_users_nickname UNIQUE (nickname),
-    CONSTRAINT chk_users_status CHECK (status IN ('active', 'suspended', 'deleted')),
+    CONSTRAINT chk_users_status CHECK (status = 'active' OR status = 'suspended' OR status = 'deleted'),
     CONSTRAINT chk_users_login_id_len CHECK (LENGTH(login_id) >= 2),
     CONSTRAINT chk_users_nickname_len CHECK (LENGTH(nickname) >= 1)
 );
@@ -37,3 +37,36 @@ COMMENT ON COLUMN users.last_login_at IS '최종 로그인 시각';
 COMMENT ON COLUMN users.created_at IS '가입 시각';
 COMMENT ON COLUMN users.updated_at IS '최종 수정 시각';
 
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS categories;
+
+CREATE TABLE categories (
+    id            BIGSERIAL   PRIMARY KEY,
+    name          VARCHAR(50) NOT NULL UNIQUE,
+    color         VARCHAR(7)  NOT NULL DEFAULT '#64748b',
+    display_order INTEGER     NOT NULL DEFAULT 0,
+    is_default    BOOLEAN     NOT NULL DEFAULT FALSE,
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE transactions (
+    id               BIGSERIAL    PRIMARY KEY,
+    user_id          BIGINT       NOT NULL,
+    transaction_date DATE         NOT NULL,
+    merchant         VARCHAR(200) NOT NULL,
+    category_id      BIGINT,
+    amount           BIGINT       NOT NULL,
+    card_name        VARCHAR(50),
+    installment      INTEGER      NOT NULL DEFAULT 1,
+    status           VARCHAR(20)  NOT NULL DEFAULT '승인',
+    memo             TEXT,
+    tag              VARCHAR(100),
+    created_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_transactions_user     FOREIGN KEY (user_id)     REFERENCES users(id)      ON DELETE CASCADE,
+    CONSTRAINT fk_transactions_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+    CONSTRAINT chk_transactions_amount      CHECK (amount >= 0),
+    CONSTRAINT chk_transactions_installment CHECK (installment BETWEEN 1 AND 60),
+    CONSTRAINT uk_transactions_dedup  UNIQUE (user_id, transaction_date, merchant, amount, card_name)
+);

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cop.kbds.agilemvp.chart.repository.ChartMapper">
+
+    <select id="donut" resultType="cop.kbds.agilemvp.chart.controller.DonutChartDto">
+        SELECT
+            COALESCE(c.name, '미분류')   AS name,
+            SUM(t.amount)                AS value,
+            COALESCE(c.color, '#64748b') AS color
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.status = '승인'
+          AND t.user_id = #{userId}
+        <if test="dateStart != null and dateStart != ''">
+            AND t.transaction_date &gt;= CAST(#{dateStart} AS DATE)
+        </if>
+        <if test="dateEnd != null and dateEnd != ''">
+            AND t.transaction_date &lt;= CAST(#{dateEnd} AS DATE)
+        </if>
+        GROUP BY c.id, c.name, c.color
+        ORDER BY value DESC
+    </select>
+
+    <select id="bar" resultType="cop.kbds.agilemvp.chart.controller.BarChartDto">
+        SELECT
+            TO_CHAR(t.transaction_date, 'YYYY-MM') AS month,
+            SUM(t.amount)                           AS amount
+        FROM transactions t
+        WHERE t.status = '승인'
+          AND t.user_id = #{userId}
+        GROUP BY TO_CHAR(t.transaction_date, 'YYYY-MM')
+        ORDER BY month
+    </select>
+
+    <select id="line" resultType="cop.kbds.agilemvp.chart.controller.LineChartDto">
+        SELECT
+            TO_CHAR(transaction_date, 'YYYY-MM-DD')           AS date,
+            SUM(SUM(amount)) OVER (ORDER BY transaction_date) AS cumulativeAmount
+        FROM transactions
+        WHERE status = '승인'
+          AND user_id = #{userId}
+        <if test="dateStart != null and dateStart != ''">
+            AND transaction_date &gt;= CAST(#{dateStart} AS DATE)
+        </if>
+        <if test="dateEnd != null and dateEnd != ''">
+            AND transaction_date &lt;= CAST(#{dateEnd} AS DATE)
+        </if>
+        GROUP BY transaction_date
+        ORDER BY transaction_date
+    </select>
+
+</mapper>

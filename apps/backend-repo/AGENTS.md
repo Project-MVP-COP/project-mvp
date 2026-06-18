@@ -333,6 +333,32 @@ public enum {Domain}ErrorCode implements ErrorCode {
 
 ---
 
+## Database Migration & Schema Modification Rules (Flyway)
+
+데이터베이스의 모든 스키마 변경(테이블 추가, 컬럼 변경, 인덱스 추가 등) 및 공통 참조 데이터 변경은 **Flyway 마이그레이션 파일**을 통해서만 수행해야 합니다. **기존 마이그레이션 파일의 내용을 절대 임의로 수정하거나 삭제하지 마십시오.**
+
+### 1. 새 마이그레이션 파일 작성 규칙
+- **위치**: `src/main/resources/db/migration/` 하위에 작성합니다.
+- **파일명 형식**: `V{Version}__{Description}.sql` 
+  - 버전 번호와 설명 사이에는 반드시 **두 개의 언더스코어(`__`)**를 사용해야 합니다.
+  - 버전 번호는 순차적으로 증가해야 합니다 (예: `V3__add_user_age_column.sql`, `V4__create_orders_table.sql`).
+- **SQL 작성 유의사항**:
+  - **기존 데이터 보존**: 기존 데이터를 파괴하는 `DROP TABLE`, `DROP COLUMN` 등은 원칙적으로 금지하며, 불가피한 경우 이전/백업 대책을 마련해야 합니다.
+  - **멱등성 및 충돌 방지**: 데이터를 삽입할 경우 중복 키 오류가 나지 않도록 `WHERE NOT EXISTS` 등을 활용하십시오.
+    - 예: `INSERT INTO table_name (col1) SELECT 'val1' WHERE NOT EXISTS (SELECT 1 FROM table_name WHERE col1 = 'val1');`
+  - **종결 문자**: SQL 구문의 마지막에는 세미콜론(`;`)을 누락하지 마십시오.
+
+### 2. 스키마 변경 절차
+1. **버전 결정**: `db/migration` 폴더 내의 가장 마지막 버전 번호를 확인하고, 그 다음 번호를 부여합니다. (예: 최신 파일이 `V2`이면 `V3`으로 작성)
+2. **SQL 작성**: DDL 또는 DML 구문을 작성합니다.
+3. **로컬 검증**: `./gradlew test` 및 `./gradlew bootRun`을 실행하여 Flyway가 마이그레이션을 정상적으로 적용하는지 로그를 확인합니다.
+4. **PR / Merge**: 메인 브랜치에 병합되면 배포 시 자동으로 운영 환경에 반영됩니다. (운영 환경에 테이블이 이미 가동 중이어도 `baseline-on-migrate: true`에 의해 안전하게 신규 버전만 순차 적용됩니다.)
+
+### 3. 로컬 전용 테스트 시드 데이터 추가
+- 개발 혹은 로컬 테스트에만 필요한 데이터(더미 계정, 목업 레코드 등)는 `src/main/resources/db/migration_dev/` 하위에 `V999__dev_seeds.sql` 등 900번대 이후의 큰 버전 번호로 관리합니다. 이 경로의 파일은 운영 배포 환경에서는 절대 실행되지 않습니다.
+
+---
+
 ## Feature Flag
 
 미완성 엔드포인트는 `@FeatureToggle`로 숨기고 main에 병합합니다.

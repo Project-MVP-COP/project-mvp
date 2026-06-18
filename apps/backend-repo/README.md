@@ -153,17 +153,31 @@ API 테스트 도구 (Postman 등) 또는 웹 브라우저를 통해 다음 URL�
 │   │   │       ├── sample (3계층 구조의 레퍼런스 패키지)
 │   │   │       ├── user (회원 관리 도메인 - 독립 패키지)
 │   │   │       └── auth (JWT/Security 기반 인증 도메인 - User에 의존)
-│   │       ├── mapper
-│   │       │   ├── sample (MyBatis 쿼리 XML)
-│   │       │   └── user (회원 MyBatis 쿼리 XML)
-│   │       ├── application.yml (기본 설정 - H2)
-│   │       ├── application-prod.yml (운영 설정 - PostgreSQL)
-│   │       └── schema.sql / data.sql (DB 초기화 스크립트)
+│   │   ├── resources
+│   │   │   ├── db
+│   │   │   │   ├── migration (Flyway 공통 스키마 및 마이그레이션 SQL)
+│   │   │   │   └── migration_dev (Flyway 로컬 개발용 시드 데이터 SQL)
+│   │   │   ├── mapper
+│   │   │   │   ├── sample (MyBatis 쿼리 XML)
+│   │   │   │   └── user (회원 MyBatis 쿼리 XML)
+│   │   │   ├── application.yml (기본 설정 - H2 + Flyway)
+│   │   │   └── application-prod.yml (운영 설정 - PostgreSQL + Flyway)
 │   └── test
 │       └── java (단위 및 통합 테스트 코드)
 ├── build.gradle (빌드 설정 및 의존성)
 └── README.md (프로젝트 문서)
 ```
+
+### 🗄️ 데이터베이스 마이그레이션 (Flyway)
+기존의 `schema.sql`과 `data.sql`을 이용한 단일 파일 초기화 방식은 **폐기**되었습니다. 운영 DB의 안정성과 버전 관리를 위해 **Flyway**를 전면 도입했습니다.
+
+- **공통/운영 스키마 및 데이터** (`src/main/resources/db/migration`):
+  - `V1__initial_schema.sql`: 초기 테이블 구조 정의 (운영 환경 데이터 보존을 위해 `DROP TABLE`은 사용하지 않음)
+  - `V2__default_categories.sql`: 시스템 기본 참조 카테고리 데이터 삽입 (동작 충돌 방지를 위한 `WHERE NOT EXISTS` 사용)
+- **로컬 개발용 더미 데이터** (`src/main/resources/db/migration_dev`):
+  - `V999__dev_seeds.sql`: 로컬 개발/테스트에서만 가동되는 더미 `temp` 레코드 및 `testuser` 정보
+- **로컬 구동**: 애플리케이션 시작 시 H2 인메모리 DB에 공통 스키마 및 개발용 데이터가 자동으로 마이그레이션되므로, 이전과 동일하게 `./gradlew bootRun` 또는 테스트를 즉시 수행할 수 있습니다.
+- **운영(prod) 배포**: 프로파일별 분리로 인해 로컬용 더미 데이터(`V999`)는 절대 운영 DB에 반영되지 않으며, `baseline-on-migrate: true` 설정을 통해 기존 운영 DB의 상태를 유지하면서 안전하게 신규 마이그레이션을 누적할 수 있습니다.
 
 ---
 

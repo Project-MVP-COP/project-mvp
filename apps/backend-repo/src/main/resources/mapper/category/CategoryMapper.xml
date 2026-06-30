@@ -35,7 +35,7 @@
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO categories (name, color, display_order, is_default)
         VALUES (#{name}, #{color},
-                (SELECT COALESCE(MAX(display_order), 0) + 1 FROM categories),
+                (SELECT COALESCE(MAX(d.display_order), 0) + 1 FROM categories d),
                 FALSE)
     </insert>
 

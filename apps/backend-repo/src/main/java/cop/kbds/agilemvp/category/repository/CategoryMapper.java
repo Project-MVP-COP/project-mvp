@@ -12,6 +12,6 @@ public interface CategoryMapper {
     Category findById(@Param("id") Long id);
     Category findByName(@Param("name") String name);
     void insert(Category category);
-    void update(Category category);
+    int update(Category category);
     void deleteById(@Param("id") Long id);
 }

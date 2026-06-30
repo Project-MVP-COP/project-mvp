@@ -9,6 +9,6 @@ public interface CategoryRepository {
     Category findById(Long id);
     Category findByName(String name);
     void save(Category category);
-    void update(Category category);
+    int update(Category category);
     void deleteById(Long id);
 }

@@ -43,6 +43,11 @@ public class Category {
             throw new BusinessException(CategoryErrorCode.DEFAULT_CATEGORY_CANNOT_BE_DELETED);
     }
 
+    public void validateModification() {
+        if (Boolean.TRUE.equals(this.isDefault))
+            throw new BusinessException(CategoryErrorCode.DEFAULT_CATEGORY_CANNOT_BE_MODIFIED);
+    }
+
     public Category(Long id, String name, String color, Integer displayOrder, Boolean isDefault) {
         this.id = id;
         this.name = name;

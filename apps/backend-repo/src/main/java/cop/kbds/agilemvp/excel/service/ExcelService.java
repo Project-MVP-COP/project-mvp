@@ -1,8 +1,10 @@
 package cop.kbds.agilemvp.excel.service;
 
+import cop.kbds.agilemvp.category.repository.CategoryRepository;
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.common.exception.CommonErrorCode;
 import cop.kbds.agilemvp.transaction.controller.TransactionDto;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -14,15 +16,22 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ExcelService {
 
+    private final CategoryRepository categoryRepository;
+
     private static final String[] HEADERS = {"날짜", "가맹점명", "카테고리", "금액", "카드명", "할부개월", "상태"};
-    private static final List<String> VALID_CATEGORIES = List.of(
-            "식음료", "쇼핑", "교통", "의료/건강", "문화/여가", "편의점", "주유", "통신", "교육", "기타"
-    );
     private static final List<String> VALID_STATUSES = List.of("승인", "취소");
+
+    private Set<String> loadValidCategories() {
+        return categoryRepository.findAll().stream()
+                .map(c -> c.getName())
+                .collect(Collectors.toSet());
+    }
 
     private enum BankType { SHINHAN, KB, TEMPLATE, UNKNOWN }
 
@@ -214,6 +223,7 @@ public class ExcelService {
         for (String h : HEADERS) if (!ci.containsKey(h)) missing.add(h);
         if (!missing.isEmpty()) throw new BusinessException(CommonErrorCode.INVALID_INPUT, "컬럼 누락: " + String.join(", ", missing));
 
+        Set<String> validCategories = loadValidCategories();
         List<TransactionDto> result = new ArrayList<>();
         long tempId = 1;
 
@@ -230,7 +240,7 @@ public class ExcelService {
             String status      = getCellString(row, ci.get("상태"));
             if (!date.matches("\\d{4}-\\d{2}-\\d{2}"))
                 throw new BusinessException(CommonErrorCode.INVALID_INPUT, (r + 1) + "행: 날짜 형식 오류 (YYYY-MM-DD)");
-            if (!VALID_CATEGORIES.contains(category))
+            if (!validCategories.contains(category))
                 throw new BusinessException(CommonErrorCode.INVALID_INPUT, (r + 1) + "행: 유효하지 않은 카테고리 '" + category + "'");
             if (!VALID_STATUSES.contains(status))
                 throw new BusinessException(CommonErrorCode.INVALID_INPUT, (r + 1) + "행: 상태는 '승인' 또는 '취소'여야 합니다.");

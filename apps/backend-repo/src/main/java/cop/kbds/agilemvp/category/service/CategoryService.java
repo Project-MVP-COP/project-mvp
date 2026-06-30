@@ -3,9 +3,8 @@ package cop.kbds.agilemvp.category.service;
 import cop.kbds.agilemvp.category.exception.CategoryErrorCode;
 import cop.kbds.agilemvp.category.repository.CategoryRepository;
 import cop.kbds.agilemvp.common.exception.BusinessException;
-import cop.kbds.agilemvp.common.exception.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +16,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
 
+    @Transactional(readOnly = true)
     public List<Category> findAll() {
         return categoryRepository.findAll();
     }
@@ -26,7 +26,7 @@ public class CategoryService {
         Category category = Category.create(name, color);
         try {
             categoryRepository.save(category);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             throw new BusinessException(CategoryErrorCode.DUPLICATE_CATEGORY_NAME);
         }
     }
@@ -34,10 +34,12 @@ public class CategoryService {
     @Transactional
     public Category update(Long id, String name, String color) {
         Category category = findOrThrow(id);
+        category.validateModification();
         Category updated = category.update(name, color);
         try {
-            categoryRepository.update(updated);
-        } catch (DataIntegrityViolationException e) {
+            int affected = categoryRepository.update(updated);
+            if (affected == 0) throw new BusinessException(CategoryErrorCode.CATEGORY_NOT_FOUND);
+        } catch (DuplicateKeyException e) {
             throw new BusinessException(CategoryErrorCode.DUPLICATE_CATEGORY_NAME);
         }
         return updated;
@@ -52,7 +54,7 @@ public class CategoryService {
 
     private Category findOrThrow(Long id) {
         Category category = categoryRepository.findById(id);
-        if (category == null) throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
+        if (category == null) throw new BusinessException(CategoryErrorCode.CATEGORY_NOT_FOUND);
         return category;
     }
 }

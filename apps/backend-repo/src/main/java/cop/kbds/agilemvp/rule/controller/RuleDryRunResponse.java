@@ -6,6 +6,9 @@ import java.util.List;
 
 public record RuleDryRunResponse(
         int matchCount,
+        int newlyClassifiedCount,
+        int overrideCount,
+        boolean hasOverrideRisk,
         List<MatchedTransaction> transactions
 ) {
     public record MatchedTransaction(
@@ -13,11 +16,15 @@ public record RuleDryRunResponse(
             String transactionDate,
             String merchant,
             long amount,
-            String currentCategory
+            Long currentCategoryId,
+            String currentCategory,
+            boolean newlyClassified,
+            boolean override
     ) {
         public static MatchedTransaction from(MatchedTransactionDto dto) {
             return new MatchedTransaction(dto.id(), dto.transactionDate(), dto.merchant(),
-                    dto.amount(), dto.currentCategory());
+                    dto.amount(), dto.currentCategoryId(), dto.currentCategory(),
+                    dto.newlyClassified(), dto.overrideRisk());
         }
     }
 }

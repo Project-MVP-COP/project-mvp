@@ -2,6 +2,7 @@ package cop.kbds.agilemvp.rule.repository;
 
 import cop.kbds.agilemvp.rule.service.MatchedTransactionDto;
 import cop.kbds.agilemvp.rule.service.Rule;
+import cop.kbds.agilemvp.rule.service.RuleDryRunSummaryDto;
 import cop.kbds.agilemvp.rule.service.UnclassifiedTransactionDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -17,8 +18,10 @@ public interface RuleMapper {
     void deleteById(@Param("id") Long id);
     int applyRuleToTransactions(@Param("userId") Long userId, @Param("keyword") String keyword,
                                   @Param("categoryId") Long categoryId, @Param("tag") String tag);
-    int countMatchedTransactions(@Param("userId") Long userId, @Param("keyword") String keyword);
+    RuleDryRunSummaryDto summarizeDryRun(@Param("userId") Long userId, @Param("keyword") String keyword,
+                                         @Param("categoryId") Long categoryId);
     List<MatchedTransactionDto> findMatchedTransactions(@Param("userId") Long userId,
-                                                        @Param("keyword") String keyword);
+                                                        @Param("keyword") String keyword,
+                                                        @Param("categoryId") Long categoryId);
     List<UnclassifiedTransactionDto> findUnclassifiedTransactions(@Param("userId") Long userId);
 }

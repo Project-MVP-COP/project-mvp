@@ -4,12 +4,14 @@
 
 <mapper namespace="cop.kbds.agilemvp.category.repository.CategoryMapper">
 
-    <resultMap id="categoryResultMap" type="cop.kbds.agilemvp.category.controller.CategoryDto">
-        <id     property="id"           column="id"/>
-        <result property="name"         column="name"/>
-        <result property="color"        column="color"/>
-        <result property="displayOrder" column="display_order"/>
-        <result property="isDefault"    column="is_default"/>
+    <resultMap id="categoryResultMap" type="cop.kbds.agilemvp.category.service.Category">
+        <constructor>
+            <arg column="id"            javaType="long"/>
+            <arg column="name"          javaType="string"/>
+            <arg column="color"         javaType="string"/>
+            <arg column="display_order" javaType="int"/>
+            <arg column="is_default"    javaType="boolean"/>
+        </constructor>
     </resultMap>
 
     <select id="findAll" resultMap="categoryResultMap">
@@ -18,10 +20,35 @@
         ORDER BY display_order
     </select>
 
+    <select id="findById" resultMap="categoryResultMap">
+        SELECT id, name, color, display_order, is_default
+        FROM categories
+        WHERE id = #{id}
+    </select>
+
     <select id="findByName" resultMap="categoryResultMap">
         SELECT id, name, color, display_order, is_default
         FROM categories
         WHERE name = #{name}
     </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO categories (name, color, display_order, is_default)
+        VALUES (#{name}, #{color},
+                (SELECT COALESCE(MAX(display_order), 0) + 1 FROM categories),
+                FALSE)
+    </insert>
+
+    <update id="update">
+        UPDATE categories
+        SET name       = #{name},
+            color      = #{color},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM categories WHERE id = #{id}
+    </delete>
 
 </mapper>

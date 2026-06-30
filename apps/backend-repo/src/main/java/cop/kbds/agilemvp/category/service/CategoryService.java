@@ -4,6 +4,7 @@ import cop.kbds.agilemvp.category.exception.CategoryErrorCode;
 import cop.kbds.agilemvp.category.repository.CategoryRepository;
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,7 +50,12 @@ public class CategoryService {
     public void delete(Long id) {
         Category category = findOrThrow(id);
         category.validateDeletion();
-        categoryRepository.deleteById(id);
+        try {
+            categoryRepository.detachTransactionsByCategoryId(id);
+            categoryRepository.deleteById(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(CategoryErrorCode.CATEGORY_IN_USE);
+        }
     }
 
     private Category findOrThrow(Long id) {

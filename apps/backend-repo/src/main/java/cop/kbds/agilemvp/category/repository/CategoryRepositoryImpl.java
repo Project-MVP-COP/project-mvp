@@ -16,5 +16,6 @@ public class CategoryRepositoryImpl implements CategoryRepository {
     @Override public Category       findByName(String name)       { return categoryMapper.findByName(name); }
     @Override public void           save(Category category)       { categoryMapper.insert(category); }
     @Override public int            update(Category category)     { return categoryMapper.update(category); }
+    @Override public int            detachTransactionsByCategoryId(Long id) { return categoryMapper.detachTransactionsByCategoryId(id); }
     @Override public void           deleteById(Long id)           { categoryMapper.deleteById(id); }
 }

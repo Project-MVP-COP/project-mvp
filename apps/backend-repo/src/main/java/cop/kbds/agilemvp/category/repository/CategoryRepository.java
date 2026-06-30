@@ -10,5 +10,6 @@ public interface CategoryRepository {
     Category findByName(String name);
     void save(Category category);
     int update(Category category);
+    int detachTransactionsByCategoryId(Long id);
     void deleteById(Long id);
 }

@@ -47,6 +47,16 @@
         WHERE id = #{id}
     </update>
 
+    <update id="detachTransactionsByCategoryId">
+        UPDATE transactions
+        SET category_id = NULL,
+            tag = CASE WHEN applied_rule_id IS NULL THEN tag ELSE NULL END,
+            is_classified = FALSE,
+            applied_rule_id = NULL,
+            updated_at = NOW()
+        WHERE category_id = #{id}
+    </update>
+
     <delete id="deleteById">
         DELETE FROM categories WHERE id = #{id}
     </delete>

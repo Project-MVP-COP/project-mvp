@@ -56,7 +56,9 @@
             status           = #{status},
             memo             = #{memo},
             tag              = #{tag},
-            is_classified    = CASE WHEN #{categoryId} IS NULL THEN FALSE ELSE TRUE END
+            is_classified    = CASE WHEN #{categoryId} IS NULL THEN FALSE ELSE TRUE END,
+            applied_rule_id  = NULL,
+            updated_at       = NOW()
         WHERE id = #{id}
     </update>
 
@@ -65,6 +67,7 @@
         SET category_id = #{categoryId},
             tag         = #{tag},
             is_classified = TRUE,
+            applied_rule_id = NULL,
             updated_at  = NOW()
         WHERE id = #{id}
     </update>
@@ -72,6 +75,7 @@
     <update id="updateTag">
         UPDATE transactions
         SET tag = #{tag},
+            applied_rule_id = NULL,
             updated_at = NOW()
         WHERE id = #{id}
     </update>

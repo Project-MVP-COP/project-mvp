@@ -48,5 +48,7 @@ public class Rule {
     private static void validate(String keyword) {
         if (keyword == null || keyword.isBlank())
             throw new BusinessException(RuleErrorCode.INVALID_KEYWORD);
+        if (keyword.trim().length() > 100)
+            throw new BusinessException(RuleErrorCode.INVALID_KEYWORD);
     }
 }

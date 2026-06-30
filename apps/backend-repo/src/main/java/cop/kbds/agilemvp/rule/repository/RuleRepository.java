@@ -13,8 +13,8 @@ public interface RuleRepository {
     boolean existsByUserIdAndKeyword(Long userId, String keyword);
     void save(Rule rule);
     void deleteById(Long id);
-    int applyRuleToTransactions(Long userId, String keyword, Long categoryId, String tag);
-    int restoreRuleAppliedTransactions(Long userId, String keyword, Long categoryId, String tag);
+    int applyRuleToTransactions(Long userId, Long ruleId, String keyword, Long categoryId, String tag);
+    int restoreRuleAppliedTransactions(Long userId, Long ruleId);
     RuleDryRunSummaryDto summarizeDryRun(Long userId, String keyword, Long categoryId);
     List<MatchedTransactionDto> findMatchedTransactions(Long userId, String keyword, Long categoryId);
     List<UnclassifiedTransactionDto> findUnclassifiedTransactions(Long userId);

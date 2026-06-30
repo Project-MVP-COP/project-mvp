@@ -1,6 +1,6 @@
 package cop.kbds.agilemvp.rule.controller;
 
-import cop.kbds.agilemvp.rule.service.Rule;
+import cop.kbds.agilemvp.rule.service.RuleDryRunResult;
 import cop.kbds.agilemvp.rule.service.RuleService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -43,11 +43,16 @@ public class RuleController {
     @PostMapping("/dry-run")
     public RuleDryRunResponse dryRun(@RequestBody @Valid RuleDryRunRequest request,
                                      @AuthenticationPrincipal User currentUser) {
-        return ruleService.dryRun(currentUser.getId(), request.keyword());
+        RuleDryRunResult result = ruleService.dryRun(currentUser.getId(), request.keyword());
+        return new RuleDryRunResponse(
+                result.totalCount(),
+                result.transactions().stream().map(RuleDryRunResponse.MatchedTransaction::from).toList()
+        );
     }
 
     @GetMapping("/patterns")
     public List<RulePatternResponse> findUnclassifiedPatterns(@AuthenticationPrincipal User currentUser) {
-        return ruleService.findUnclassifiedPatterns(currentUser.getId());
+        return ruleService.findUnclassifiedPatterns(currentUser.getId())
+                .stream().map(RulePatternResponse::from).toList();
     }
 }

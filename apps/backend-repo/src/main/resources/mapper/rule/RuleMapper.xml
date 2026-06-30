@@ -52,8 +52,16 @@
           AND category_id IS NULL
     </update>
 
+    <select id="countMatchedTransactions" resultType="int">
+        SELECT COUNT(*)
+        FROM transactions
+        WHERE user_id = #{userId}
+          AND LOWER(merchant) LIKE '%' || LOWER(#{keyword}) || '%'
+          AND category_id IS NULL
+    </select>
+
     <select id="findMatchedTransactions"
-            resultType="cop.kbds.agilemvp.rule.controller.RuleDryRunResponse$MatchedTransaction">
+            resultType="cop.kbds.agilemvp.rule.service.MatchedTransactionDto">
         SELECT t.id,
                CAST(t.transaction_date AS VARCHAR) AS transactionDate,
                t.merchant,
@@ -63,12 +71,13 @@
         LEFT JOIN categories c ON t.category_id = c.id
         WHERE t.user_id = #{userId}
           AND LOWER(t.merchant) LIKE '%' || LOWER(#{keyword}) || '%'
+          AND t.category_id IS NULL
         ORDER BY t.transaction_date DESC
         LIMIT 50
     </select>
 
     <select id="findUnclassifiedPatterns"
-            resultType="cop.kbds.agilemvp.rule.controller.RulePatternResponse">
+            resultType="cop.kbds.agilemvp.rule.service.RulePattern">
         SELECT SUBSTRING(merchant, 1, 6)   AS keyword,
                COUNT(*)                    AS occurrences,
                SUM(amount)                 AS totalAmount

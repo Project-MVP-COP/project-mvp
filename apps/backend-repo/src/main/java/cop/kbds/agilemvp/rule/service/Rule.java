@@ -44,6 +44,6 @@ public class Rule {
 
     private static void validate(String keyword) {
         if (keyword == null || keyword.isBlank())
-            throw new BusinessException(RuleErrorCode.RULE_NOT_FOUND);
+            throw new BusinessException(RuleErrorCode.INVALID_KEYWORD);
     }
 }

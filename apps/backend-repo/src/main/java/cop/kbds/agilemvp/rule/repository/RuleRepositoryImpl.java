@@ -1,8 +1,8 @@
 package cop.kbds.agilemvp.rule.repository;
 
-import cop.kbds.agilemvp.rule.controller.RuleDryRunResponse;
-import cop.kbds.agilemvp.rule.controller.RulePatternResponse;
+import cop.kbds.agilemvp.rule.service.MatchedTransactionDto;
 import cop.kbds.agilemvp.rule.service.Rule;
+import cop.kbds.agilemvp.rule.service.RulePattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -20,8 +20,11 @@ public class RuleRepositoryImpl implements RuleRepository {
     @Override public void applyRuleToTransactions(Long userId, String keyword, Long categoryId, String tag) {
         ruleMapper.applyRuleToTransactions(userId, keyword, categoryId, tag);
     }
-    @Override public List<RuleDryRunResponse.MatchedTransaction> findMatchedTransactions(Long userId, String keyword) {
+    @Override public int countMatchedTransactions(Long userId, String keyword) {
+        return ruleMapper.countMatchedTransactions(userId, keyword);
+    }
+    @Override public List<MatchedTransactionDto> findMatchedTransactions(Long userId, String keyword) {
         return ruleMapper.findMatchedTransactions(userId, keyword);
     }
-    @Override public List<RulePatternResponse> findUnclassifiedPatterns(Long userId)  { return ruleMapper.findUnclassifiedPatterns(userId); }
+    @Override public List<RulePattern> findUnclassifiedPatterns(Long userId)          { return ruleMapper.findUnclassifiedPatterns(userId); }
 }

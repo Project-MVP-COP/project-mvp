@@ -2,10 +2,10 @@ package cop.kbds.agilemvp.rule.service;
 
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.common.exception.CommonErrorCode;
-import cop.kbds.agilemvp.rule.controller.RuleDryRunResponse;
-import cop.kbds.agilemvp.rule.controller.RulePatternResponse;
+import cop.kbds.agilemvp.rule.exception.RuleErrorCode;
 import cop.kbds.agilemvp.rule.repository.RuleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +24,11 @@ public class RuleService {
     @Transactional
     public void create(Long userId, String keyword, Long categoryId, String tag) {
         Rule rule = Rule.create(userId, keyword, categoryId, tag);
-        ruleRepository.save(rule);
+        try {
+            ruleRepository.save(rule);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(RuleErrorCode.DUPLICATE_KEYWORD);
+        }
         ruleRepository.applyRuleToTransactions(userId, keyword, categoryId, tag);
     }
 
@@ -36,12 +40,13 @@ public class RuleService {
         ruleRepository.deleteById(id);
     }
 
-    public RuleDryRunResponse dryRun(Long userId, String keyword) {
-        List<RuleDryRunResponse.MatchedTransaction> matched = ruleRepository.findMatchedTransactions(userId, keyword);
-        return new RuleDryRunResponse(matched.size(), matched);
+    public RuleDryRunResult dryRun(Long userId, String keyword) {
+        int totalCount = ruleRepository.countMatchedTransactions(userId, keyword);
+        List<MatchedTransactionDto> transactions = ruleRepository.findMatchedTransactions(userId, keyword);
+        return new RuleDryRunResult(totalCount, transactions);
     }
 
-    public List<RulePatternResponse> findUnclassifiedPatterns(Long userId) {
+    public List<RulePattern> findUnclassifiedPatterns(Long userId) {
         return ruleRepository.findUnclassifiedPatterns(userId);
     }
 }

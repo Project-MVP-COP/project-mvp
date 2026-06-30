@@ -20,7 +20,7 @@ public class Rule {
     private Long categoryId;
     private String categoryName;
     private String tag;
-    private int appliedCount;
+    private Integer appliedCount;
 
     public static Rule create(Long userId, String keyword, Long categoryId, String tag) {
         validate(keyword);
@@ -32,7 +32,7 @@ public class Rule {
                 .build();
     }
 
-    public Rule(Long id, Long userId, String keyword, Long categoryId, String categoryName, String tag, int appliedCount) {
+    public Rule(Long id, Long userId, String keyword, Long categoryId, String categoryName, String tag, Integer appliedCount) {
         this.id = id;
         this.userId = userId;
         this.keyword = keyword;

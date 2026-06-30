@@ -8,7 +8,7 @@ public record RuleResponse(
         Long categoryId,
         String categoryName,
         String tag,
-        int appliedCount
+        Integer appliedCount
 ) {
     public static RuleResponse from(Rule rule) {
         return new RuleResponse(

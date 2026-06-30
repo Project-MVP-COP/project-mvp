@@ -3,10 +3,12 @@ package cop.kbds.agilemvp.rule.repository;
 import cop.kbds.agilemvp.rule.controller.RuleDryRunResponse;
 import cop.kbds.agilemvp.rule.controller.RulePatternResponse;
 import cop.kbds.agilemvp.rule.service.Rule;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
+@Mapper
 public interface RuleMapper {
     List<Rule> findAllByUserId(@Param("userId") Long userId);
     Rule findById(@Param("id") Long id);

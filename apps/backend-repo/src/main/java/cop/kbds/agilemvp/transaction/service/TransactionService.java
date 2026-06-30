@@ -3,6 +3,7 @@ package cop.kbds.agilemvp.transaction.service;
 import cop.kbds.agilemvp.category.repository.CategoryRepository;
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.common.exception.CommonErrorCode;
+import cop.kbds.agilemvp.common.util.TagUtil;
 import cop.kbds.agilemvp.transaction.controller.BulkUploadResult;
 import cop.kbds.agilemvp.transaction.controller.TransactionDto;
 import cop.kbds.agilemvp.transaction.controller.TransactionPageResult;
@@ -63,6 +64,7 @@ public class TransactionService {
     public TransactionDto add(TransactionDto dto, Long userId) {
         dto.setUserId(userId);
         resolveCategoryId(dto);
+        dto.setTag(TagUtil.normalize(dto.getTag()));
         syncClassifiedFlag(dto);
         transactionRepository.insert(dto);
         return dto;
@@ -78,6 +80,7 @@ public class TransactionService {
             if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
                 dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.getOrDefault("기타", null)));
             }
+            dto.setTag(TagUtil.normalize(dto.getTag()));
             syncClassifiedFlag(dto);
             try {
                 transactionRepository.insert(dto);
@@ -97,6 +100,7 @@ public class TransactionService {
         dto.setId(id);
         dto.setUserId(userId);
         resolveCategoryId(dto);
+        dto.setTag(TagUtil.normalize(dto.getTag()));
         syncClassifiedFlag(dto);
         transactionRepository.update(dto);
         return dto;
@@ -107,6 +111,14 @@ public class TransactionService {
         if (existing == null) throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
         if (!existing.getUserId().equals(userId)) throw new BusinessException(CommonErrorCode.FORBIDDEN);
         transactionRepository.updateCategory(id, categoryId, MANUAL_CATEGORY_TAG);
+        return transactionRepository.findById(id);
+    }
+
+    public TransactionDto patchTag(Long id, String tag, Long userId) {
+        TransactionDto existing = transactionRepository.findById(id);
+        if (existing == null) throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
+        if (!existing.getUserId().equals(userId)) throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        transactionRepository.updateTag(id, TagUtil.normalize(tag));
         return transactionRepository.findById(id);
     }
 

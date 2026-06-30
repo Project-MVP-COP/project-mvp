@@ -1,6 +1,7 @@
 package cop.kbds.agilemvp.rule.service;
 
 import cop.kbds.agilemvp.common.exception.BusinessException;
+import cop.kbds.agilemvp.common.util.TagUtil;
 import cop.kbds.agilemvp.rule.exception.RuleErrorCode;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -25,7 +26,7 @@ public class Rule {
     public static Rule create(Long userId, String keyword, Long categoryId, String tag) {
         validate(keyword);
         String normalizedKeyword = keyword.trim();
-        String normalizedTag = tag == null || tag.isBlank() ? null : tag.trim();
+        String normalizedTag = TagUtil.normalize(tag);
         return Rule.builder()
                 .userId(userId)
                 .keyword(normalizedKeyword)

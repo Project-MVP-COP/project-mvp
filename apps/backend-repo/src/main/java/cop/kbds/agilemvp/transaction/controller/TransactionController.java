@@ -66,6 +66,13 @@ public class TransactionController {
         return service.patchCategory(id, request.categoryId(), currentUser.getId());
     }
 
+    @PatchMapping("/{id}/tag")
+    public TransactionDto patchTag(@PathVariable Long id,
+                                   @RequestBody TagPatchRequest request,
+                                   @AuthenticationPrincipal User currentUser) {
+        return service.patchTag(id, request.tag(), currentUser.getId());
+    }
+
     @PutMapping("/{id}")
     public TransactionDto update(@PathVariable Long id,
                                  @RequestBody TransactionDto dto,

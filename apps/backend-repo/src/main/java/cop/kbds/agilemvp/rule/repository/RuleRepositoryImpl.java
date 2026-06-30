@@ -2,7 +2,7 @@ package cop.kbds.agilemvp.rule.repository;
 
 import cop.kbds.agilemvp.rule.service.MatchedTransactionDto;
 import cop.kbds.agilemvp.rule.service.Rule;
-import cop.kbds.agilemvp.rule.service.RulePattern;
+import cop.kbds.agilemvp.rule.service.UnclassifiedTransactionDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -27,5 +27,7 @@ public class RuleRepositoryImpl implements RuleRepository {
     @Override public List<MatchedTransactionDto> findMatchedTransactions(Long userId, String keyword) {
         return ruleMapper.findMatchedTransactions(userId, keyword);
     }
-    @Override public List<RulePattern> findUnclassifiedPatterns(Long userId)          { return ruleMapper.findUnclassifiedPatterns(userId); }
+    @Override public List<UnclassifiedTransactionDto> findUnclassifiedTransactions(Long userId) {
+        return ruleMapper.findUnclassifiedTransactions(userId);
+    }
 }

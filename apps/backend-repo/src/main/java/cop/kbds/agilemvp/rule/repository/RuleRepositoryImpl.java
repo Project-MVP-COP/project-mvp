@@ -22,6 +22,9 @@ public class RuleRepositoryImpl implements RuleRepository {
     @Override public int applyRuleToTransactions(Long userId, String keyword, Long categoryId, String tag) {
         return ruleMapper.applyRuleToTransactions(userId, keyword, categoryId, tag);
     }
+    @Override public int restoreRuleAppliedTransactions(Long userId, String keyword, Long categoryId, String tag) {
+        return ruleMapper.restoreRuleAppliedTransactions(userId, keyword, categoryId, tag);
+    }
     @Override public RuleDryRunSummaryDto summarizeDryRun(Long userId, String keyword, Long categoryId) {
         return ruleMapper.summarizeDryRun(userId, keyword, categoryId);
     }

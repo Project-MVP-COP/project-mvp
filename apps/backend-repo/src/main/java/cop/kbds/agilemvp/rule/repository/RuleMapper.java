@@ -1,0 +1,20 @@
+package cop.kbds.agilemvp.rule.repository;
+
+import cop.kbds.agilemvp.rule.controller.RuleDryRunResponse;
+import cop.kbds.agilemvp.rule.controller.RulePatternResponse;
+import cop.kbds.agilemvp.rule.service.Rule;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+public interface RuleMapper {
+    List<Rule> findAllByUserId(@Param("userId") Long userId);
+    Rule findById(@Param("id") Long id);
+    void insert(Rule rule);
+    void deleteById(@Param("id") Long id);
+    void applyRuleToTransactions(@Param("userId") Long userId, @Param("keyword") String keyword,
+                                  @Param("categoryId") Long categoryId, @Param("tag") String tag);
+    List<RuleDryRunResponse.MatchedTransaction> findMatchedTransactions(@Param("userId") Long userId,
+                                                                         @Param("keyword") String keyword);
+    List<RulePatternResponse> findUnclassifiedPatterns(@Param("userId") Long userId);
+}

@@ -156,7 +156,7 @@ public class ExcelService {
             if (rawDate.isBlank()) continue;
             String date = rawDate.substring(0, 10).replace(".", "-");
             String merchant   = getCellString(row, ci.getOrDefault("가맹점명", -1));
-            long   amount     = getCellLong(row,   ci.getOrDefault("금액", -1));
+            long   amount     = Math.abs(getCellLong(row, ci.getOrDefault("금액", -1)));
             String issueType  = getCellString(row, ci.getOrDefault("이용구분", -1));
             String cancelFlag = getCellString(row, ci.getOrDefault("취소상태", -1));
             int installment = parseInstallmentShinhan(issueType);
@@ -192,7 +192,7 @@ public class ExcelService {
             String date = getCellString(row, ci.getOrDefault("이용일", -1));
             if (date.isBlank()) continue;
             String merchant    = getCellString(row, ci.getOrDefault("이용하신곳", -1));
-            long   amount      = getCellLong(row,   ci.getOrDefault("국내이용금액(원)", -1));
+            long   amount      = Math.abs(getCellLong(row, ci.getOrDefault("국내이용금액(원)", -1)));
             String payMethod   = getCellString(row, ci.getOrDefault("결제방법", -1));
             String statusRaw   = getCellString(row, ci.getOrDefault("상태", -1));
             int    installment = parseInstallmentKb(payMethod);

@@ -7,7 +7,13 @@ import type {
 
 export type WashingCommand =
   | { type: "bulk_wash"; payload: BulkWashRequest }
-  | { type: "update_category"; id: number; categoryId: number | null; categoryName: string | null }
+  | {
+      type: "update_category";
+      id: number;
+      categoryId: number | null;
+      categoryName: string | null;
+      memo: string | null;
+    }
   | { type: "import_mock" }
   | { type: "delete_transaction"; id: number }
   | { type: "unknown" };
@@ -47,6 +53,7 @@ export const parseWashingCommand = (formData: FormData): WashingCommand => {
         id: extractNumber(formData, "id"),
         categoryId,
         categoryName,
+        memo: normalizeCategory(formData.get("memo")),
       };
     }
     case "import_mock":

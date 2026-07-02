@@ -30,6 +30,7 @@ export const action =
             ...tx,
             categoryId: command.categoryId,
             categoryName: command.categoryName,
+            memo: command.memo,
           });
           await queryClient.invalidateQueries({ queryKey: washingKeys.all });
           return { intent: "update_category" };

@@ -28,7 +28,7 @@ public class ExcelService {
     private static final List<String> VALID_STATUSES = List.of("승인", "취소");
 
     private Set<String> loadValidCategories() {
-        return categoryRepository.findAll().stream()
+        return categoryRepository.findAllAvailable(null).stream()
                 .map(c -> c.getName())
                 .collect(Collectors.toSet());
     }

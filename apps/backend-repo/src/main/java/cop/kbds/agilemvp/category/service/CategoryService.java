@@ -18,13 +18,16 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
 
     @Transactional(readOnly = true)
-    public List<Category> findAll() {
-        return categoryRepository.findAll();
+    public List<Category> findAll(Long userId) {
+        return categoryRepository.findAllAvailable(userId);
     }
 
     @Transactional
-    public void create(String name, String color) {
-        Category category = Category.create(name, color);
+    public void create(Long userId, String name, String color) {
+        Category category = Category.create(userId, name, color);
+        if (categoryRepository.findByNameAvailable(category.getName(), userId) != null) {
+            throw new BusinessException(CategoryErrorCode.DUPLICATE_CATEGORY_NAME);
+        }
         try {
             categoryRepository.save(category);
         } catch (DuplicateKeyException e) {
@@ -33,10 +36,14 @@ public class CategoryService {
     }
 
     @Transactional
-    public Category update(Long id, String name, String color) {
-        Category category = findOrThrow(id);
+    public Category update(Long id, Long userId, String name, String color) {
+        Category category = findOrThrow(id, userId);
         category.validateModification();
         Category updated = category.update(name, color);
+        Category duplicate = categoryRepository.findByNameAvailable(updated.getName(), userId);
+        if (duplicate != null && !duplicate.getId().equals(id)) {
+            throw new BusinessException(CategoryErrorCode.DUPLICATE_CATEGORY_NAME);
+        }
         try {
             int affected = categoryRepository.update(updated);
             if (affected == 0) throw new BusinessException(CategoryErrorCode.CATEGORY_NOT_FOUND);
@@ -47,8 +54,8 @@ public class CategoryService {
     }
 
     @Transactional
-    public void delete(Long id) {
-        Category category = findOrThrow(id);
+    public void delete(Long id, Long userId) {
+        Category category = findOrThrow(id, userId);
         category.validateDeletion();
         try {
             categoryRepository.detachTransactionsByCategoryId(id);
@@ -58,8 +65,8 @@ public class CategoryService {
         }
     }
 
-    private Category findOrThrow(Long id) {
-        Category category = categoryRepository.findById(id);
+    private Category findOrThrow(Long id, Long userId) {
+        Category category = categoryRepository.findByIdAvailable(id, userId);
         if (category == null) throw new BusinessException(CategoryErrorCode.CATEGORY_NOT_FOUND);
         return category;
     }

@@ -63,7 +63,7 @@ public class TransactionService {
 
     public TransactionDto add(TransactionDto dto, Long userId) {
         dto.setUserId(userId);
-        resolveCategoryId(dto);
+        resolveCategoryId(dto, userId);
         dto.setTag(TagUtil.normalize(dto.getTag()));
         syncClassifiedFlag(dto);
         transactionRepository.insert(dto);
@@ -72,11 +72,16 @@ public class TransactionService {
 
     @Transactional
     public BulkUploadResult addBulk(List<TransactionDto> list, Long userId) {
-        Map<String, Long> catMap = buildCategoryMap();
+        Map<String, Long> catMap = buildCategoryMap(userId);
         List<TransactionDto> added = new java.util.ArrayList<>();
         int skippedCount = 0;
         for (TransactionDto dto : list) {
             dto.setUserId(userId);
+            if (dto.getCategoryId() != null
+                    && categoryRepository.findByIdAvailable(dto.getCategoryId(), userId) == null) {
+                skippedCount++;
+                continue;
+            }
             if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
                 dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.getOrDefault("기타", null)));
             }
@@ -99,7 +104,7 @@ public class TransactionService {
         if (!existing.getUserId().equals(userId)) throw new BusinessException(CommonErrorCode.FORBIDDEN);
         dto.setId(id);
         dto.setUserId(userId);
-        resolveCategoryId(dto);
+        resolveCategoryId(dto, userId);
         dto.setTag(TagUtil.normalize(dto.getTag()));
         syncClassifiedFlag(dto);
         transactionRepository.update(dto);
@@ -110,6 +115,9 @@ public class TransactionService {
         TransactionDto existing = transactionRepository.findById(id);
         if (existing == null) throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
         if (!existing.getUserId().equals(userId)) throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        if (categoryRepository.findByIdAvailable(categoryId, userId) == null) {
+            throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
+        }
         transactionRepository.updateCategory(id, categoryId, MANUAL_CATEGORY_TAG);
         return transactionRepository.findById(id);
     }
@@ -141,16 +149,20 @@ public class TransactionService {
         return transactionRepository.findAll(userId);
     }
 
-    private void resolveCategoryId(TransactionDto dto) {
+    private void resolveCategoryId(TransactionDto dto, Long userId) {
+        if (dto.getCategoryId() != null
+                && categoryRepository.findByIdAvailable(dto.getCategoryId(), userId) == null) {
+            throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
+        }
         if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
-            Map<String, Long> catMap = buildCategoryMap();
+            Map<String, Long> catMap = buildCategoryMap(userId);
             dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.getOrDefault("기타", null)));
         }
     }
 
-    private Map<String, Long> buildCategoryMap() {
+    private Map<String, Long> buildCategoryMap(Long userId) {
         Map<String, Long> map = new HashMap<>();
-        categoryRepository.findAll().forEach(c -> map.put(c.getName(), c.getId()));
+        categoryRepository.findAllAvailable(userId).forEach(c -> map.put(c.getName(), c.getId()));
         return map;
     }
 
@@ -159,7 +171,7 @@ public class TransactionService {
     }
 
     private void insertDefaults(Long userId) {
-        Map<String, Long> cat = buildCategoryMap();
+        Map<String, Long> cat = buildCategoryMap(userId);
         Object[][] rows = {
             {"2026-01-02", "스타벅스",   "식음료",    6500L, "신한카드", 1, "승인"},
             {"2026-01-03", "쿠팡",       "쇼핑",     38900L, "국민카드", 1, "승인"},

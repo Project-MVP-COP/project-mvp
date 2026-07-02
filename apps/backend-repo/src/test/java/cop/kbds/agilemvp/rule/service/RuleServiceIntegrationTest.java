@@ -97,10 +97,10 @@ class RuleServiceIntegrationTest {
     @DisplayName("카테고리 삭제 시 연결된 거래는 미분류 상태로 동기화한다")
     void deleteCategory_DetachesTransactions() {
         Long userId = createUser("category-user", "카테고리유저");
-        Long categoryId = createCategory("반려동물");
+        Long categoryId = createCategory(userId, "반려동물");
         Long transactionId = insertTransaction(userId, "2026-07-07", "동물병원", categoryId, 30000L, "#수동", true);
 
-        categoryService.delete(categoryId);
+        categoryService.delete(categoryId, userId);
 
         Map<String, Object> transaction = transaction(transactionId);
         assertThat(transaction.get("CATEGORY_ID")).isNull();
@@ -113,12 +113,30 @@ class RuleServiceIntegrationTest {
     @DisplayName("규칙에서 사용하는 카테고리는 삭제할 수 없다")
     void deleteCategory_WhenUsedByRule_ThrowsConflict() {
         Long userId = createUser("rule-category-user", "규칙카테고리유저");
-        Long categoryId = createCategory("구독관리");
+        Long categoryId = createCategory(userId, "구독관리");
         ruleService.create(userId, "넷플릭스", categoryId, "구독");
 
-        assertThatThrownBy(() -> categoryService.delete(categoryId))
+        assertThatThrownBy(() -> categoryService.delete(categoryId, userId))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining(CategoryErrorCode.CATEGORY_IN_USE.getMessage());
+    }
+
+    @Test
+    @DisplayName("커스텀 카테고리는 사용자별로 격리된다")
+    void customCategory_IsScopedByUser() {
+        Long userA = createUser("category-owner-a", "카테고리소유자A");
+        Long userB = createUser("category-owner-b", "카테고리소유자B");
+
+        Long userACategoryId = createCategory(userA, "개인카테고리");
+
+        assertThat(categoryService.findAll(userA))
+                .extracting("id")
+                .contains(userACategoryId);
+        assertThat(categoryService.findAll(userB))
+                .extracting("id")
+                .doesNotContain(userACategoryId);
+        assertThatThrownBy(() -> ruleService.create(userB, "개인", userACategoryId, "태그"))
+                .isInstanceOf(BusinessException.class);
     }
 
     private Long createUser(String loginId, String nickname) {
@@ -140,9 +158,11 @@ class RuleServiceIntegrationTest {
         return jdbcTemplate.queryForObject("SELECT id FROM categories WHERE name = ?", Long.class, name);
     }
 
-    private Long createCategory(String name) {
-        categoryService.create(name, "#123456");
-        return categoryId(name);
+    private Long createCategory(Long userId, String name) {
+        categoryService.create(userId, name, "#123456");
+        return jdbcTemplate.queryForObject(
+                "SELECT id FROM categories WHERE user_id = ? AND name = ?",
+                Long.class, userId, name);
     }
 
     private Long ruleId(Long userId, String keyword) {

@@ -36,6 +36,9 @@ public class RuleService {
         if (ruleRepository.existsByUserIdAndKeyword(userId, rule.getKeyword())) {
             throw new BusinessException(RuleErrorCode.DUPLICATE_KEYWORD);
         }
+        if (categoryRepository.findByIdAvailable(rule.getCategoryId(), userId) == null) {
+            throw new BusinessException(RuleErrorCode.INVALID_CATEGORY);
+        }
         try {
             ruleRepository.save(rule);
         } catch (DuplicateKeyException e) {
@@ -60,7 +63,7 @@ public class RuleService {
 
     public RuleDryRunResult dryRun(Long userId, String keyword, Long categoryId) {
         Rule rule = Rule.create(userId, keyword, categoryId, null);
-        if (categoryRepository.findById(rule.getCategoryId()) == null) {
+        if (categoryRepository.findByIdAvailable(rule.getCategoryId(), userId) == null) {
             throw new BusinessException(RuleErrorCode.INVALID_CATEGORY);
         }
 
@@ -78,7 +81,7 @@ public class RuleService {
 
     public List<RulePattern> findUnclassifiedPatterns(Long userId) {
         Map<String, Category> categoriesByName = new HashMap<>();
-        categoryRepository.findAll().forEach(category -> categoriesByName.put(category.getName(), category));
+        categoryRepository.findAllAvailable(userId).forEach(category -> categoriesByName.put(category.getName(), category));
 
         Map<String, PatternAccumulator> candidates = new HashMap<>();
         for (UnclassifiedTransactionDto transaction : ruleRepository.findUnclassifiedTransactions(userId)) {

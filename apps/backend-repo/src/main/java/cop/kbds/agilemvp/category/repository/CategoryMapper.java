@@ -8,9 +8,9 @@ import java.util.List;
 
 @Mapper
 public interface CategoryMapper {
-    List<Category> findAll();
-    Category findById(@Param("id") Long id);
-    Category findByName(@Param("name") String name);
+    List<Category> findAllAvailable(@Param("userId") Long userId);
+    Category findByIdAvailable(@Param("id") Long id, @Param("userId") Long userId);
+    Category findByNameAvailable(@Param("name") String name, @Param("userId") Long userId);
     void insert(Category category);
     int update(Category category);
     int detachTransactionsByCategoryId(@Param("id") Long id);

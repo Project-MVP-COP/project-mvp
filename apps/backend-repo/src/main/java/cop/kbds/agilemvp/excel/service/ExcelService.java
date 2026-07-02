@@ -163,7 +163,8 @@ public class ExcelService {
             String status   = cancelFlag.isBlank() ? "승인" : "취소";
             result.add(TransactionDto.builder()
                     .id(tempId++).transactionDate(date).merchant(merchant)
-                    .categoryName(classifyCategory(merchant))
+                    // categoryName(classifyCategory(merchant)) was intentionally disabled.
+                    // Card-company imports should remain unclassified until user rules classify them.
                     .amount(amount).cardName("신한카드")
                     .installment(installment).status(status)
                     .build());
@@ -199,7 +200,8 @@ public class ExcelService {
             String status      = statusRaw.contains("취소") ? "취소" : "승인";
             result.add(TransactionDto.builder()
                     .id(tempId++).transactionDate(date).merchant(merchant)
-                    .categoryName(classifyCategory(merchant))
+                    // categoryName(classifyCategory(merchant)) was intentionally disabled.
+                    // Card-company imports should remain unclassified until user rules classify them.
                     .amount(amount).cardName("국민카드")
                     .installment(installment).status(status)
                     .build());

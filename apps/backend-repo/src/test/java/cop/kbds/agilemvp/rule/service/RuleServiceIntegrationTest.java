@@ -183,6 +183,21 @@ class RuleServiceIntegrationTest {
         assertThat(transactions.get(0).getCategoryName()).isEqualTo("반려동물");
     }
 
+    @Test
+    @DisplayName("카드사 원본 엑셀 업로드는 룰 엔진 분류를 위해 카테고리를 자동 확정하지 않는다")
+    void parseUpload_CardCompanyFormatKeepsTransactionsUnclassified() throws Exception {
+        Long userId = createUser("card-excel-user", "카드엑셀유저");
+
+        MockMultipartFile file = shinhanExcelFile();
+
+        List<TransactionDto> transactions = excelService.parseUpload(file, userId);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getMerchant()).isEqualTo("스타벅스 강남점");
+        assertThat(transactions.get(0).getCategoryName()).isNull();
+        assertThat(transactions.get(0).getAmount()).isEqualTo(6200L);
+    }
+
     private Long createUser(String loginId, String nickname) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
@@ -269,6 +284,30 @@ class RuleServiceIntegrationTest {
             return new MockMultipartFile(
                     "file",
                     "template.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray());
+        }
+    }
+
+    private MockMultipartFile shinhanExcelFile() throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("신한카드");
+            Row header = sheet.createRow(0);
+            String[] headers = {"거래일", "가맹점명", "금액", "이용구분", "취소상태"};
+            for (int i = 0; i < headers.length; i++) {
+                header.createCell(i).setCellValue(headers[i]);
+            }
+            Row row = sheet.createRow(1);
+            row.createCell(0).setCellValue("2026.07.03 10:30:00");
+            row.createCell(1).setCellValue("스타벅스 강남점");
+            row.createCell(2).setCellValue(6200);
+            row.createCell(3).setCellValue("일시불");
+            row.createCell(4).setCellValue("");
+            workbook.write(out);
+            return new MockMultipartFile(
+                    "file",
+                    "shinhan.xlsx",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     out.toByteArray());
         }

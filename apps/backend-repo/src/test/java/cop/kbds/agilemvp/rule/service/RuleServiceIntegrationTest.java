@@ -128,6 +128,7 @@ class RuleServiceIntegrationTest {
         Long userB = createUser("category-owner-b", "카테고리소유자B");
 
         Long userACategoryId = createCategory(userA, "개인카테고리");
+        Long userBCategoryId = createCategory(userB, "개인카테고리");
 
         assertThat(categoryService.findAll(userA))
                 .extracting("id")
@@ -135,6 +136,9 @@ class RuleServiceIntegrationTest {
         assertThat(categoryService.findAll(userB))
                 .extracting("id")
                 .doesNotContain(userACategoryId);
+        assertThat(categoryService.findAll(userB))
+                .extracting("id")
+                .contains(userBCategoryId);
         assertThatThrownBy(() -> ruleService.create(userB, "개인", userACategoryId, "태그"))
                 .isInstanceOf(BusinessException.class);
     }

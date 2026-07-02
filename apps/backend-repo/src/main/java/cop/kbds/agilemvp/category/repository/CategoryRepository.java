@@ -8,8 +8,9 @@ public interface CategoryRepository {
     List<Category> findAllAvailable(Long userId);
     Category findByIdAvailable(Long id, Long userId);
     Category findByNameAvailable(String name, Long userId);
+    Category findByNameOwned(String name, Long userId);
     void save(Category category);
     int update(Category category);
     int detachTransactionsByCategoryId(Long id);
-    void deleteById(Long id);
+    int deleteById(Long id, Long userId);
 }

@@ -2,10 +2,12 @@ package cop.kbds.agilemvp.excel.controller;
 
 import cop.kbds.agilemvp.excel.service.ExcelService;
 import cop.kbds.agilemvp.transaction.controller.TransactionDto;
+import cop.kbds.agilemvp.user.service.User;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,8 +42,9 @@ public class ExcelController {
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     @ResponseStatus(HttpStatus.OK)
-    public List<TransactionDto> uploadExcel(@RequestPart("file") MultipartFile file) {
-        return excelService.parseUpload(file);
+    public List<TransactionDto> uploadExcel(@RequestPart("file") MultipartFile file,
+                                            @AuthenticationPrincipal User currentUser) {
+        return excelService.parseUpload(file, currentUser.getId());
     }
 
     private void setExcelHeaders(HttpServletResponse response, String filename) {

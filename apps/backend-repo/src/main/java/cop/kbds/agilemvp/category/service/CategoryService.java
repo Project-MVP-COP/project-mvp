@@ -25,7 +25,7 @@ public class CategoryService {
     @Transactional
     public void create(Long userId, String name, String color) {
         Category category = Category.create(userId, name, color);
-        if (categoryRepository.findByNameAvailable(category.getName(), userId) != null) {
+        if (categoryRepository.findByNameOwned(category.getName(), userId) != null) {
             throw new BusinessException(CategoryErrorCode.DUPLICATE_CATEGORY_NAME);
         }
         try {
@@ -40,7 +40,7 @@ public class CategoryService {
         Category category = findOrThrow(id, userId);
         category.validateModification();
         Category updated = category.update(name, color);
-        Category duplicate = categoryRepository.findByNameAvailable(updated.getName(), userId);
+        Category duplicate = categoryRepository.findByNameOwned(updated.getName(), userId);
         if (duplicate != null && !duplicate.getId().equals(id)) {
             throw new BusinessException(CategoryErrorCode.DUPLICATE_CATEGORY_NAME);
         }
@@ -59,7 +59,8 @@ public class CategoryService {
         category.validateDeletion();
         try {
             categoryRepository.detachTransactionsByCategoryId(id);
-            categoryRepository.deleteById(id);
+            int affected = categoryRepository.deleteById(id, userId);
+            if (affected == 0) throw new BusinessException(CategoryErrorCode.CATEGORY_NOT_FOUND);
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(CategoryErrorCode.CATEGORY_IN_USE);
         }

@@ -3,6 +3,11 @@ package cop.kbds.agilemvp.rule.service;
 import cop.kbds.agilemvp.category.exception.CategoryErrorCode;
 import cop.kbds.agilemvp.category.service.CategoryService;
 import cop.kbds.agilemvp.common.exception.BusinessException;
+import cop.kbds.agilemvp.excel.service.ExcelService;
+import cop.kbds.agilemvp.transaction.controller.TransactionDto;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +15,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.List;
@@ -29,6 +37,9 @@ class RuleServiceIntegrationTest {
 
     @Autowired
     private CategoryService categoryService;
+
+    @Autowired
+    private ExcelService excelService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -143,6 +154,35 @@ class RuleServiceIntegrationTest {
                 .isInstanceOf(BusinessException.class);
     }
 
+    @Test
+    @DisplayName("커스텀 카테고리는 전역 카테고리와 같은 이름을 사용할 수 있다")
+    void customCategory_CanUseGlobalCategoryName() {
+        Long userId = createUser("global-name-user", "전역명유저");
+        Long categoryId = createCategory(userId, "개인카테고리");
+
+        categoryService.create(userId, "기타", "#654321");
+        categoryService.update(categoryId, userId, "식음료", "#abcdef");
+
+        assertThat(categoryService.findAll(userId))
+                .filteredOn(category -> category.getUserId() != null && category.getUserId().equals(userId))
+                .extracting("name")
+                .contains("기타", "식음료");
+    }
+
+    @Test
+    @DisplayName("템플릿 엑셀 업로드는 사용자 커스텀 카테고리를 유효한 카테고리로 인식한다")
+    void parseUpload_AllowsUserScopedCategory() throws Exception {
+        Long userId = createUser("excel-category-user", "엑셀카테고리유저");
+        createCategory(userId, "반려동물");
+
+        MockMultipartFile file = templateExcelFile("반려동물");
+
+        List<TransactionDto> transactions = excelService.parseUpload(file, userId);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getCategoryName()).isEqualTo("반려동물");
+    }
+
     private Long createUser(String loginId, String nickname) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
@@ -206,6 +246,32 @@ class RuleServiceIntegrationTest {
         Map<String, Object> keys = keyHolder.getKeyList().get(0);
         Object id = keys.getOrDefault("id", keys.get("ID"));
         return ((Number) id).longValue();
+    }
+
+    private MockMultipartFile templateExcelFile(String categoryName) throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("카드이용내역");
+            Row header = sheet.createRow(0);
+            String[] headers = {"날짜", "가맹점명", "카테고리", "금액", "카드명", "할부개월", "상태"};
+            for (int i = 0; i < headers.length; i++) {
+                header.createCell(i).setCellValue(headers[i]);
+            }
+            Row row = sheet.createRow(1);
+            row.createCell(0).setCellValue("2026-07-02");
+            row.createCell(1).setCellValue("동물병원");
+            row.createCell(2).setCellValue(categoryName);
+            row.createCell(3).setCellValue(30000);
+            row.createCell(4).setCellValue("테스트카드");
+            row.createCell(5).setCellValue(1);
+            row.createCell(6).setCellValue("승인");
+            workbook.write(out);
+            return new MockMultipartFile(
+                    "file",
+                    "template.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray());
+        }
     }
 
     private Map<String, Object> transaction(Long id) {

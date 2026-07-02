@@ -27,8 +27,8 @@ public class ExcelService {
     private static final String[] HEADERS = {"날짜", "가맹점명", "카테고리", "금액", "카드명", "할부개월", "상태"};
     private static final List<String> VALID_STATUSES = List.of("승인", "취소");
 
-    private Set<String> loadValidCategories() {
-        return categoryRepository.findAllAvailable(null).stream()
+    private Set<String> loadValidCategories(Long userId) {
+        return categoryRepository.findAllAvailable(userId).stream()
                 .map(c -> c.getName())
                 .collect(Collectors.toSet());
     }
@@ -213,7 +213,7 @@ public class ExcelService {
         return m.find() ? Integer.parseInt(m.group(1)) : 1;
     }
 
-    private List<TransactionDto> parseTemplateFormat(Workbook wb) {
+    private List<TransactionDto> parseTemplateFormat(Workbook wb, Long userId) {
         Sheet sheet = wb.getSheetAt(0);
         Row headerRow = sheet.getRow(0);
         if (headerRow == null) throw new BusinessException(CommonErrorCode.INVALID_INPUT, "엑셀 헤더가 없습니다.");
@@ -223,7 +223,7 @@ public class ExcelService {
         for (String h : HEADERS) if (!ci.containsKey(h)) missing.add(h);
         if (!missing.isEmpty()) throw new BusinessException(CommonErrorCode.INVALID_INPUT, "컬럼 누락: " + String.join(", ", missing));
 
-        Set<String> validCategories = loadValidCategories();
+        Set<String> validCategories = loadValidCategories(userId);
         List<TransactionDto> result = new ArrayList<>();
         long tempId = 1;
 
@@ -253,13 +253,13 @@ public class ExcelService {
         return result;
     }
 
-    public List<TransactionDto> parseUpload(MultipartFile file) {
+    public List<TransactionDto> parseUpload(MultipartFile file, Long userId) {
         try (Workbook wb = WorkbookFactory.create(file.getInputStream())) {
             BankType bankType = detectBankType(wb);
             return switch (bankType) {
                 case SHINHAN  -> parseShinhancardFormat(wb);
                 case KB       -> parseKbFormat(wb);
-                case TEMPLATE -> parseTemplateFormat(wb);
+                case TEMPLATE -> parseTemplateFormat(wb, userId);
                 case UNKNOWN  -> throw new BusinessException(CommonErrorCode.INVALID_INPUT,
                         "지원하지 않는 엑셀 형식입니다. 신한카드 / KB국민카드 / 서비스 양식 파일만 업로드 가능합니다.");
             };

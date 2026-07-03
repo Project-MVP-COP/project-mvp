@@ -2,7 +2,7 @@ package cop.kbds.agilemvp.rule.repository;
 
 import cop.kbds.agilemvp.rule.service.MatchedTransactionDto;
 import cop.kbds.agilemvp.rule.service.Rule;
-import cop.kbds.agilemvp.rule.service.RulePattern;
+import cop.kbds.agilemvp.rule.service.UnclassifiedTransactionDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -20,5 +20,5 @@ public interface RuleMapper {
     int countMatchedTransactions(@Param("userId") Long userId, @Param("keyword") String keyword);
     List<MatchedTransactionDto> findMatchedTransactions(@Param("userId") Long userId,
                                                         @Param("keyword") String keyword);
-    List<RulePattern> findUnclassifiedPatterns(@Param("userId") Long userId);
+    List<UnclassifiedTransactionDto> findUnclassifiedTransactions(@Param("userId") Long userId);
 }

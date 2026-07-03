@@ -4,6 +4,7 @@ import cop.kbds.agilemvp.category.repository.CategoryRepository;
 import cop.kbds.agilemvp.category.service.Category;
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.common.exception.CommonErrorCode;
+import cop.kbds.agilemvp.common.util.SqlLikeUtil;
 import cop.kbds.agilemvp.rule.exception.RuleErrorCode;
 import cop.kbds.agilemvp.rule.repository.RuleRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,9 @@ public class RuleService {
         if (ruleRepository.existsByUserIdAndKeyword(userId, rule.getKeyword())) {
             throw new BusinessException(RuleErrorCode.DUPLICATE_KEYWORD);
         }
+        if (categoryRepository.findByIdAvailable(rule.getCategoryId(), userId) == null) {
+            throw new BusinessException(RuleErrorCode.INVALID_CATEGORY);
+        }
         try {
             ruleRepository.save(rule);
         } catch (DuplicateKeyException e) {
@@ -42,7 +46,8 @@ public class RuleService {
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(RuleErrorCode.INVALID_CATEGORY);
         }
-        ruleRepository.applyRuleToTransactions(userId, rule.getKeyword(), rule.getCategoryId(), rule.getTag());
+        ruleRepository.applyRuleToTransactions(userId, rule.getId(), SqlLikeUtil.escape(rule.getKeyword()),
+                rule.getCategoryId(), rule.getTag());
     }
 
     @Transactional
@@ -51,21 +56,21 @@ public class RuleService {
         if (rule == null) throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
         if (!rule.getUserId().equals(userId)) throw new BusinessException(CommonErrorCode.FORBIDDEN);
         if (restoreTransactions) {
-            ruleRepository.restoreRuleAppliedTransactions(userId, rule.getKeyword(), rule.getCategoryId(), rule.getTag());
+            ruleRepository.restoreRuleAppliedTransactions(userId, rule.getId());
         }
         ruleRepository.deleteById(id);
     }
 
     public RuleDryRunResult dryRun(Long userId, String keyword, Long categoryId) {
         Rule rule = Rule.create(userId, keyword, categoryId, null);
-        if (categoryRepository.findById(rule.getCategoryId()) == null) {
+        if (categoryRepository.findByIdAvailable(rule.getCategoryId(), userId) == null) {
             throw new BusinessException(RuleErrorCode.INVALID_CATEGORY);
         }
 
         RuleDryRunSummaryDto summary = ruleRepository.summarizeDryRun(
-                userId, rule.getKeyword(), rule.getCategoryId());
+                userId, SqlLikeUtil.escape(rule.getKeyword()), rule.getCategoryId());
         List<MatchedTransactionDto> transactions = ruleRepository.findMatchedTransactions(
-                userId, rule.getKeyword(), rule.getCategoryId());
+                userId, SqlLikeUtil.escape(rule.getKeyword()), rule.getCategoryId());
         return new RuleDryRunResult(
                 summary.matchCount(),
                 summary.newlyClassifiedCount(),
@@ -76,7 +81,7 @@ public class RuleService {
 
     public List<RulePattern> findUnclassifiedPatterns(Long userId) {
         Map<String, Category> categoriesByName = new HashMap<>();
-        categoryRepository.findAll().forEach(category -> categoriesByName.put(category.getName(), category));
+        categoryRepository.findAllAvailable(userId).forEach(category -> categoriesByName.put(category.getName(), category));
 
         Map<String, PatternAccumulator> candidates = new HashMap<>();
         for (UnclassifiedTransactionDto transaction : ruleRepository.findUnclassifiedTransactions(userId)) {
@@ -114,21 +119,21 @@ public class RuleService {
     private String recommendCategoryName(String keyword) {
         String value = keyword.toLowerCase(Locale.ROOT);
         if (containsAny(value, "스타벅스", "빽다방", "커피", "카페", "투썸", "이디야")) {
-            return "카페인 중독";
+            return "식음료";
         }
         if (containsAny(value, "배달의민족", "요기요", "쿠팡이츠", "땡겨요")) {
-            return "식비/식자재";
+            return "식음료";
         }
         if (containsAny(value, "넷플릭스", "왓챠", "디즈니플러스", "유튜브프리미엄")) {
-            return "정기 구독";
+            return "문화/여가";
         }
         if (containsAny(value, "쿠팡", "11번가", "g마켓", "옥션")) {
-            return "식비/식자재";
+            return "쇼핑";
         }
         if (containsAny(value, "교보문고", "알라딘", "예스24")) {
-            return "도서/자기계발";
+            return "교육";
         }
-        return "식비/식자재";
+        return "기타";
     }
 
     private boolean containsAny(String value, String... patterns) {

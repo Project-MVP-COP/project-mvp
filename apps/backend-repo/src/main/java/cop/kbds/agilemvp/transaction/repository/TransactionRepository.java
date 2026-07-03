@@ -14,6 +14,7 @@ public interface TransactionRepository {
     void insert(TransactionDto dto);
     void update(TransactionDto dto);
     void updateCategory(Long id, Long categoryId, String tag);
+    void updateTag(Long id, String tag);
     void delete(Long id);
     void deleteAll(Long userId);
 }

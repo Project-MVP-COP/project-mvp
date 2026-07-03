@@ -17,6 +17,7 @@ public interface TransactionMapper {
     void insert(TransactionDto dto);
     void update(TransactionDto dto);
     void updateCategory(@Param("id") Long id, @Param("categoryId") Long categoryId, @Param("tag") String tag);
+    void updateTag(@Param("id") Long id, @Param("tag") String tag);
     void delete(@Param("id") Long id);
     void deleteAll(@Param("userId") Long userId);
 }

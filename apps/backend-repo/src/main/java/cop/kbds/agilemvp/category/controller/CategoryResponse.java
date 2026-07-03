@@ -4,6 +4,7 @@ import cop.kbds.agilemvp.category.service.Category;
 
 public record CategoryResponse(
         Long id,
+        Long userId,
         String name,
         String color,
         Integer displayOrder,
@@ -12,6 +13,7 @@ public record CategoryResponse(
     public static CategoryResponse from(Category category) {
         return new CategoryResponse(
                 category.getId(),
+                category.getUserId(),
                 category.getName(),
                 category.getColor(),
                 category.getDisplayOrder(),

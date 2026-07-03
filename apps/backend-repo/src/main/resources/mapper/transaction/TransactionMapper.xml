@@ -40,8 +40,8 @@
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO transactions (user_id, transaction_date, merchant, category_id, amount, card_name, installment, status, memo, is_classified)
-        VALUES (#{userId}, CAST(#{transactionDate} AS DATE), #{merchant}, #{categoryId}, #{amount}, #{cardName}, #{installment}, #{status}, #{memo},
+        INSERT INTO transactions (user_id, transaction_date, merchant, category_id, amount, card_name, installment, status, memo, tag, is_classified)
+        VALUES (#{userId}, CAST(#{transactionDate} AS DATE), #{merchant}, #{categoryId}, #{amount}, #{cardName}, #{installment}, #{status}, #{memo}, #{tag},
                 CASE WHEN #{categoryId} IS NULL THEN FALSE ELSE TRUE END)
     </insert>
 
@@ -55,7 +55,10 @@
             installment      = #{installment},
             status           = #{status},
             memo             = #{memo},
-            is_classified    = CASE WHEN #{categoryId} IS NULL THEN FALSE ELSE TRUE END
+            tag              = #{tag},
+            is_classified    = CASE WHEN #{categoryId} IS NULL THEN FALSE ELSE TRUE END,
+            applied_rule_id  = NULL,
+            updated_at       = NOW()
         WHERE id = #{id}
     </update>
 
@@ -64,7 +67,16 @@
         SET category_id = #{categoryId},
             tag         = #{tag},
             is_classified = TRUE,
+            applied_rule_id = NULL,
             updated_at  = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateTag">
+        UPDATE transactions
+        SET tag = #{tag},
+            applied_rule_id = NULL,
+            updated_at = NOW()
         WHERE id = #{id}
     </update>
 

@@ -19,11 +19,11 @@ public class RuleRepositoryImpl implements RuleRepository {
     @Override public boolean existsByUserIdAndKeyword(Long userId, String keyword)      { return ruleMapper.existsByUserIdAndKeyword(userId, keyword); }
     @Override public void save(Rule rule)                                              { ruleMapper.insert(rule); }
     @Override public void deleteById(Long id)                                          { ruleMapper.deleteById(id); }
-    @Override public int applyRuleToTransactions(Long userId, String keyword, Long categoryId, String tag) {
-        return ruleMapper.applyRuleToTransactions(userId, keyword, categoryId, tag);
+    @Override public int applyRuleToTransactions(Long userId, Long ruleId, String keyword, Long categoryId, String tag) {
+        return ruleMapper.applyRuleToTransactions(userId, ruleId, keyword, categoryId, tag);
     }
-    @Override public int restoreRuleAppliedTransactions(Long userId, String keyword, Long categoryId, String tag) {
-        return ruleMapper.restoreRuleAppliedTransactions(userId, keyword, categoryId, tag);
+    @Override public int restoreRuleAppliedTransactions(Long userId, Long ruleId) {
+        return ruleMapper.restoreRuleAppliedTransactions(userId, ruleId);
     }
     @Override public RuleDryRunSummaryDto summarizeDryRun(Long userId, String keyword, Long categoryId) {
         return ruleMapper.summarizeDryRun(userId, keyword, categoryId);

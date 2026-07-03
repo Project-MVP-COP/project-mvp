@@ -75,7 +75,7 @@ public class TransactionService {
         for (TransactionDto dto : list) {
             dto.setUserId(userId);
             if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
-                dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.get("기타")));
+                dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.getOrDefault("기타", null)));
             }
             try {
                 transactionRepository.insert(dto);
@@ -129,7 +129,7 @@ public class TransactionService {
     private void resolveCategoryId(TransactionDto dto) {
         if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
             Map<String, Long> catMap = buildCategoryMap();
-            dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.get("기타")));
+            dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.getOrDefault("기타", null)));
         }
     }
 
@@ -158,7 +158,7 @@ public class TransactionService {
                 .userId(userId)
                 .transactionDate((String)  r[0])
                 .merchant(       (String)  r[1])
-                .categoryId(cat.getOrDefault((String) r[2], cat.get("기타")))
+                .categoryId(cat.getOrDefault((String) r[2], cat.getOrDefault("기타", null)))
                 .amount(         (Long)    r[3])
                 .cardName(       (String)  r[4])
                 .installment(    (Integer) r[5])

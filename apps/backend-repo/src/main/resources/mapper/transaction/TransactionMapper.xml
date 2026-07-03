@@ -17,12 +17,13 @@
         <result property="status"          column="status"/>
         <result property="memo"            column="memo"/>
         <result property="tag"             column="tag"/>
+        <result property="isClassified"    column="is_classified"/>
     </resultMap>
 
     <select id="findAll" resultMap="transactionResultMap">
         SELECT t.id, t.user_id, t.transaction_date, t.merchant,
                t.category_id, c.name AS category_name,
-               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag
+               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag, t.is_classified
         FROM transactions t
         LEFT JOIN categories c ON t.category_id = c.id
         WHERE t.user_id = #{userId}
@@ -32,15 +33,16 @@
     <select id="findById" resultMap="transactionResultMap">
         SELECT t.id, t.user_id, t.transaction_date, t.merchant,
                t.category_id, c.name AS category_name,
-               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag
+               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag, t.is_classified
         FROM transactions t
         LEFT JOIN categories c ON t.category_id = c.id
         WHERE t.id = #{id}
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO transactions (user_id, transaction_date, merchant, category_id, amount, card_name, installment, status, memo)
-        VALUES (#{userId}, CAST(#{transactionDate} AS DATE), #{merchant}, #{categoryId}, #{amount}, #{cardName}, #{installment}, #{status}, #{memo})
+        INSERT INTO transactions (user_id, transaction_date, merchant, category_id, amount, card_name, installment, status, memo, is_classified)
+        VALUES (#{userId}, CAST(#{transactionDate} AS DATE), #{merchant}, #{categoryId}, #{amount}, #{cardName}, #{installment}, #{status}, #{memo},
+                CASE WHEN #{categoryId} IS NULL THEN FALSE ELSE TRUE END)
     </insert>
 
     <update id="update">
@@ -52,7 +54,8 @@
             card_name        = #{cardName},
             installment      = #{installment},
             status           = #{status},
-            memo             = #{memo}
+            memo             = #{memo},
+            is_classified    = CASE WHEN #{categoryId} IS NULL THEN FALSE ELSE TRUE END
         WHERE id = #{id}
     </update>
 
@@ -60,6 +63,7 @@
         UPDATE transactions
         SET category_id = #{categoryId},
             tag         = #{tag},
+            is_classified = TRUE,
             updated_at  = NOW()
         WHERE id = #{id}
     </update>
@@ -104,7 +108,7 @@
             resultMap="transactionResultMap">
         SELECT t.id, t.user_id, t.transaction_date, t.merchant,
                t.category_id, c.name AS category_name,
-               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag
+               t.amount, t.card_name, t.installment, t.status, t.memo, t.tag, t.is_classified
         FROM transactions t
         LEFT JOIN categories c ON t.category_id = c.id
         <include refid="searchWhere"/>

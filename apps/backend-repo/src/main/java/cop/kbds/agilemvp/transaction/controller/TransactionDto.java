@@ -22,4 +22,5 @@ public class TransactionDto {
     private String  status;
     private String  memo;
     private String  tag;
+    private Boolean isClassified;
 }

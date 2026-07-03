@@ -63,6 +63,7 @@ public class TransactionService {
     public TransactionDto add(TransactionDto dto, Long userId) {
         dto.setUserId(userId);
         resolveCategoryId(dto);
+        syncClassifiedFlag(dto);
         transactionRepository.insert(dto);
         return dto;
     }
@@ -77,6 +78,7 @@ public class TransactionService {
             if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
                 dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.getOrDefault("기타", null)));
             }
+            syncClassifiedFlag(dto);
             try {
                 transactionRepository.insert(dto);
                 added.add(dto);
@@ -95,6 +97,7 @@ public class TransactionService {
         dto.setId(id);
         dto.setUserId(userId);
         resolveCategoryId(dto);
+        syncClassifiedFlag(dto);
         transactionRepository.update(dto);
         return dto;
     }
@@ -137,6 +140,10 @@ public class TransactionService {
         Map<String, Long> map = new HashMap<>();
         categoryRepository.findAll().forEach(c -> map.put(c.getName(), c.getId()));
         return map;
+    }
+
+    private void syncClassifiedFlag(TransactionDto dto) {
+        dto.setIsClassified(dto.getCategoryId() != null);
     }
 
     private void insertDefaults(Long userId) {

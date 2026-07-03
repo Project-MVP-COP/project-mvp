@@ -70,3 +70,15 @@ CREATE TABLE transactions (
     CONSTRAINT chk_transactions_installment CHECK (installment BETWEEN 1 AND 60),
     CONSTRAINT uk_transactions_dedup  UNIQUE (user_id, transaction_date, merchant, amount, card_name)
 );
+
+CREATE TABLE mapping_rules (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT       NOT NULL,
+    keyword     VARCHAR(100) NOT NULL,
+    category_id BIGINT,
+    tag         VARCHAR(100),
+    created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_rules_user     FOREIGN KEY (user_id)     REFERENCES users(id)      ON DELETE CASCADE,
+    CONSTRAINT fk_rules_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+    CONSTRAINT uk_rules_user_keyword UNIQUE (user_id, keyword)
+);

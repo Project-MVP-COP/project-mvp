@@ -28,4 +28,5 @@ export type ActionResult =
   | { intent: "bulk_wash"; count: number; error?: never }
   | { intent: "update_category"; error?: never }
   | { intent: "import_mock"; error?: never }
+  | { intent: "delete_transaction"; error?: never }
   | { intent: string; error: true };

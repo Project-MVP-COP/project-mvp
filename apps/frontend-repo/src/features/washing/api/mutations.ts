@@ -30,6 +30,10 @@ export const uploadExcel = async (file: File): Promise<TransactionDto[]> => {
   return TransactionDtoListSchema.parse(data);
 };
 
+export const deleteTransaction = async (id: number) => {
+  await api.delete(`/api/transactions/${id}`);
+};
+
 export const bulkAddTransactions = async (
   items: TransactionDto[],
 ): Promise<BulkAddResponse> => {

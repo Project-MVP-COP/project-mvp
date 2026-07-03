@@ -53,10 +53,22 @@ public class RuleService {
         ruleRepository.deleteById(id);
     }
 
-    public RuleDryRunResult dryRun(Long userId, String keyword) {
-        int totalCount = ruleRepository.countMatchedTransactions(userId, keyword);
-        List<MatchedTransactionDto> transactions = ruleRepository.findMatchedTransactions(userId, keyword);
-        return new RuleDryRunResult(totalCount, transactions);
+    public RuleDryRunResult dryRun(Long userId, String keyword, Long categoryId) {
+        Rule rule = Rule.create(userId, keyword, categoryId, null);
+        if (categoryRepository.findById(rule.getCategoryId()) == null) {
+            throw new BusinessException(RuleErrorCode.INVALID_CATEGORY);
+        }
+
+        RuleDryRunSummaryDto summary = ruleRepository.summarizeDryRun(
+                userId, rule.getKeyword(), rule.getCategoryId());
+        List<MatchedTransactionDto> transactions = ruleRepository.findMatchedTransactions(
+                userId, rule.getKeyword(), rule.getCategoryId());
+        return new RuleDryRunResult(
+                summary.matchCount(),
+                summary.newlyClassifiedCount(),
+                summary.overrideCount(),
+                transactions
+        );
     }
 
     public List<RulePattern> findUnclassifiedPatterns(Long userId) {

@@ -43,9 +43,12 @@ public class RuleController {
     @PostMapping("/dry-run")
     public RuleDryRunResponse dryRun(@RequestBody @Valid RuleDryRunRequest request,
                                      @AuthenticationPrincipal User currentUser) {
-        RuleDryRunResult result = ruleService.dryRun(currentUser.getId(), request.keyword());
+        RuleDryRunResult result = ruleService.dryRun(currentUser.getId(), request.keyword(), request.categoryId());
         return new RuleDryRunResponse(
                 result.totalCount(),
+                result.newlyClassifiedCount(),
+                result.overrideCount(),
+                result.hasOverrideRisk(),
                 result.transactions().stream().map(RuleDryRunResponse.MatchedTransaction::from).toList()
         );
     }

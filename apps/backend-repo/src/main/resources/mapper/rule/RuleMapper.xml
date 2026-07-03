@@ -62,12 +62,24 @@
           AND is_classified = FALSE
     </update>
 
-    <select id="countMatchedTransactions" resultType="int">
-        SELECT COUNT(*)
-        FROM transactions
-        WHERE user_id = #{userId}
-          AND LOWER(merchant) LIKE '%' || LOWER(#{keyword}) || '%'
-          AND is_classified = FALSE
+    <select id="summarizeDryRun"
+            resultType="cop.kbds.agilemvp.rule.service.RuleDryRunSummaryDto">
+        SELECT COUNT(*) AS match_count,
+               COALESCE(SUM(CASE
+                   WHEN t.is_classified = FALSE OR c.name = '미분류' THEN 1
+                   ELSE 0
+               END), 0) AS newly_classified_count,
+               COALESCE(SUM(CASE
+                   WHEN t.is_classified = TRUE
+                    AND (c.name IS NULL OR c.name &lt;&gt; '미분류')
+                    AND t.category_id IS NOT NULL
+                    AND t.category_id &lt;&gt; #{categoryId} THEN 1
+                   ELSE 0
+               END), 0) AS override_count
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.user_id = #{userId}
+          AND LOWER(t.merchant) LIKE '%' || LOWER(#{keyword}) || '%'
     </select>
 
     <select id="findMatchedTransactions"
@@ -76,13 +88,24 @@
                CAST(t.transaction_date AS VARCHAR) AS transactionDate,
                t.merchant,
                t.amount,
-               c.name AS currentCategory
+               t.category_id AS current_category_id,
+               c.name AS current_category,
+               CASE
+                   WHEN t.is_classified = FALSE OR c.name = '미분류' THEN TRUE
+                   ELSE FALSE
+               END AS newly_classified,
+               CASE
+                   WHEN t.is_classified = TRUE
+                    AND (c.name IS NULL OR c.name &lt;&gt; '미분류')
+                    AND t.category_id IS NOT NULL
+                    AND t.category_id &lt;&gt; #{categoryId} THEN TRUE
+                   ELSE FALSE
+               END AS override_risk
         FROM transactions t
         LEFT JOIN categories c ON t.category_id = c.id
         WHERE t.user_id = #{userId}
           AND LOWER(t.merchant) LIKE '%' || LOWER(#{keyword}) || '%'
-          AND t.is_classified = FALSE
-        ORDER BY t.transaction_date DESC
+        ORDER BY t.transaction_date DESC, t.id DESC
         LIMIT 50
     </select>
 

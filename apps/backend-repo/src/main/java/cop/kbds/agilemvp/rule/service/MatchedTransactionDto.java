@@ -5,5 +5,8 @@ public record MatchedTransactionDto(
         String transactionDate,
         String merchant,
         long amount,
-        String currentCategory
+        Long currentCategoryId,
+        String currentCategory,
+        boolean newlyClassified,
+        boolean overrideRisk
 ) {}

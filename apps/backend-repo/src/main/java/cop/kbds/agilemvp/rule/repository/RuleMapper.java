@@ -18,6 +18,8 @@ public interface RuleMapper {
     void deleteById(@Param("id") Long id);
     int applyRuleToTransactions(@Param("userId") Long userId, @Param("keyword") String keyword,
                                   @Param("categoryId") Long categoryId, @Param("tag") String tag);
+    int restoreRuleAppliedTransactions(@Param("userId") Long userId, @Param("keyword") String keyword,
+                                       @Param("categoryId") Long categoryId, @Param("tag") String tag);
     RuleDryRunSummaryDto summarizeDryRun(@Param("userId") Long userId, @Param("keyword") String keyword,
                                          @Param("categoryId") Long categoryId);
     List<MatchedTransactionDto> findMatchedTransactions(@Param("userId") Long userId,

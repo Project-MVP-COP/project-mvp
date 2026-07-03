@@ -46,10 +46,13 @@ public class RuleService {
     }
 
     @Transactional
-    public void delete(Long id, Long userId) {
+    public void delete(Long id, Long userId, boolean restoreTransactions) {
         Rule rule = ruleRepository.findById(id);
         if (rule == null) throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
         if (!rule.getUserId().equals(userId)) throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        if (restoreTransactions) {
+            ruleRepository.restoreRuleAppliedTransactions(userId, rule.getKeyword(), rule.getCategoryId(), rule.getTag());
+        }
         ruleRepository.deleteById(id);
     }
 

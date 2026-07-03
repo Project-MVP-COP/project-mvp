@@ -19,7 +19,11 @@
     <select id="findAllByUserId" resultMap="ruleResultMap">
         SELECT r.id, r.user_id, r.keyword, r.category_id, c.name AS category_name, r.tag,
                (SELECT COUNT(*) FROM transactions t
-                WHERE t.user_id = r.user_id AND LOWER(t.merchant) LIKE '%' || LOWER(r.keyword) || '%') AS applied_count
+                WHERE t.user_id = r.user_id
+                  AND LOWER(t.merchant) LIKE '%' || LOWER(r.keyword) || '%'
+                  AND t.category_id = r.category_id
+                  AND t.is_classified = TRUE
+                  AND ((r.tag IS NULL AND t.tag IS NULL) OR t.tag = r.tag)) AS applied_count
         FROM mapping_rules r
         LEFT JOIN categories c ON r.category_id = c.id
         WHERE r.user_id = #{userId}
@@ -27,7 +31,13 @@
     </select>
 
     <select id="findById" resultMap="ruleResultMap">
-        SELECT r.id, r.user_id, r.keyword, r.category_id, c.name AS category_name, r.tag, 0 AS applied_count
+        SELECT r.id, r.user_id, r.keyword, r.category_id, c.name AS category_name, r.tag,
+               (SELECT COUNT(*) FROM transactions t
+                WHERE t.user_id = r.user_id
+                  AND LOWER(t.merchant) LIKE '%' || LOWER(r.keyword) || '%'
+                  AND t.category_id = r.category_id
+                  AND t.is_classified = TRUE
+                  AND ((r.tag IS NULL AND t.tag IS NULL) OR t.tag = r.tag)) AS applied_count
         FROM mapping_rules r
         LEFT JOIN categories c ON r.category_id = c.id
         WHERE r.id = #{id}
@@ -60,6 +70,19 @@
         WHERE user_id = #{userId}
           AND LOWER(merchant) LIKE '%' || LOWER(#{keyword}) || '%'
           AND is_classified = FALSE
+    </update>
+
+    <update id="restoreRuleAppliedTransactions">
+        UPDATE transactions
+        SET category_id = NULL,
+            tag = NULL,
+            is_classified = FALSE,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND LOWER(merchant) LIKE '%' || LOWER(#{keyword}) || '%'
+          AND category_id = #{categoryId}
+          AND is_classified = TRUE
+          AND ((#{tag} IS NULL AND tag IS NULL) OR tag = #{tag})
     </update>
 
     <select id="summarizeDryRun"

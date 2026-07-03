@@ -36,8 +36,9 @@ public class RuleController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,
+                       @RequestParam(defaultValue = "false") boolean restoreTransactions,
                        @AuthenticationPrincipal User currentUser) {
-        ruleService.delete(id, currentUser.getId());
+        ruleService.delete(id, currentUser.getId(), restoreTransactions);
     }
 
     @PostMapping("/dry-run")

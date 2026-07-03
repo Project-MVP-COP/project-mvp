@@ -14,6 +14,7 @@ public interface RuleRepository {
     void save(Rule rule);
     void deleteById(Long id);
     int applyRuleToTransactions(Long userId, String keyword, Long categoryId, String tag);
+    int restoreRuleAppliedTransactions(Long userId, String keyword, Long categoryId, String tag);
     RuleDryRunSummaryDto summarizeDryRun(Long userId, String keyword, Long categoryId);
     List<MatchedTransactionDto> findMatchedTransactions(Long userId, String keyword, Long categoryId);
     List<UnclassifiedTransactionDto> findUnclassifiedTransactions(Long userId);

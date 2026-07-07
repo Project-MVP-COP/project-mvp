@@ -513,9 +513,248 @@ export const dbLedger = {
   getCategories: () => [...LEDGER_CATEGORIES].sort((a, b) => a.displayOrder - b.displayOrder),
 };
 
+export interface RuleEngineRule {
+  id: number;
+  keyword: string;
+  categoryId: number;
+  categoryName: string;
+  tag: string | null;
+  appliedCount: number;
+}
+
+export interface RulePatternSuggestion {
+  keyword: string;
+  occurrences: number;
+  totalAmount: number;
+  exampleMerchant: string;
+  recommendedCategoryId: number;
+  recommendedCategoryName: string;
+}
+
+export interface RuleDryRunResult {
+  matchCount: number;
+  newlyClassifiedCount: number;
+  overrideCount: number;
+  hasOverrideRisk: boolean;
+  transactions: {
+    id: number;
+    transactionDate: string;
+    merchant: string;
+    amount: number;
+    currentCategoryId: number | null;
+    currentCategory: string | null;
+    newlyClassified: boolean;
+    override: boolean;
+  }[];
+}
+
+const INITIAL_RULES: Omit<RuleEngineRule, "appliedCount">[] = [
+  {
+    id: 1,
+    keyword: "스타벅스",
+    categoryId: 1,
+    categoryName: "음식음료",
+    tag: "#필수수혈",
+  },
+  {
+    id: 2,
+    keyword: "택시",
+    categoryId: 3,
+    categoryName: "교통",
+    tag: "#야근택시",
+  },
+  {
+    id: 3,
+    keyword: "넷플릭스",
+    categoryId: 5,
+    categoryName: "문화/여가",
+    tag: "#고정지출",
+  },
+];
+
+let nextRuleId = 4;
+let rules: Omit<RuleEngineRule, "appliedCount">[] = [...INITIAL_RULES];
+
+const matchRuleTransactions = (keyword: string) => {
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  if (!normalizedKeyword) return [];
+  return ledgerTransactions.filter((transaction) =>
+    transaction.merchant.toLowerCase().includes(normalizedKeyword),
+  );
+};
+
+const guessRuleCategory = (keyword: string) => {
+  const lowerKeyword = keyword.toLowerCase();
+  if (
+    lowerKeyword.includes("스타벅스") ||
+    lowerKeyword.includes("커피") ||
+    lowerKeyword.includes("카페") ||
+    lowerKeyword.includes("메가")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("음료")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  if (
+    lowerKeyword.includes("택시") ||
+    lowerKeyword.includes("교통") ||
+    lowerKeyword.includes("t머니")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("교통")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  if (
+    lowerKeyword.includes("넷플") ||
+    lowerKeyword.includes("cgv") ||
+    lowerKeyword.includes("영화")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("문화")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  if (
+    lowerKeyword.includes("쿠팡") ||
+    lowerKeyword.includes("이마트") ||
+    lowerKeyword.includes("gs25") ||
+    lowerKeyword.includes("cu")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("생활")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  return LEDGER_CATEGORIES[0];
+};
+
+const getRuleKeyword = (merchant: string) => {
+  const normalized = merchant.replace(/[()[\]]/g, " ").trim();
+  const [firstToken] = normalized.split(/\s+/);
+  if (firstToken.length >= 2) return firstToken;
+  return normalized.slice(0, 5);
+};
+
+export const resetRules = () => {
+  rules = [...INITIAL_RULES];
+  nextRuleId = 4;
+};
+
+export const dbRuleEngine = {
+  getAll: (): RuleEngineRule[] =>
+    rules.map((rule) => ({
+      ...rule,
+      appliedCount: matchRuleTransactions(rule.keyword).length,
+    })),
+
+  getPatterns: (): RulePatternSuggestion[] => {
+    const counts = new Map<string, number>();
+    const samples = new Map<string, string[]>();
+
+    ledgerTransactions
+      .filter((transaction) => transaction.categoryId == null && !transaction.categoryName)
+      .forEach((transaction) => {
+        const keyword = getRuleKeyword(transaction.merchant);
+        if (keyword.length < 2) return;
+        counts.set(keyword, (counts.get(keyword) ?? 0) + 1);
+        const currentSamples = samples.get(keyword) ?? [];
+        if (currentSamples.length < 3) {
+          samples.set(keyword, [...currentSamples, transaction.merchant]);
+        }
+      });
+
+    return [...counts.entries()]
+      .filter(([, count]) => count >= 2)
+      .sort(([leftKeyword, leftCount], [rightKeyword, rightCount]) => {
+        if (rightCount !== leftCount) return rightCount - leftCount;
+        if (rightKeyword.length !== leftKeyword.length) {
+          return rightKeyword.length - leftKeyword.length;
+        }
+        return leftKeyword.localeCompare(rightKeyword, "ko-KR");
+      })
+      .slice(0, 6)
+      .map(([keyword, count]) => {
+        const category = guessRuleCategory(keyword);
+        const keywordSamples = samples.get(keyword) ?? [];
+        return {
+          keyword,
+          occurrences: count,
+          totalAmount: ledgerTransactions
+            .filter((transaction) => getRuleKeyword(transaction.merchant) === keyword)
+            .reduce((sum, transaction) => sum + transaction.amount, 0),
+          exampleMerchant: keywordSamples[0] ?? keyword,
+          recommendedCategoryId: category.id,
+          recommendedCategoryName: category.name,
+        };
+      });
+  },
+
+  dryRun: (payload: {
+    keyword: string;
+    categoryId: number;
+  }): RuleDryRunResult => {
+    const matchedTransactions = matchRuleTransactions(payload.keyword);
+    const transactions = matchedTransactions.map((transaction) => ({
+      id: transaction.id,
+      transactionDate: transaction.transactionDate,
+      merchant: transaction.merchant,
+      amount: transaction.amount,
+      currentCategoryId: transaction.categoryId ?? null,
+      currentCategory: transaction.categoryName ?? null,
+      newlyClassified: transaction.categoryId == null && !transaction.categoryName,
+      override: transaction.categoryId != null || !!transaction.categoryName,
+    }));
+    const overrideCount = transactions.filter((transaction) => transaction.override).length;
+    return {
+      matchCount: transactions.length,
+      newlyClassifiedCount: transactions.filter((transaction) => transaction.newlyClassified).length,
+      overrideCount,
+      hasOverrideRisk: overrideCount > 0,
+      transactions,
+    };
+  },
+
+  create: (payload: {
+    keyword: string;
+    categoryId: number;
+    tag?: string;
+  }) => {
+    const category = LEDGER_CATEGORIES.find((item) => item.id === payload.categoryId);
+    if (!category) return false;
+    const normalizedTag = payload.tag?.trim()
+      ? payload.tag.trim().startsWith("#")
+        ? payload.tag.trim()
+        : `#${payload.tag.trim()}`
+      : "";
+    const rule = {
+      id: nextRuleId++,
+      keyword: payload.keyword.trim(),
+      categoryId: category.id,
+      categoryName: category.name,
+      tag: normalizedTag || null,
+    };
+    rules = [rule, ...rules];
+
+    ledgerTransactions = ledgerTransactions.map((transaction) =>
+      transaction.merchant.toLowerCase().includes(payload.keyword.toLowerCase())
+        ? {
+            ...transaction,
+            categoryId: rule.categoryId,
+            categoryName: rule.categoryName,
+            memo: rule.tag || transaction.memo,
+          }
+        : transaction,
+    );
+    syncWashingTransactionsFromLedger();
+
+    return true;
+  },
+
+  delete: (id: number) => {
+    const before = rules.length;
+    rules = rules.filter((rule) => rule.id !== id);
+    return rules.length !== before;
+  },
+};
+
 export const resetAllMocks = () => {
   resetSamples();
   resetUsers();
   resetWashingTransactions();
   resetLedgerTransactions();
+  resetRules();
 };

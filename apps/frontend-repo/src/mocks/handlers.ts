@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse } from "msw";
-import { db, dbLedger, dbUser, dbWashing } from "./db";
+import { db, dbLedger, dbRuleEngine, dbUser, dbWashing } from "./db";
 
 const IS_TEST = import.meta.env.MODE === "test";
 
@@ -198,6 +198,80 @@ export const handlers = [
   http.get("/api/categories", async () => {
     if (!IS_TEST) await delay();
     return HttpResponse.json(dbLedger.getCategories());
+  }),
+
+  http.get("/api/rules", async () => {
+    if (!IS_TEST) await delay();
+    return HttpResponse.json(dbRuleEngine.getAll());
+  }),
+
+  http.get("/api/rules/patterns", async () => {
+    if (!IS_TEST) await delay();
+    return HttpResponse.json(dbRuleEngine.getPatterns());
+  }),
+
+  http.post("/api/rules/dry-run", async ({ request }) => {
+    if (!IS_TEST) await delay();
+    const body = (await request.json()) as {
+      keyword?: string;
+      categoryId?: number;
+    };
+    return HttpResponse.json(
+      dbRuleEngine.dryRun({
+        keyword: body.keyword ?? "",
+        categoryId: body.categoryId ?? 0,
+      }),
+    );
+  }),
+
+  http.post("/api/rules", async ({ request }) => {
+    if (!IS_TEST) await delay();
+    const body = (await request.json()) as {
+      keyword?: string;
+      categoryId?: number;
+      tag?: string;
+    };
+
+    if (!body.keyword || body.categoryId == null) {
+      return HttpResponse.json(
+        {
+          type: "about:blank",
+          title: "Bad Request",
+          status: 400,
+          detail: "규칙 키워드와 카테고리 ID가 필요합니다.",
+          instance: "/api/rules",
+          errorCode: "RUL003",
+        },
+        { status: 400 },
+      );
+    }
+
+    const success = dbRuleEngine.create({
+      keyword: body.keyword,
+      categoryId: body.categoryId,
+      tag: body.tag,
+    });
+    if (!success) {
+      return HttpResponse.json(
+        {
+          type: "urn:cop:kbds:agilemvp:error:RUL004",
+          title: "INVALID_CATEGORY",
+          status: 400,
+          detail: "카테고리가 유효하지 않습니다.",
+          instance: "/api/rules",
+        },
+        { status: 400 },
+      );
+    }
+
+    return new HttpResponse(null, { status: 201 });
+  }),
+
+  http.delete("/api/rules/:id", async ({ params }) => {
+    if (!IS_TEST) await delay();
+    const success = dbRuleEngine.delete(Number(params.id));
+    if (!success) return new HttpResponse(null, { status: 404 });
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.post("/api/excel/upload", async () => {

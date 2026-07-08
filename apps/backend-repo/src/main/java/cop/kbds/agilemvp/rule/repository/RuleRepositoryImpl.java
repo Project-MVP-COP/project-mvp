@@ -22,6 +22,11 @@ public class RuleRepositoryImpl implements RuleRepository {
     @Override public int applyRuleToTransactions(Long userId, Long ruleId, String keyword, Long categoryId, String tag) {
         return ruleMapper.applyRuleToTransactions(userId, ruleId, keyword, categoryId, tag);
     }
+    @Override public int applyRuleToTransactions(Long userId, Long ruleId, String keyword, Long categoryId, String tag,
+                                                 List<Long> transactionIds) {
+        if (transactionIds == null || transactionIds.isEmpty()) return 0;
+        return ruleMapper.applyRuleToTransactionIds(userId, ruleId, keyword, categoryId, tag, transactionIds);
+    }
     @Override public int restoreRuleAppliedTransactions(Long userId, Long ruleId) {
         return ruleMapper.restoreRuleAppliedTransactions(userId, ruleId);
     }

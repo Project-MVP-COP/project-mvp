@@ -4,7 +4,9 @@ import cop.kbds.agilemvp.category.exception.CategoryErrorCode;
 import cop.kbds.agilemvp.category.service.CategoryService;
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.excel.service.ExcelService;
+import cop.kbds.agilemvp.transaction.controller.BulkUploadResult;
 import cop.kbds.agilemvp.transaction.controller.TransactionDto;
+import cop.kbds.agilemvp.transaction.service.TransactionService;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -40,6 +42,9 @@ class RuleServiceIntegrationTest {
 
     @Autowired
     private ExcelService excelService;
+
+    @Autowired
+    private TransactionService transactionService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -196,6 +201,32 @@ class RuleServiceIntegrationTest {
         assertThat(transactions.get(0).getMerchant()).isEqualTo("스타벅스 강남점");
         assertThat(transactions.get(0).getCategoryName()).isNull();
         assertThat(transactions.get(0).getAmount()).isEqualTo(6200L);
+    }
+
+    @Test
+    @DisplayName("엑셀 일괄 업로드는 기존 사용자 규칙을 새 거래에 자동 적용한다")
+    void addBulk_AppliesExistingRulesToImportedTransactions() throws Exception {
+        Long userId = createUser("bulk-rule-user", "일괄규칙유저");
+        Long foodId = categoryId("식음료");
+        ruleService.create(userId, "스타벅스", foodId, "커피");
+
+        List<TransactionDto> transactions = excelService.parseUpload(shinhanExcelFile(), userId);
+
+        BulkUploadResult result = transactionService.addBulk(transactions, userId);
+
+        assertThat(result.skippedCount()).isZero();
+        assertThat(result.added()).hasSize(1);
+        TransactionDto added = result.added().getFirst();
+        assertThat(added.getCategoryId()).isEqualTo(foodId);
+        assertThat(added.getCategoryName()).isEqualTo("식음료");
+        assertThat(added.getTag()).isEqualTo("#커피");
+        assertThat(added.getIsClassified()).isTrue();
+
+        Map<String, Object> transaction = transaction(added.getId());
+        assertThat(((Number) transaction.get("CATEGORY_ID")).longValue()).isEqualTo(foodId);
+        assertThat(transaction.get("TAG")).isEqualTo("#커피");
+        assertThat(transaction.get("IS_CLASSIFIED")).isEqualTo(true);
+        assertThat(transaction.get("APPLIED_RULE_ID")).isNotNull();
     }
 
     private Long createUser(String loginId, String nickname) {

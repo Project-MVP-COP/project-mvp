@@ -418,6 +418,9 @@ const LEDGER_CATEGORIES: LedgerCategory[] = [
   { id: 10, name: "기타", color: "#64748b", displayOrder: 100, isDefault: true },
 ];
 
+let ledgerCategories: LedgerCategory[] = [...LEDGER_CATEGORIES];
+let nextLedgerCategoryId = 11;
+
 const INITIAL_LEDGER_TRANSACTIONS: LedgerTransaction[] = [
   // 2026-05
   { id: 1,  userId: 1, transactionDate: "2026-05-02", merchant: "GS25 역삼점",        categoryId: 6,    categoryName: "편의점",   amount: 3800,  cardName: "신한 Deep",   installment: 1, status: "승인", memo: "간식" },
@@ -460,6 +463,8 @@ syncWashingTransactionsFromLedger();
 export const resetLedgerTransactions = () => {
   ledgerTransactions = [...INITIAL_LEDGER_TRANSACTIONS];
   nextLedgerId = 31;
+  ledgerCategories = [...LEDGER_CATEGORIES];
+  nextLedgerCategoryId = 11;
   syncWashingTransactionsFromLedger();
 };
 
@@ -510,7 +515,34 @@ export const dbLedger = {
     return added;
   },
 
-  getCategories: () => [...LEDGER_CATEGORIES].sort((a, b) => a.displayOrder - b.displayOrder),
+  getCategories: () =>
+    [...ledgerCategories].sort((a, b) => a.displayOrder - b.displayOrder),
+
+  createCategory: (data: { name: string; color: string }) => {
+    const category: LedgerCategory = {
+      id: nextLedgerCategoryId++,
+      name: data.name,
+      color: data.color,
+      displayOrder:
+        Math.max(0, ...ledgerCategories.map((item) => item.displayOrder)) + 10,
+      isDefault: false,
+    };
+    ledgerCategories.push(category);
+    return category;
+  },
+
+  deleteCategory: (id: number) => {
+    const index = ledgerCategories.findIndex((category) => category.id === id);
+    if (index === -1) return false;
+    ledgerCategories.splice(index, 1);
+    ledgerTransactions = ledgerTransactions.map((transaction) =>
+      transaction.categoryId === id
+        ? { ...transaction, categoryId: null, categoryName: null }
+        : transaction,
+    );
+    syncWashingTransactionsFromLedger();
+    return true;
+  },
 };
 
 export interface RuleEngineRule {

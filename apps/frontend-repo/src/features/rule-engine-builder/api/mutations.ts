@@ -6,6 +6,11 @@ import type {
   RuleDryRunResult,
 } from "@/features/rule-engine-builder/model/types";
 
+interface CategoryMutationRequest {
+  name: string;
+  color: string;
+}
+
 export const dryRunRule = async (
   payload: RuleDryRunRequest,
 ): Promise<RuleDryRunResult> => {
@@ -21,4 +26,14 @@ export const createRule = async (
 
 export const deleteRule = async (id: number) => {
   await api.delete(`/api/rules/${id}`);
+};
+
+export const createCategory = async (
+  payload: CategoryMutationRequest,
+): Promise<void> => {
+  await api.post("/api/categories", payload);
+};
+
+export const deleteCategory = async (id: number): Promise<void> => {
+  await api.delete(`/api/categories/${id}`);
 };

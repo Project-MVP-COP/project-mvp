@@ -200,6 +200,55 @@ export const handlers = [
     return HttpResponse.json(dbLedger.getCategories());
   }),
 
+  http.post("/api/categories", async ({ request }) => {
+    if (!IS_TEST) await delay();
+    const body = (await request.json()) as { name?: string; color?: string };
+
+    if (!body.name || !body.color) {
+      return HttpResponse.json(
+        {
+          type: "about:blank",
+          title: "Bad Request",
+          status: 400,
+          detail: "카테고리명과 색상은 필수입니다.",
+          instance: "/api/categories",
+          errorCode: "CAT001",
+        },
+        { status: 400 },
+      );
+    }
+
+    const exists = dbLedger
+      .getCategories()
+      .some((category) => category.name === body.name);
+    if (exists) {
+      return HttpResponse.json(
+        {
+          type: "about:blank",
+          title: "Bad Request",
+          status: 400,
+          detail: "이미 존재하는 카테고리명입니다.",
+          instance: "/api/categories",
+          errorCode: "CAT002",
+        },
+        { status: 400 },
+      );
+    }
+
+    const created = dbLedger.createCategory({
+      name: body.name,
+      color: body.color,
+    });
+    return HttpResponse.json(created, { status: 201 });
+  }),
+
+  http.delete("/api/categories/:id", async ({ params }) => {
+    if (!IS_TEST) await delay();
+    const success = dbLedger.deleteCategory(Number(params.id));
+    if (!success) return new HttpResponse(null, { status: 404 });
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.get("/api/rules", async () => {
     if (!IS_TEST) await delay();
     return HttpResponse.json(dbRuleEngine.getAll());

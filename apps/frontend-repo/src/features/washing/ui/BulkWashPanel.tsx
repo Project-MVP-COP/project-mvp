@@ -14,7 +14,7 @@
   Title,
 } from "@mantine/core";
 import { IconSparkles, IconWashDryclean } from "@tabler/icons-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useActionData, useNavigation, useSubmit } from "react-router";
 import { toast } from "@/shared/ui/toast";
@@ -44,6 +44,10 @@ const buildCategoryOptionValue = (
 
 export function BulkWashPanel({ overview }: BulkWashPanelProps) {
   const { data: categories } = useSuspenseQuery(washingQueries.categories());
+  const categoryNames = useMemo(
+    () => categories.map((category) => category.name),
+    [categories],
+  );
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<ActionResult>();
@@ -54,16 +58,20 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
     overview.transactions,
   );
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState(
-    overview.categories[0] ?? "",
-  );
+  const [selectedCategory, setSelectedCategory] = useState(categoryNames[0] ?? "");
   const [detailTransaction, setDetailTransaction] =
     useState<WashingTransaction | null>(null);
   const [detailCategory, setDetailCategory] = useState(
-    overview.categories[0]
-      ? buildCategoryOptionValue(overview.categories[0], categories)
+    categoryNames[0]
+      ? buildCategoryOptionValue(categoryNames[0], categories)
       : "",
   );
+
+  useEffect(() => {
+    setSelectedCategory((current) =>
+      current && categoryNames.includes(current) ? current : (categoryNames[0] ?? ""),
+    );
+  }, [categoryNames]);
 
   useEffect(() => {
     if (detailTransaction && detailTransaction.category) {
@@ -73,12 +81,12 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
       return;
     }
 
-    if (overview.categories[0]) {
+    if (categoryNames[0]) {
       setDetailCategory(
-        buildCategoryOptionValue(overview.categories[0], categories),
+        buildCategoryOptionValue(categoryNames[0], categories),
       );
     }
-  }, [categories, detailTransaction, overview.categories]);
+  }, [categories, categoryNames, detailTransaction]);
 
   useEffect(() => {
     if (!actionData || actionData === seenAction.current) return;
@@ -149,7 +157,7 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
     setDetailTransaction(transaction);
     setDetailCategory(
       buildCategoryOptionValue(
-        transaction.category ?? overview.categories[0] ?? "",
+        transaction.category ?? categoryNames[0] ?? "",
         categories,
       ),
     );
@@ -362,7 +370,7 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
                 label="일괄 적용 카테고리"
                 value={selectedCategory}
                 onChange={(event) => setSelectedCategory(event.currentTarget.value)}
-                data={overview.categories}
+                data={categoryNames}
               />
               <Button
                 leftSection={<IconWashDryclean size={16} />}

@@ -1,13 +1,16 @@
-import {
+﻿import {
   ActionIcon,
   Alert,
   Badge,
   Button,
   ColorInput,
+  ColorPicker,
   ColorSwatch,
   Group,
   NativeSelect,
+  NumberInput,
   Paper,
+  Popover,
   ScrollArea,
   SimpleGrid,
   Stack,
@@ -17,13 +20,14 @@ import {
   ThemeIcon,
   Title,
 } from "@mantine/core";
-import { modals } from "@mantine/modals";
 import { useMediaQuery } from "@mantine/hooks";
+import { modals } from "@mantine/modals";
 import {
   IconAlertTriangle,
   IconBolt,
   IconCategoryPlus,
   IconDeviceFloppy,
+  IconMinus,
   IconPalette,
   IconRefresh,
   IconSearch,
@@ -36,9 +40,10 @@ import {
   useSuspenseQueries,
 } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { toast } from "@/shared/ui/toast";
 import {
+  createCategory,
   createRule,
+  deleteCategory,
   deleteRule,
   dryRunRule,
 } from "@/features/rule-engine-builder/api/mutations";
@@ -46,9 +51,9 @@ import {
   ruleEngineKeys,
   ruleEngineQueries,
 } from "@/features/rule-engine-builder/api/queries";
-import type {
-  RuleDryRunResult,
-} from "@/features/rule-engine-builder/model/types";
+import type { RuleDryRunResult } from "@/features/rule-engine-builder/model/types";
+import { washingKeys } from "@/features/washing/api/queries";
+import { toast } from "@/shared/ui/toast";
 
 interface RuleEngineCategory {
   id: number;
@@ -73,14 +78,15 @@ interface RuleEngineBuilderPanelProps {
   onRuleApplied?: () => void;
 }
 
-interface LocalCategory {
-  id: string;
-  name: string;
-  color: string;
-  isDefault: boolean;
-}
-
 const defaultCategoryColor = "#8b5cf6";
+const rgbChannelFields = [
+  { key: "r", label: "R" },
+  { key: "g", label: "G" },
+  { key: "b", label: "B" },
+] as const;
+
+type RgbChannel = (typeof rgbChannelFields)[number]["key"];
+type RgbColor = Record<RgbChannel, number>;
 
 const formatAmount = (amount: number) =>
   new Intl.NumberFormat("ko-KR").format(amount);
@@ -88,19 +94,172 @@ const formatAmount = (amount: number) =>
 const isUnclassified = (transaction: RuleEngineTransaction) =>
   transaction.categoryId == null && !transaction.categoryName;
 
-const toLocalCategories = (categories: RuleEngineCategory[]): LocalCategory[] =>
-  categories.map((category) => ({
-    id: String(category.id),
-    name: category.name,
-    color: category.color,
-    isDefault: category.isDefault,
-  }));
-
-const categoryOptions = (categories: LocalCategory[]) =>
+const categoryOptions = (categories: RuleEngineCategory[]) =>
   categories.length === 0 ? ["미분류"] : categories.map((category) => category.name);
 
+const clampRgbChannel = (value: number) =>
+  Math.max(0, Math.min(255, Math.round(value)));
+
+const parseRgbColor = (value: string): RgbColor | null => {
+  const rgbMatch = value.match(
+    /rgba?\(\s*(\d{1,3})[\s,]+(\d{1,3})[\s,]+(\d{1,3})/i,
+  );
+  if (rgbMatch) {
+    const [, r, g, b] = rgbMatch;
+    return {
+      r: clampRgbChannel(Number(r)),
+      g: clampRgbChannel(Number(g)),
+      b: clampRgbChannel(Number(b)),
+    };
+  }
+
+  const hexMatch = value.trim().match(/^#?([0-9a-f]{6})$/i);
+  if (hexMatch) {
+    const [r, g, b] = [0, 2, 4].map((start) =>
+      parseInt(hexMatch[1].slice(start, start + 2), 16),
+    );
+    return { r, g, b };
+  }
+
+  return null;
+};
+
+const toRgbString = ({ r, g, b }: RgbColor) => `rgb(${r}, ${g}, ${b})`;
+
+const toHexColor = (value: string) => {
+  const parsedColor = parseRgbColor(value);
+  if (!parsedColor) {
+    return value.trim();
+  }
+
+  return `#${[parsedColor.r, parsedColor.g, parsedColor.b]
+    .map((channel) => channel.toString(16).padStart(2, "0"))
+    .join("")}`;
+};
+
+const toRgbValue = (value: string) => {
+  const parsedColor = parseRgbColor(value);
+  return parsedColor ? toRgbString(parsedColor) : value;
+};
+
+function RgbChannelInputs({
+  color,
+  onChange,
+}: {
+  color: string;
+  onChange: (value: string) => void;
+}) {
+  const rgbColor = parseRgbColor(color) ?? { r: 0, g: 0, b: 0 };
+
+  const updateChannel = (channel: RgbChannel, value: string | number) => {
+    if (value === "" || Number.isNaN(value)) {
+      return;
+    }
+
+    onChange(
+      toRgbString({
+        ...rgbColor,
+        [channel]: clampRgbChannel(Number(value)),
+      }),
+    );
+  };
+
+  return (
+    <SimpleGrid cols={3} spacing={6}>
+      {rgbChannelFields.map(({ key, label }) => (
+        <NumberInput
+          key={key}
+          label={label}
+          value={rgbColor[key]}
+          onChange={(value) => updateChannel(key, value)}
+          size="xs"
+          min={0}
+          max={255}
+          clampBehavior="strict"
+          allowDecimal={false}
+          allowNegative={false}
+          hideControls
+          styles={{
+            label: {
+              marginBottom: 4,
+              textAlign: "center",
+              fontSize: "11px",
+              fontWeight: 700,
+            },
+            input: {
+              paddingInline: 8,
+              textAlign: "center",
+            },
+          }}
+        />
+      ))}
+    </SimpleGrid>
+  );
+}
+
+function ColorPickerField({
+  label,
+  value,
+  onChange,
+  swatches,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  swatches?: string[];
+}) {
+  const [opened, setOpened] = useState(false);
+
+  return (
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-start"
+      shadow="md"
+      withArrow
+      withinPortal={false}
+    >
+      <Popover.Target>
+        <ColorInput
+          label={label}
+          value={value}
+          onChange={onChange}
+          format="rgb"
+          withPicker={false}
+          withEyeDropper={false}
+          readOnly
+          onClick={() => setOpened(true)}
+          onFocus={() => setOpened(true)}
+          swatches={swatches}
+        />
+      </Popover.Target>
+      <Popover.Dropdown p="xs" style={{ width: 248 }}>
+        <Stack gap="sm">
+          <ColorPicker
+            value={value}
+            onChange={(nextColor) => onChange(toRgbValue(nextColor))}
+            format="rgb"
+            swatches={swatches}
+            size="sm"
+          />
+          <Paper withBorder radius="md" p="xs">
+            <Stack gap={8}>
+              <Group align="center" wrap="nowrap">
+                <Text size="10px" c="dimmed" fw={800} tt="uppercase">
+                  RGB Fine Tune
+                </Text>
+              </Group>
+              <RgbChannelInputs color={value} onChange={onChange} />
+            </Stack>
+          </Paper>
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
 export function RuleEngineBuilderPanel({
-  categories: serverCategories,
+  categories,
   transactions,
   onRuleApplied,
 }: RuleEngineBuilderPanelProps) {
@@ -111,40 +270,28 @@ export function RuleEngineBuilderPanel({
   });
   const rules = rulesQuery.data;
   const suggestions = patternsQuery.data;
-  const baseCategories = useMemo(
-    () => toLocalCategories(serverCategories),
-    [serverCategories],
-  );
-  const [customCategories, setCustomCategories] = useState<LocalCategory[]>([]);
-  const categories = useMemo(
-    () => [...baseCategories, ...customCategories],
-    [baseCategories, customCategories],
-  );
   const ruleCategoryOptions = useMemo(
-    () => categoryOptions(baseCategories),
-    [baseCategories],
+    () => categoryOptions(categories),
+    [categories],
   );
   const [categoryName, setCategoryName] = useState("");
   const [categoryColor, setCategoryColor] = useState(defaultCategoryColor);
   const [keyword, setKeyword] = useState("");
-  const [targetCategory, setTargetCategory] = useState(
-    ruleCategoryOptions[0],
-  );
+  const [targetCategory, setTargetCategory] = useState(ruleCategoryOptions[0] ?? "미분류");
   const [tag, setTag] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showDryRun, setShowDryRun] = useState(false);
-  const [dryRunResult, setDryRunResult] = useState<RuleDryRunResult | null>(
-    null,
-  );
+  const [dryRunResult, setDryRunResult] = useState<RuleDryRunResult | null>(null);
 
   const unclassifiedCount = useMemo(
     () => transactions.filter(isUnclassified).length,
     [transactions],
   );
-  const selectedCategory = baseCategories.find(
+  const selectedCategory = categories.find(
     (category) => category.name === targetCategory,
   );
   const dryRunMatches = dryRunResult?.transactions ?? [];
+
   const clearPreview = () => {
     setDryRunResult(null);
     setShowDryRun(false);
@@ -152,6 +299,10 @@ export function RuleEngineBuilderPanel({
 
   const invalidateRuleQueries = async () => {
     await queryClient.invalidateQueries({ queryKey: ruleEngineKeys.all });
+  };
+
+  const refreshCategoryList = async () => {
+    await queryClient.invalidateQueries({ queryKey: washingKeys.categories() });
   };
 
   const dryRunMutation = useMutation({
@@ -169,9 +320,8 @@ export function RuleEngineBuilderPanel({
       onRuleApplied?.();
       setKeyword("");
       setTag("");
-      setDryRunResult(null);
-      setShowDryRun(false);
-      toast.success("매핑 룰을 등록하고 일치 거래를 갱신했습니다.");
+      clearPreview();
+      toast.success("매핑 규칙을 등록하고 일치 거래를 갱신했습니다.");
     },
   });
 
@@ -179,7 +329,30 @@ export function RuleEngineBuilderPanel({
     mutationFn: deleteRule,
     onSuccess: async () => {
       await invalidateRuleQueries();
-      toast.success("매핑 룰을 삭제했습니다.");
+      toast.success("매핑 규칙을 삭제했습니다.");
+    },
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: createCategory,
+    onSuccess: async () => {
+      await refreshCategoryList();
+      setCategoryName("");
+      setCategoryColor(defaultCategoryColor);
+      toast.success("카테고리를 추가했습니다.");
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: deleteCategory,
+    onSuccess: async (_, categoryId) => {
+      const removedCategory = categories.find((category) => category.id === categoryId);
+      await refreshCategoryList();
+      if (removedCategory && targetCategory === removedCategory.name) {
+        setTargetCategory("미분류");
+        clearPreview();
+      }
+      toast.success("카테고리를 삭제했습니다.");
     },
   });
 
@@ -188,7 +361,7 @@ export function RuleEngineBuilderPanel({
     patternsQuery.refetch();
   };
 
-  const addCategory = () => {
+  const addServerCategory = () => {
     const name = categoryName.trim();
     if (!name) {
       toast.warning("카테고리명을 입력해주세요.");
@@ -199,27 +372,24 @@ export function RuleEngineBuilderPanel({
       return;
     }
 
-    setCustomCategories((current) => [
-      ...current,
-      {
-        id: `local-${Date.now()}`,
-        name,
-        color: categoryColor,
-        isDefault: false,
-      },
-    ]);
-    setCategoryName("");
-    toast.success("카테고리 스토어에 추가했습니다. 규칙 바인딩은 서버 카테고리만 사용할 수 있습니다.");
+    createCategoryMutation.mutate({
+      name,
+      color: toHexColor(categoryColor),
+    });
   };
 
-  const removeCustomCategory = (categoryToRemove: LocalCategory) => {
-    setCustomCategories((current) =>
-      current.filter((category) => category.id !== categoryToRemove.id),
-    );
-    if (targetCategory === categoryToRemove.name) {
-      setTargetCategory(baseCategories[0]?.name ?? "미분류");
-      clearPreview();
-    }
+  const confirmDeleteCategory = (categoryToRemove: RuleEngineCategory) => {
+    modals.openConfirmModal({
+      title: "카테고리 삭제",
+      children: (
+        <Text size="sm">
+          "{categoryToRemove.name}" 카테고리를 삭제할까요?
+        </Text>
+      ),
+      labels: { confirm: "삭제", cancel: "취소" },
+      confirmProps: { color: "red" },
+      onConfirm: () => deleteCategoryMutation.mutate(categoryToRemove.id),
+    });
   };
 
   const applySuggestion = (suggestion: {
@@ -240,32 +410,29 @@ export function RuleEngineBuilderPanel({
 
   const getSelectedCategoryId = () => {
     if (!selectedCategory) {
-      toast.warning("규칙에 적용할 서버 카테고리를 선택해주세요.");
+      toast.warning("규칙에 사용할 카테고리를 선택해주세요.");
       return null;
     }
-    return Number(selectedCategory.id);
+    return selectedCategory.id;
   };
 
   const runDryRun = () => {
     const normalizedKeyword = keyword.trim();
     if (!normalizedKeyword) {
-      toast.warning("감지할 가맹점 키워드를 입력해주세요.");
+      toast.warning("가맹점 키워드를 입력해주세요.");
       return;
     }
 
     const categoryId = getSelectedCategoryId();
     if (categoryId == null) return;
 
-    dryRunMutation.mutate({
-      keyword: normalizedKeyword,
-      categoryId,
-    });
+    dryRunMutation.mutate({ keyword: normalizedKeyword, categoryId });
   };
 
   const addRule = () => {
     const normalizedKeyword = keyword.trim();
     if (!normalizedKeyword) {
-      toast.warning("감지할 가맹점 키워드를 입력해주세요.");
+      toast.warning("가맹점 키워드를 입력해주세요.");
       return;
     }
 
@@ -297,7 +464,7 @@ export function RuleEngineBuilderPanel({
               <Title order={3}>무제한 커스텀 카테고리 정의</Title>
             </Group>
             <Text size="sm" c="dimmed">
-              소비 정밀 진단을 위해 나만의 독창적인 소비 태그 그룹을 생성하세요.
+              분류 전략을 빠르게 실험할 수 있도록 카테고리 그룹을 직접 만들고 삭제할 수 있습니다.
             </Text>
           </Stack>
 
@@ -306,15 +473,14 @@ export function RuleEngineBuilderPanel({
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
                 <TextInput
                   label="카테고리명"
-                  placeholder="예: 시발비용, 배달중독"
+                  placeholder="예: 식비, 배달중독"
                   value={categoryName}
                   onChange={(event) => setCategoryName(event.currentTarget.value)}
                 />
-                <ColorInput
+                <ColorPickerField
                   label="테마 컬러"
                   value={categoryColor}
                   onChange={setCategoryColor}
-                  format="hex"
                   swatches={[
                     "#f97316",
                     "#8b5cf6",
@@ -328,16 +494,17 @@ export function RuleEngineBuilderPanel({
               <Button
                 variant="light"
                 leftSection={<IconCategoryPlus size={16} />}
-                onClick={addCategory}
+                onClick={addServerCategory}
+                loading={createCategoryMutation.isPending}
               >
-                카테고리 스토어 추가
+                카테고리 추가
               </Button>
             </Stack>
           </Paper>
 
           <Stack gap="sm">
             <Text size="sm" fw={700} c="dimmed">
-              등록된 맞춤형 카테고리
+              등록된 카테고리
             </Text>
             <ScrollArea h={348} type="always">
               <Stack gap="xs">
@@ -349,21 +516,20 @@ export function RuleEngineBuilderPanel({
                         <Text fw={800} size="sm">
                           {category.name}
                         </Text>
+                        {category.isDefault && (
+                          <Badge variant="light" color="gray">
+                            기본
+                          </Badge>
+                        )}
                       </Group>
-                      {category.isDefault ? (
-                        <Badge variant="light" color="gray">
-                          기본
-                        </Badge>
-                      ) : (
-                        <ActionIcon
-                          variant="subtle"
-                          color="gray"
-                          onClick={() => removeCustomCategory(category)}
-                          aria-label={`${category.name} 삭제`}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      )}
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        onClick={() => confirmDeleteCategory(category)}
+                        aria-label={`${category.name} 삭제`}
+                      >
+                        <IconMinus size={16} />
+                      </ActionIcon>
                     </Group>
                   </Paper>
                 ))}
@@ -386,13 +552,13 @@ export function RuleEngineBuilderPanel({
               <ThemeIcon variant="light" color="yellow">
                 <IconBolt size={20} />
               </ThemeIcon>
-              <Title order={3}>스마트 분류 워크벤치</Title>
+              <Title order={3}>패턴 기반 분류 룰 빌더</Title>
               <Badge color="red" variant="light">
                 미분류 {unclassifiedCount}건
               </Badge>
             </Group>
             <Text size="sm" c="dimmed">
-              미분류 패턴 자동 탐색 → Dry Run 검증 → 정밀 규칙 등록까지 한 곳에서 처리하세요.
+              미분류 패턴을 분석하고 Dry Run으로 검증한 뒤 곧바로 분류 규칙을 등록할 수 있습니다.
             </Text>
           </Stack>
 
@@ -405,7 +571,7 @@ export function RuleEngineBuilderPanel({
                 <Stack gap={2}>
                   <Text fw={900}>미분류 패턴 자동 탐색기</Text>
                   <Text size="xs" c="dimmed">
-                    반복되는 미분류 가맹점 패턴을 자동으로 찾아 규칙 후보를 제안합니다.
+                    반복되는 미분류 가맹점을 자동으로 찾아 규칙 후보를 제안합니다.
                   </Text>
                 </Stack>
               </Group>
@@ -458,8 +624,8 @@ export function RuleEngineBuilderPanel({
             <Stack gap="md">
               <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
                 <TextInput
-                  label="감지할 가맹점 키워드"
-                  placeholder="예: 스타벅스, 스타벅"
+                  label="가맹점 키워드"
+                  placeholder="예: 스타벅스, 쿠팡"
                   value={keyword}
                   onChange={(event) => {
                     setKeyword(event.currentTarget.value);
@@ -467,7 +633,7 @@ export function RuleEngineBuilderPanel({
                   }}
                 />
                 <NativeSelect
-                  label="타겟 카테고리 바인딩"
+                  label="타겟 카테고리"
                   value={targetCategory}
                   onChange={(event) => {
                     setTargetCategory(event.currentTarget.value);
@@ -476,8 +642,8 @@ export function RuleEngineBuilderPanel({
                   data={ruleCategoryOptions}
                 />
                 <TextInput
-                  label="할당할 자동 태그"
-                  placeholder="예: #야근용, #충동지출"
+                  label="자동 태그"
+                  placeholder="예: #식비 #충동지출"
                   value={tag}
                   onChange={(event) => {
                     setTag(event.currentTarget.value);
@@ -523,7 +689,7 @@ export function RuleEngineBuilderPanel({
                         variant="light"
                         icon={<IconAlertTriangle size={16} />}
                       >
-                        이미 분류된 거래가 포함되어 있습니다. 기존 분류를 덮어쓸 수 있으니 키워드 범위를 확인해주세요.
+                        이미 분류된 거래가 포함되어 있습니다. 기존 분류를 덮어쓸 수 있으니 적용 범위를 먼저 확인해주세요.
                       </Alert>
                     )}
                     <ScrollArea h={180}>
@@ -576,25 +742,25 @@ export function RuleEngineBuilderPanel({
                 onClick={addRule}
                 loading={createRuleMutation.isPending}
               >
-                매핑 룰 등록 및 데이터 소급 세척
+                매핑 룰 등록 및 거래 일괄 적용
               </Button>
               <Text size="xs" ta="center" c="dimmed">
-                미리보기로 영향을 확인한 후 등록을 권장합니다.
+                미리보기로 영향을 확인한 뒤 등록하는 것을 권장합니다.
               </Text>
             </Stack>
           </Paper>
 
           <Stack gap="sm">
             <Text size="sm" fw={700} c="dimmed">
-              활성화된 룰 엔진 규칙
+              생성된 규칙 목록
             </Text>
             <ScrollArea h={188} type="always">
               <Table highlightOnHover verticalSpacing="sm">
                 <Table.Thead>
                   <Table.Tr>
-                    <Table.Th>감지 키워드</Table.Th>
-                    <Table.Th>분류 지정 카테고리</Table.Th>
-                    <Table.Th>자동 부착 태그</Table.Th>
+                    <Table.Th>가맹점 키워드</Table.Th>
+                    <Table.Th>분류 카테고리</Table.Th>
+                    <Table.Th>자동 태그</Table.Th>
                     <Table.Th ta="right">현재 적용</Table.Th>
                     <Table.Th ta="center">동작</Table.Th>
                   </Table.Tr>
@@ -604,7 +770,7 @@ export function RuleEngineBuilderPanel({
                     <Table.Tr>
                       <Table.Td colSpan={5}>
                         <Text ta="center" c="dimmed" py="xl">
-                          등록된 룰 엔진 규칙이 없습니다.
+                          등록된 분류 규칙이 없습니다.
                         </Text>
                       </Table.Td>
                     </Table.Tr>
@@ -644,8 +810,7 @@ export function RuleEngineBuilderPanel({
                                 ),
                                 labels: { confirm: "삭제", cancel: "취소" },
                                 confirmProps: { color: "red" },
-                                onConfirm: () =>
-                                  deleteRuleMutation.mutate(rule.id),
+                                onConfirm: () => deleteRuleMutation.mutate(rule.id),
                               })
                             }
                             aria-label={`${rule.keyword} 규칙 삭제`}

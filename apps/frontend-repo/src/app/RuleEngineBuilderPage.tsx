@@ -19,6 +19,9 @@ function RuleEngineBuilderContent() {
         onRuleApplied={() => {
           queryClient.invalidateQueries({ queryKey: washingKeys.all });
         }}
+        onCategoriesChanged={() => {
+          queryClient.invalidateQueries({ queryKey: washingKeys.all });
+        }}
       />
     </Container>
   );

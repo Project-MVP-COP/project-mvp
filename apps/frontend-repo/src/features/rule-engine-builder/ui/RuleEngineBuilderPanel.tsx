@@ -52,7 +52,6 @@ import {
   ruleEngineQueries,
 } from "@/features/rule-engine-builder/api/queries";
 import type { RuleDryRunResult } from "@/features/rule-engine-builder/model/types";
-import { washingKeys } from "@/features/washing/api/queries";
 import { toast } from "@/shared/ui/toast";
 
 interface RuleEngineCategory {
@@ -76,6 +75,7 @@ interface RuleEngineBuilderPanelProps {
   categories: RuleEngineCategory[];
   transactions: RuleEngineTransaction[];
   onRuleApplied?: () => void;
+  onCategoriesChanged?: () => void | Promise<void>;
 }
 
 const defaultCategoryColor = "#8b5cf6";
@@ -165,7 +165,7 @@ function RgbChannelInputs({
   };
 
   return (
-    <SimpleGrid cols={3} spacing={6}>
+    <SimpleGrid cols={3} spacing="xs">
       {rgbChannelFields.map(({ key, label }) => (
         <NumberInput
           key={key}
@@ -179,18 +179,6 @@ function RgbChannelInputs({
           allowDecimal={false}
           allowNegative={false}
           hideControls
-          styles={{
-            label: {
-              marginBottom: 4,
-              textAlign: "center",
-              fontSize: "11px",
-              fontWeight: 700,
-            },
-            input: {
-              paddingInline: 8,
-              textAlign: "center",
-            },
-          }}
         />
       ))}
     </SimpleGrid>
@@ -233,7 +221,7 @@ function ColorPickerField({
           swatches={swatches}
         />
       </Popover.Target>
-      <Popover.Dropdown p="xs" style={{ width: 248 }}>
+      <Popover.Dropdown p="xs" w={248}>
         <Stack gap="sm">
           <ColorPicker
             value={value}
@@ -262,6 +250,7 @@ export function RuleEngineBuilderPanel({
   categories,
   transactions,
   onRuleApplied,
+  onCategoriesChanged,
 }: RuleEngineBuilderPanelProps) {
   const isDesktopLayout = useMediaQuery("(min-width: 62em)");
   const queryClient = useQueryClient();
@@ -302,7 +291,7 @@ export function RuleEngineBuilderPanel({
   };
 
   const refreshCategoryList = async () => {
-    await queryClient.invalidateQueries({ queryKey: washingKeys.categories() });
+    await onCategoriesChanged?.();
   };
 
   const dryRunMutation = useMutation({
@@ -447,13 +436,14 @@ export function RuleEngineBuilderPanel({
   };
 
   return (
-    <SimpleGrid cols={{ base: 1, lg: 12 }} spacing="xl">
+    <Group align="stretch" gap="xl">
       <Paper
         withBorder
         p="xl"
         radius="lg"
+        flex={{ base: "1 1 100%", lg: "5 1 0" }}
+        miw={{ base: "100%", lg: 0 }}
         mih={isDesktopLayout ? 632 : undefined}
-        style={isDesktopLayout ? { gridColumn: "span 5" } : undefined}
       >
         <Stack gap="lg">
           <Stack gap={4}>
@@ -543,8 +533,9 @@ export function RuleEngineBuilderPanel({
         withBorder
         p="xl"
         radius="lg"
+        flex={{ base: "1 1 100%", lg: "7 1 0" }}
+        miw={{ base: "100%", lg: 0 }}
         mih={isDesktopLayout ? 632 : undefined}
-        style={isDesktopLayout ? { gridColumn: "span 7" } : undefined}
       >
         <Stack gap="lg">
           <Stack gap={4}>
@@ -827,6 +818,6 @@ export function RuleEngineBuilderPanel({
           </Stack>
         </Stack>
       </Paper>
-    </SimpleGrid>
+    </Group>
   );
 }

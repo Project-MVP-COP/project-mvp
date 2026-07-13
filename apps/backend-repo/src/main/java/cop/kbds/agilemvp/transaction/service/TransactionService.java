@@ -3,7 +3,10 @@ package cop.kbds.agilemvp.transaction.service;
 import cop.kbds.agilemvp.category.repository.CategoryRepository;
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.common.exception.CommonErrorCode;
+import cop.kbds.agilemvp.common.util.SqlLikeUtil;
 import cop.kbds.agilemvp.common.util.TagUtil;
+import cop.kbds.agilemvp.rule.repository.RuleRepository;
+import cop.kbds.agilemvp.rule.service.Rule;
 import cop.kbds.agilemvp.transaction.controller.BulkUploadResult;
 import cop.kbds.agilemvp.transaction.controller.TransactionDto;
 import cop.kbds.agilemvp.transaction.controller.TransactionPageResult;
@@ -25,11 +28,14 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository    categoryRepository;
+    private final RuleRepository        ruleRepository;
 
     public TransactionService(TransactionRepository transactionRepository,
-                              CategoryRepository categoryRepository) {
+                              CategoryRepository categoryRepository,
+                              RuleRepository ruleRepository) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository    = categoryRepository;
+        this.ruleRepository        = ruleRepository;
     }
 
     public List<TransactionDto> findAll(Long userId) {
@@ -94,7 +100,11 @@ public class TransactionService {
                 skippedCount++;
             }
         }
-        return new BulkUploadResult(added, skippedCount);
+        applyExistingRulesToNewTransactions(userId, added);
+        List<TransactionDto> refreshed = added.stream()
+                .map(dto -> transactionRepository.findById(dto.getId()))
+                .toList();
+        return new BulkUploadResult(refreshed, skippedCount);
     }
 
     @Transactional
@@ -168,6 +178,24 @@ public class TransactionService {
 
     private void syncClassifiedFlag(TransactionDto dto) {
         dto.setIsClassified(dto.getCategoryId() != null);
+    }
+
+    private void applyExistingRulesToNewTransactions(Long userId, List<TransactionDto> added) {
+        List<Long> transactionIds = added.stream()
+                .map(TransactionDto::getId)
+                .toList();
+        if (transactionIds.isEmpty()) return;
+
+        for (Rule rule : ruleRepository.findAllByUserId(userId)) {
+            ruleRepository.applyRuleToTransactions(
+                    userId,
+                    rule.getId(),
+                    SqlLikeUtil.escape(rule.getKeyword()),
+                    rule.getCategoryId(),
+                    rule.getTag(),
+                    transactionIds
+            );
+        }
     }
 
     private void insertDefaults(Long userId) {

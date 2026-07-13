@@ -67,6 +67,22 @@
           AND (is_classified = FALSE OR category_id IS NULL)
     </update>
 
+    <update id="applyRuleToTransactionIds">
+        UPDATE transactions
+        SET category_id = #{categoryId},
+            tag         = #{tag},
+            is_classified = TRUE,
+            applied_rule_id = #{ruleId},
+            updated_at  = NOW()
+        WHERE user_id = #{userId}
+          AND id IN
+          <foreach collection="transactionIds" item="transactionId" open="(" separator="," close=")">
+              #{transactionId}
+          </foreach>
+          AND LOWER(merchant) LIKE '%' || LOWER(#{keyword}) || '%' ESCAPE '\'
+          AND (is_classified = FALSE OR category_id IS NULL)
+    </update>
+
     <update id="restoreRuleAppliedTransactions">
         UPDATE transactions
         SET category_id = NULL,

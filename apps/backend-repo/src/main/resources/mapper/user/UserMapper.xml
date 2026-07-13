@@ -22,13 +22,27 @@
     </insert>
 
     <select id="findById" resultMap="UserResultMap">
-        SELECT id, login_id, nickname, password_hash, status, last_login_at, created_at, updated_at
+        SELECT id,
+               login_id,
+               nickname,
+               password_hash,
+               status,
+               CAST(last_login_at AS TIMESTAMP) AS last_login_at,
+               CAST(created_at AS TIMESTAMP) AS created_at,
+               CAST(updated_at AS TIMESTAMP) AS updated_at
         FROM users
         WHERE id = #{id}
     </select>
 
     <select id="findByLoginId" resultMap="UserResultMap">
-        SELECT id, login_id, nickname, password_hash, status, last_login_at, created_at, updated_at
+        SELECT id,
+               login_id,
+               nickname,
+               password_hash,
+               status,
+               CAST(last_login_at AS TIMESTAMP) AS last_login_at,
+               CAST(created_at AS TIMESTAMP) AS created_at,
+               CAST(updated_at AS TIMESTAMP) AS updated_at
         FROM users
         WHERE login_id = #{loginId} AND status != 'deleted'
     </select>

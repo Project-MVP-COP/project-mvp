@@ -185,7 +185,9 @@ class RuleServiceIntegrationTest {
         List<TransactionDto> transactions = excelService.parseUpload(file, userId);
 
         assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getUserId()).isEqualTo(userId);
         assertThat(transactions.get(0).getCategoryName()).isEqualTo("반려동물");
+        assertThat(transactions.get(0).getIsClassified()).isTrue();
     }
 
     @Test
@@ -198,8 +200,10 @@ class RuleServiceIntegrationTest {
         List<TransactionDto> transactions = excelService.parseUpload(file, userId);
 
         assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getUserId()).isEqualTo(userId);
         assertThat(transactions.get(0).getMerchant()).isEqualTo("스타벅스 강남점");
         assertThat(transactions.get(0).getCategoryName()).isNull();
+        assertThat(transactions.get(0).getIsClassified()).isFalse();
         assertThat(transactions.get(0).getAmount()).isEqualTo(6200L);
     }
 

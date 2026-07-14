@@ -11,10 +11,12 @@ import java.util.List;
 public class CategoryRepositoryImpl implements CategoryRepository {
     private final CategoryMapper categoryMapper;
 
-    @Override public List<Category> findAll()                     { return categoryMapper.findAll(); }
-    @Override public Category       findById(Long id)             { return categoryMapper.findById(id); }
-    @Override public Category       findByName(String name)       { return categoryMapper.findByName(name); }
+    @Override public List<Category> findAllAvailable(Long userId) { return categoryMapper.findAllAvailable(userId); }
+    @Override public Category       findByIdAvailable(Long id, Long userId) { return categoryMapper.findByIdAvailable(id, userId); }
+    @Override public Category       findByNameAvailable(String name, Long userId) { return categoryMapper.findByNameAvailable(name, userId); }
+    @Override public Category       findByNameOwned(String name, Long userId) { return categoryMapper.findByNameOwned(name, userId); }
     @Override public void           save(Category category)       { categoryMapper.insert(category); }
     @Override public int            update(Category category)     { return categoryMapper.update(category); }
-    @Override public void           deleteById(Long id)           { categoryMapper.deleteById(id); }
+    @Override public int            detachTransactionsByCategoryId(Long id) { return categoryMapper.detachTransactionsByCategoryId(id); }
+    @Override public int            deleteById(Long id, Long userId) { return categoryMapper.deleteById(id, userId); }
 }

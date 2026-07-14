@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cop.kbds.agilemvp.rule.repository.RuleMapper">
+
+    <resultMap id="ruleResultMap" type="cop.kbds.agilemvp.rule.service.Rule">
+        <constructor>
+            <arg column="id"            javaType="long"/>
+            <arg column="user_id"       javaType="long"/>
+            <arg column="keyword"       javaType="string"/>
+            <arg column="category_id"   javaType="long"/>
+            <arg column="category_name" javaType="string"/>
+            <arg column="tag"           javaType="string"/>
+            <arg column="applied_count" javaType="int"/>
+        </constructor>
+    </resultMap>
+
+    <select id="findAllByUserId" resultMap="ruleResultMap">
+        SELECT r.id, r.user_id, r.keyword, r.category_id, c.name AS category_name, r.tag,
+               (SELECT COUNT(*) FROM transactions t
+                WHERE t.user_id = r.user_id
+                  AND t.applied_rule_id = r.id) AS applied_count
+        FROM mapping_rules r
+        LEFT JOIN categories c ON r.category_id = c.id
+        WHERE r.user_id = #{userId}
+        ORDER BY r.id DESC
+    </select>
+
+    <select id="findById" resultMap="ruleResultMap">
+        SELECT r.id, r.user_id, r.keyword, r.category_id, c.name AS category_name, r.tag,
+               (SELECT COUNT(*) FROM transactions t
+                WHERE t.user_id = r.user_id
+                  AND t.applied_rule_id = r.id) AS applied_count
+        FROM mapping_rules r
+        LEFT JOIN categories c ON r.category_id = c.id
+        WHERE r.id = #{id}
+    </select>
+
+    <select id="existsByUserIdAndKeyword" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM mapping_rules
+            WHERE user_id = #{userId}
+              AND LOWER(keyword) = LOWER(#{keyword})
+        )
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO mapping_rules (user_id, keyword, keyword_normalized, category_id, tag)
+        VALUES (#{userId}, #{keyword}, LOWER(#{keyword}), #{categoryId}, #{tag})
+    </insert>
+
+    <delete id="deleteById">
+        DELETE FROM mapping_rules WHERE id = #{id}
+    </delete>
+
+    <update id="applyRuleToTransactions">
+        UPDATE transactions
+        SET category_id = #{categoryId},
+            tag         = #{tag},
+            is_classified = TRUE,
+            applied_rule_id = #{ruleId},
+            updated_at  = NOW()
+        WHERE user_id = #{userId}
+          AND LOWER(merchant) LIKE '%' || LOWER(#{keyword}) || '%' ESCAPE '\'
+          AND (is_classified = FALSE OR category_id IS NULL)
+    </update>
+
+    <update id="applyRuleToTransactionIds">
+        UPDATE transactions
+        SET category_id = #{categoryId},
+            tag         = #{tag},
+            is_classified = TRUE,
+            applied_rule_id = #{ruleId},
+            updated_at  = NOW()
+        WHERE user_id = #{userId}
+          AND id IN
+          <foreach collection="transactionIds" item="transactionId" open="(" separator="," close=")">
+              #{transactionId}
+          </foreach>
+          AND LOWER(merchant) LIKE '%' || LOWER(#{keyword}) || '%' ESCAPE '\'
+          AND (is_classified = FALSE OR category_id IS NULL)
+    </update>
+
+    <update id="restoreRuleAppliedTransactions">
+        UPDATE transactions
+        SET category_id = NULL,
+            tag = NULL,
+            is_classified = FALSE,
+            applied_rule_id = NULL,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND applied_rule_id = #{ruleId}
+    </update>
+
+    <select id="summarizeDryRun"
+            resultType="cop.kbds.agilemvp.rule.service.RuleDryRunSummaryDto">
+        SELECT COUNT(*) AS match_count,
+               COALESCE(SUM(CASE
+                   WHEN t.is_classified = FALSE OR t.category_id IS NULL THEN 1
+                   ELSE 0
+               END), 0) AS newly_classified_count,
+               COALESCE(SUM(CASE
+                   WHEN t.is_classified = TRUE
+                    AND t.category_id IS NOT NULL
+                    AND t.category_id &lt;&gt; #{categoryId} THEN 1
+                   ELSE 0
+               END), 0) AS override_count
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.user_id = #{userId}
+          AND LOWER(t.merchant) LIKE '%' || LOWER(#{keyword}) || '%' ESCAPE '\'
+    </select>
+
+    <select id="findMatchedTransactions"
+            resultType="cop.kbds.agilemvp.rule.service.MatchedTransactionDto">
+        SELECT t.id,
+               CAST(t.transaction_date AS VARCHAR) AS transactionDate,
+               t.merchant,
+               t.amount,
+               t.category_id AS current_category_id,
+               c.name AS current_category,
+               CASE
+                   WHEN t.is_classified = FALSE OR t.category_id IS NULL THEN TRUE
+                   ELSE FALSE
+               END AS newly_classified,
+               CASE
+                   WHEN t.is_classified = TRUE
+                    AND t.category_id IS NOT NULL
+                    AND t.category_id &lt;&gt; #{categoryId} THEN TRUE
+                   ELSE FALSE
+               END AS override_risk
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.user_id = #{userId}
+          AND LOWER(t.merchant) LIKE '%' || LOWER(#{keyword}) || '%' ESCAPE '\'
+        ORDER BY t.transaction_date DESC, t.id DESC
+        LIMIT 50
+    </select>
+
+    <select id="findUnclassifiedTransactions"
+            resultType="cop.kbds.agilemvp.rule.service.UnclassifiedTransactionDto">
+        SELECT t.merchant, t.amount
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.user_id = #{userId}
+          AND (t.is_classified = FALSE OR t.category_id IS NULL)
+        ORDER BY t.transaction_date DESC, t.id DESC
+    </select>
+
+</mapper>

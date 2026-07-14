@@ -15,13 +15,15 @@ public class Category {
 
     @Setter(AccessLevel.PRIVATE)
     private Long id;
+    private Long userId;
     private String name;
     private String color;
     private Integer displayOrder;
     private Boolean isDefault;
 
-    public static Category create(String name, String color) {
+    public static Category create(Long userId, String name, String color) {
         return Category.builder()
+                .userId(userId)
                 .name(name)
                 .color(color)
                 .isDefault(false)
@@ -31,6 +33,7 @@ public class Category {
     public Category update(String name, String color) {
         return Category.builder()
                 .id(this.id)
+                .userId(this.userId)
                 .name(name)
                 .color(color)
                 .displayOrder(this.displayOrder)
@@ -48,8 +51,9 @@ public class Category {
             throw new BusinessException(CategoryErrorCode.DEFAULT_CATEGORY_CANNOT_BE_MODIFIED);
     }
 
-    public Category(Long id, String name, String color, Integer displayOrder, Boolean isDefault) {
+    public Category(Long id, Long userId, String name, String color, Integer displayOrder, Boolean isDefault) {
         this.id = id;
+        this.userId = userId;
         this.name = name;
         this.color = color;
         this.displayOrder = displayOrder;

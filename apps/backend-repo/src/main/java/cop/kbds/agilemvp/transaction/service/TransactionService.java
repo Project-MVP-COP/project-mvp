@@ -3,6 +3,10 @@ package cop.kbds.agilemvp.transaction.service;
 import cop.kbds.agilemvp.category.repository.CategoryRepository;
 import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.common.exception.CommonErrorCode;
+import cop.kbds.agilemvp.common.util.SqlLikeUtil;
+import cop.kbds.agilemvp.common.util.TagUtil;
+import cop.kbds.agilemvp.rule.repository.RuleRepository;
+import cop.kbds.agilemvp.rule.service.Rule;
 import cop.kbds.agilemvp.transaction.controller.BulkUploadResult;
 import cop.kbds.agilemvp.transaction.controller.TransactionDto;
 import cop.kbds.agilemvp.transaction.controller.TransactionPageResult;
@@ -24,11 +28,14 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository    categoryRepository;
+    private final RuleRepository        ruleRepository;
 
     public TransactionService(TransactionRepository transactionRepository,
-                              CategoryRepository categoryRepository) {
+                              CategoryRepository categoryRepository,
+                              RuleRepository ruleRepository) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository    = categoryRepository;
+        this.ruleRepository        = ruleRepository;
     }
 
     public List<TransactionDto> findAll(Long userId) {
@@ -62,21 +69,30 @@ public class TransactionService {
 
     public TransactionDto add(TransactionDto dto, Long userId) {
         dto.setUserId(userId);
-        resolveCategoryId(dto);
+        resolveCategoryId(dto, userId);
+        dto.setTag(TagUtil.normalize(dto.getTag()));
+        syncClassifiedFlag(dto);
         transactionRepository.insert(dto);
         return dto;
     }
 
     @Transactional
     public BulkUploadResult addBulk(List<TransactionDto> list, Long userId) {
-        Map<String, Long> catMap = buildCategoryMap();
+        Map<String, Long> catMap = buildCategoryMap(userId);
         List<TransactionDto> added = new java.util.ArrayList<>();
         int skippedCount = 0;
         for (TransactionDto dto : list) {
             dto.setUserId(userId);
+            if (dto.getCategoryId() != null
+                    && categoryRepository.findByIdAvailable(dto.getCategoryId(), userId) == null) {
+                skippedCount++;
+                continue;
+            }
             if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
                 dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.getOrDefault("기타", null)));
             }
+            dto.setTag(TagUtil.normalize(dto.getTag()));
+            syncClassifiedFlag(dto);
             try {
                 transactionRepository.insert(dto);
                 added.add(dto);
@@ -84,7 +100,11 @@ public class TransactionService {
                 skippedCount++;
             }
         }
-        return new BulkUploadResult(added, skippedCount);
+        applyExistingRulesToNewTransactions(userId, added);
+        List<TransactionDto> refreshed = added.stream()
+                .map(dto -> transactionRepository.findById(dto.getId()))
+                .toList();
+        return new BulkUploadResult(refreshed, skippedCount);
     }
 
     @Transactional
@@ -94,7 +114,9 @@ public class TransactionService {
         if (!existing.getUserId().equals(userId)) throw new BusinessException(CommonErrorCode.FORBIDDEN);
         dto.setId(id);
         dto.setUserId(userId);
-        resolveCategoryId(dto);
+        resolveCategoryId(dto, userId);
+        dto.setTag(TagUtil.normalize(dto.getTag()));
+        syncClassifiedFlag(dto);
         transactionRepository.update(dto);
         return dto;
     }
@@ -103,7 +125,18 @@ public class TransactionService {
         TransactionDto existing = transactionRepository.findById(id);
         if (existing == null) throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
         if (!existing.getUserId().equals(userId)) throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        if (categoryRepository.findByIdAvailable(categoryId, userId) == null) {
+            throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
+        }
         transactionRepository.updateCategory(id, categoryId, MANUAL_CATEGORY_TAG);
+        return transactionRepository.findById(id);
+    }
+
+    public TransactionDto patchTag(Long id, String tag, Long userId) {
+        TransactionDto existing = transactionRepository.findById(id);
+        if (existing == null) throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
+        if (!existing.getUserId().equals(userId)) throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        transactionRepository.updateTag(id, TagUtil.normalize(tag));
         return transactionRepository.findById(id);
     }
 
@@ -126,21 +159,47 @@ public class TransactionService {
         return transactionRepository.findAll(userId);
     }
 
-    private void resolveCategoryId(TransactionDto dto) {
+    private void resolveCategoryId(TransactionDto dto, Long userId) {
+        if (dto.getCategoryId() != null
+                && categoryRepository.findByIdAvailable(dto.getCategoryId(), userId) == null) {
+            throw new BusinessException(CommonErrorCode.ENTITY_NOT_FOUND);
+        }
         if (dto.getCategoryId() == null && dto.getCategoryName() != null) {
-            Map<String, Long> catMap = buildCategoryMap();
+            Map<String, Long> catMap = buildCategoryMap(userId);
             dto.setCategoryId(catMap.getOrDefault(dto.getCategoryName(), catMap.getOrDefault("기타", null)));
         }
     }
 
-    private Map<String, Long> buildCategoryMap() {
+    private Map<String, Long> buildCategoryMap(Long userId) {
         Map<String, Long> map = new HashMap<>();
-        categoryRepository.findAll().forEach(c -> map.put(c.getName(), c.getId()));
+        categoryRepository.findAllAvailable(userId).forEach(c -> map.put(c.getName(), c.getId()));
         return map;
     }
 
+    private void syncClassifiedFlag(TransactionDto dto) {
+        dto.setIsClassified(dto.getCategoryId() != null);
+    }
+
+    private void applyExistingRulesToNewTransactions(Long userId, List<TransactionDto> added) {
+        List<Long> transactionIds = added.stream()
+                .map(TransactionDto::getId)
+                .toList();
+        if (transactionIds.isEmpty()) return;
+
+        for (Rule rule : ruleRepository.findAllByUserId(userId)) {
+            ruleRepository.applyRuleToTransactions(
+                    userId,
+                    rule.getId(),
+                    SqlLikeUtil.escape(rule.getKeyword()),
+                    rule.getCategoryId(),
+                    rule.getTag(),
+                    transactionIds
+            );
+        }
+    }
+
     private void insertDefaults(Long userId) {
-        Map<String, Long> cat = buildCategoryMap();
+        Map<String, Long> cat = buildCategoryMap(userId);
         Object[][] rows = {
             {"2026-01-02", "스타벅스",   "식음료",    6500L, "신한카드", 1, "승인"},
             {"2026-01-03", "쿠팡",       "쇼핑",     38900L, "국민카드", 1, "승인"},

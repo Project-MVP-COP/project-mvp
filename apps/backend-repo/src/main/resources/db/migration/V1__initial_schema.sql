@@ -37,7 +37,7 @@ COMMENT ON COLUMN users.updated_at IS '최종 수정 시각';
 
 CREATE TABLE categories (
     id            BIGSERIAL   PRIMARY KEY,
-    name          VARCHAR(50) NOT NULL UNIQUE,
+    name          VARCHAR(50) NOT NULL,
     color         VARCHAR(7)  NOT NULL DEFAULT '#64748b',
     display_order INTEGER     NOT NULL DEFAULT 0,
     is_default    BOOLEAN     NOT NULL DEFAULT FALSE,

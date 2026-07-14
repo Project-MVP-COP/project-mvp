@@ -27,8 +27,8 @@ public class ExcelService {
     private static final String[] HEADERS = {"날짜", "가맹점명", "카테고리", "금액", "카드명", "할부개월", "상태"};
     private static final List<String> VALID_STATUSES = List.of("승인", "취소");
 
-    private Set<String> loadValidCategories() {
-        return categoryRepository.findAll().stream()
+    private Set<String> loadValidCategories(Long userId) {
+        return categoryRepository.findAllAvailable(userId).stream()
                 .map(c -> c.getName())
                 .collect(Collectors.toSet());
     }
@@ -156,14 +156,15 @@ public class ExcelService {
             if (rawDate.isBlank()) continue;
             String date = rawDate.substring(0, 10).replace(".", "-");
             String merchant   = getCellString(row, ci.getOrDefault("가맹점명", -1));
-            long   amount     = getCellLong(row,   ci.getOrDefault("금액", -1));
+            long   amount     = Math.abs(getCellLong(row, ci.getOrDefault("금액", -1)));
             String issueType  = getCellString(row, ci.getOrDefault("이용구분", -1));
             String cancelFlag = getCellString(row, ci.getOrDefault("취소상태", -1));
             int installment = parseInstallmentShinhan(issueType);
             String status   = cancelFlag.isBlank() ? "승인" : "취소";
             result.add(TransactionDto.builder()
                     .id(tempId++).transactionDate(date).merchant(merchant)
-                    .categoryName(classifyCategory(merchant))
+                    // categoryName(classifyCategory(merchant)) was intentionally disabled.
+                    // Card-company imports should remain unclassified until user rules classify them.
                     .amount(amount).cardName("신한카드")
                     .installment(installment).status(status)
                     .build());
@@ -192,14 +193,15 @@ public class ExcelService {
             String date = getCellString(row, ci.getOrDefault("이용일", -1));
             if (date.isBlank()) continue;
             String merchant    = getCellString(row, ci.getOrDefault("이용하신곳", -1));
-            long   amount      = getCellLong(row,   ci.getOrDefault("국내이용금액(원)", -1));
+            long   amount      = Math.abs(getCellLong(row, ci.getOrDefault("국내이용금액(원)", -1)));
             String payMethod   = getCellString(row, ci.getOrDefault("결제방법", -1));
             String statusRaw   = getCellString(row, ci.getOrDefault("상태", -1));
             int    installment = parseInstallmentKb(payMethod);
             String status      = statusRaw.contains("취소") ? "취소" : "승인";
             result.add(TransactionDto.builder()
                     .id(tempId++).transactionDate(date).merchant(merchant)
-                    .categoryName(classifyCategory(merchant))
+                    // categoryName(classifyCategory(merchant)) was intentionally disabled.
+                    // Card-company imports should remain unclassified until user rules classify them.
                     .amount(amount).cardName("국민카드")
                     .installment(installment).status(status)
                     .build());
@@ -213,7 +215,7 @@ public class ExcelService {
         return m.find() ? Integer.parseInt(m.group(1)) : 1;
     }
 
-    private List<TransactionDto> parseTemplateFormat(Workbook wb) {
+    private List<TransactionDto> parseTemplateFormat(Workbook wb, Long userId) {
         Sheet sheet = wb.getSheetAt(0);
         Row headerRow = sheet.getRow(0);
         if (headerRow == null) throw new BusinessException(CommonErrorCode.INVALID_INPUT, "엑셀 헤더가 없습니다.");
@@ -223,7 +225,7 @@ public class ExcelService {
         for (String h : HEADERS) if (!ci.containsKey(h)) missing.add(h);
         if (!missing.isEmpty()) throw new BusinessException(CommonErrorCode.INVALID_INPUT, "컬럼 누락: " + String.join(", ", missing));
 
-        Set<String> validCategories = loadValidCategories();
+        Set<String> validCategories = loadValidCategories(userId);
         List<TransactionDto> result = new ArrayList<>();
         long tempId = 1;
 
@@ -253,13 +255,13 @@ public class ExcelService {
         return result;
     }
 
-    public List<TransactionDto> parseUpload(MultipartFile file) {
+    public List<TransactionDto> parseUpload(MultipartFile file, Long userId) {
         try (Workbook wb = WorkbookFactory.create(file.getInputStream())) {
             BankType bankType = detectBankType(wb);
             return switch (bankType) {
                 case SHINHAN  -> parseShinhancardFormat(wb);
                 case KB       -> parseKbFormat(wb);
-                case TEMPLATE -> parseTemplateFormat(wb);
+                case TEMPLATE -> parseTemplateFormat(wb, userId);
                 case UNKNOWN  -> throw new BusinessException(CommonErrorCode.INVALID_INPUT,
                         "지원하지 않는 엑셀 형식입니다. 신한카드 / KB국민카드 / 서비스 양식 파일만 업로드 가능합니다.");
             };

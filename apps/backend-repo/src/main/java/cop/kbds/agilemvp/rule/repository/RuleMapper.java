@@ -1,0 +1,31 @@
+package cop.kbds.agilemvp.rule.repository;
+
+import cop.kbds.agilemvp.rule.service.MatchedTransactionDto;
+import cop.kbds.agilemvp.rule.service.Rule;
+import cop.kbds.agilemvp.rule.service.RuleDryRunSummaryDto;
+import cop.kbds.agilemvp.rule.service.UnclassifiedTransactionDto;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface RuleMapper {
+    List<Rule> findAllByUserId(@Param("userId") Long userId);
+    Rule findById(@Param("id") Long id);
+    boolean existsByUserIdAndKeyword(@Param("userId") Long userId, @Param("keyword") String keyword);
+    void insert(Rule rule);
+    void deleteById(@Param("id") Long id);
+    int applyRuleToTransactions(@Param("userId") Long userId, @Param("ruleId") Long ruleId, @Param("keyword") String keyword,
+                                  @Param("categoryId") Long categoryId, @Param("tag") String tag);
+    int applyRuleToTransactionIds(@Param("userId") Long userId, @Param("ruleId") Long ruleId, @Param("keyword") String keyword,
+                                  @Param("categoryId") Long categoryId, @Param("tag") String tag,
+                                  @Param("transactionIds") List<Long> transactionIds);
+    int restoreRuleAppliedTransactions(@Param("userId") Long userId, @Param("ruleId") Long ruleId);
+    RuleDryRunSummaryDto summarizeDryRun(@Param("userId") Long userId, @Param("keyword") String keyword,
+                                         @Param("categoryId") Long categoryId);
+    List<MatchedTransactionDto> findMatchedTransactions(@Param("userId") Long userId,
+                                                        @Param("keyword") String keyword,
+                                                        @Param("categoryId") Long categoryId);
+    List<UnclassifiedTransactionDto> findUnclassifiedTransactions(@Param("userId") Long userId);
+}

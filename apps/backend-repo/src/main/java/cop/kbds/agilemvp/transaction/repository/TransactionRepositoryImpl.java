@@ -20,6 +20,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     @Override public void insert(TransactionDto dto)                             { transactionMapper.insert(dto); }
     @Override public void update(TransactionDto dto)                             { transactionMapper.update(dto); }
     @Override public void updateCategory(Long id, Long categoryId, String tag)    { transactionMapper.updateCategory(id, categoryId, tag); }
+    @Override public void updateTag(Long id, String tag)                         { transactionMapper.updateTag(id, tag); }
     @Override public void delete(Long id)                                        { transactionMapper.delete(id); }
     @Override public void deleteAll(Long userId)                                 { transactionMapper.deleteAll(userId); }
 }

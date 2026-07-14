@@ -7,6 +7,7 @@
     <resultMap id="categoryResultMap" type="cop.kbds.agilemvp.category.service.Category">
         <constructor>
             <arg column="id"            javaType="long"/>
+            <arg column="user_id"       javaType="java.lang.Long"/>
             <arg column="name"          javaType="string"/>
             <arg column="color"         javaType="string"/>
             <arg column="display_order" javaType="int"/>
@@ -14,28 +15,42 @@
         </constructor>
     </resultMap>
 
-    <select id="findAll" resultMap="categoryResultMap">
-        SELECT id, name, color, display_order, is_default
+    <select id="findAllAvailable" resultMap="categoryResultMap">
+        SELECT id, user_id, name, color, display_order, is_default
         FROM categories
-        ORDER BY display_order
+        WHERE user_id IS NULL OR user_id = #{userId}
+        ORDER BY is_default DESC, display_order, id
     </select>
 
-    <select id="findById" resultMap="categoryResultMap">
-        SELECT id, name, color, display_order, is_default
+    <select id="findByIdAvailable" resultMap="categoryResultMap">
+        SELECT id, user_id, name, color, display_order, is_default
         FROM categories
         WHERE id = #{id}
+          AND (user_id IS NULL OR user_id = #{userId})
     </select>
 
-    <select id="findByName" resultMap="categoryResultMap">
-        SELECT id, name, color, display_order, is_default
+    <select id="findByNameAvailable" resultMap="categoryResultMap">
+        SELECT id, user_id, name, color, display_order, is_default
         FROM categories
         WHERE name = #{name}
+          AND (user_id IS NULL OR user_id = #{userId})
+        ORDER BY is_default DESC, id
+        LIMIT 1
+    </select>
+
+    <select id="findByNameOwned" resultMap="categoryResultMap">
+        SELECT id, user_id, name, color, display_order, is_default
+        FROM categories
+        WHERE name = #{name}
+          AND user_id = #{userId}
+        LIMIT 1
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO categories (name, color, display_order, is_default)
-        VALUES (#{name}, #{color},
-                (SELECT COALESCE(MAX(d.display_order), 0) + 1 FROM categories d),
+        INSERT INTO categories (user_id, user_scope_id, name, color, display_order, is_default)
+        VALUES (#{userId}, COALESCE(#{userId}, -1), #{name}, #{color},
+                (SELECT COALESCE(MAX(d.display_order), 0) + 1 FROM categories d
+                 WHERE d.user_id IS NULL OR d.user_id = #{userId}),
                 FALSE)
     </insert>
 
@@ -45,10 +60,23 @@
             color      = #{color},
             updated_at = NOW()
         WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <update id="detachTransactionsByCategoryId">
+        UPDATE transactions
+        SET category_id = NULL,
+            tag = CASE WHEN applied_rule_id IS NULL THEN tag ELSE NULL END,
+            is_classified = FALSE,
+            applied_rule_id = NULL,
+            updated_at = NOW()
+        WHERE category_id = #{id}
     </update>
 
     <delete id="deleteById">
-        DELETE FROM categories WHERE id = #{id}
+        DELETE FROM categories
+        WHERE id = #{id}
+          AND user_id = #{userId}
     </delete>
 
 </mapper>

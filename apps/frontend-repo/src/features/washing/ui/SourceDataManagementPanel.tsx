@@ -1,5 +1,4 @@
 import {
-  Box,
   Button,
   Group,
   NativeSelect,
@@ -164,7 +163,7 @@ export function SourceDataManagementPanel() {
         toast.error("Mock 데이터 추가에 실패했습니다.");
       } else {
         toast.success("Mock 데이터가 추가됐습니다.");
-        resetFilters();
+        window.setTimeout(resetFilters, 0);
       }
     }
 
@@ -181,7 +180,7 @@ export function SourceDataManagementPanel() {
         toast.error("원천 데이터 삭제에 실패했습니다.");
       } else {
         toast.success("원천 데이터가 삭제됐습니다.");
-        resetFilters();
+        window.setTimeout(resetFilters, 0);
       }
     }
   }, [actionData, resetFilters]);
@@ -276,28 +275,28 @@ export function SourceDataManagementPanel() {
             <Table highlightOnHover verticalSpacing="sm" horizontalSpacing="md">
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th style={{ cursor: "pointer" }} onClick={() => handleSort("transactionDate")}>
-                    <Box component="span" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Table.Th onClick={() => handleSort("transactionDate")}>
+                    <Group component="span" gap={4} align="center" wrap="nowrap">
                       일자
                       {sortField === "transactionDate" ? (
                         sortDir === "asc" ? <IconSortAscending size={14} /> : <IconSortDescending size={14} />
                       ) : (
                         <IconArrowsSort size={14} color="var(--mantine-color-dimmed)" />
                       )}
-                    </Box>
+                    </Group>
                   </Table.Th>
                   <Table.Th>가맹점명</Table.Th>
                   <Table.Th>카드사</Table.Th>
                   <Table.Th>카테고리</Table.Th>
-                  <Table.Th ta="right" style={{ cursor: "pointer" }} onClick={() => handleSort("amount")}>
-                    <Box component="span" w="100%" style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
+                  <Table.Th ta="right" onClick={() => handleSort("amount")}>
+                    <Group component="span" w="100%" gap={4} align="center" justify="flex-end" wrap="nowrap">
                       {sortField === "amount" ? (
                         sortDir === "asc" ? <IconSortAscending size={14} /> : <IconSortDescending size={14} />
                       ) : (
                         <IconArrowsSort size={14} color="var(--mantine-color-dimmed)" />
                       )}
                       금액
-                    </Box>
+                    </Group>
                   </Table.Th>
                   <Table.Th>매핑 적용 규칙/태그</Table.Th>
                   <Table.Th>동작</Table.Th>

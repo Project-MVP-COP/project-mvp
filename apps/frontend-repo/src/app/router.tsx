@@ -1,6 +1,7 @@
 import LoginPage from "@/features/auth/routes/LoginPage";
 import RegisterPage from "@/features/auth/routes/RegisterPage";
 import { loginAction, registerAction } from "@/features/auth/routes/action";
+import { ruleEngineQueries } from "@/features/rule-engine-builder/api/queries";
 import { SamplePage } from "@/features/sample/routes/SamplePage";
 import { action as sampleAction } from "@/features/sample/routes/action";
 import { loader as sampleLoader } from "@/features/sample/routes/loader";
@@ -11,6 +12,7 @@ import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import { NotFoundPage } from "@/shared/ui/NotFoundPage";
 import { createBrowserRouter, redirect, Navigate } from "react-router";
 import { Layout } from "./Layout";
+import { RuleEngineBuilderPage } from "./RuleEngineBuilderPage";
 import { queryClient } from "./queryClient";
 import { useAppStore } from "@/app/store/useAppStore";
 
@@ -23,6 +25,13 @@ const rootLoader = () => async () => {
   if (!isAuthenticated) {
     return redirect("/login");
   }
+  return null;
+};
+
+const ruleEngineLoader = () => async () => {
+  await washingLoader(queryClient)();
+  queryClient.prefetchQuery(ruleEngineQueries.rules());
+  queryClient.prefetchQuery(ruleEngineQueries.patterns());
   return null;
 };
 
@@ -60,6 +69,12 @@ export const router = createBrowserRouter([
         path: "washing",
         element: <WashingPage />,
         loader: washingLoader(queryClient),
+        action: washingAction(queryClient),
+      },
+      {
+        path: "rules",
+        element: <RuleEngineBuilderPage />,
+        loader: ruleEngineLoader(),
         action: washingAction(queryClient),
       },
       {

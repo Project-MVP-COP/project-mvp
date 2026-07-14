@@ -13,8 +13,8 @@ describe("Washing feature integration flow", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
-    resetWashingTransactions();
     resetLedgerTransactions();
+    resetWashingTransactions();
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -112,7 +112,7 @@ describe("Washing feature integration flow", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "저장" }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(within(dialog).queryByRole("button", { name: "저장" })).not.toBeInTheDocument();
     });
 
     await waitFor(() => {

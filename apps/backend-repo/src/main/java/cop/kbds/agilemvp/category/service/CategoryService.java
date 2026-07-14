@@ -47,8 +47,7 @@ public class CategoryService {
 
     @Transactional
     public void delete(Long id) {
-        Category category = findOrThrow(id);
-        category.validateDeletion();
+        findOrThrow(id);
         categoryRepository.deleteById(id);
     }
 

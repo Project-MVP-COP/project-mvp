@@ -189,125 +189,92 @@ const WASHING_CATEGORIES = [
   "업무",
 ];
 
-const INITIAL_WASHING_TRANSACTIONS: WashingTransactionRecord[] = [
-  {
-    id: 101,
-    occurredAt: "2026-06-01 08:12",
-    merchantName: "스타벅스 성수역점",
-    description: "아메리카노 외 1건",
-    cardLabel: "현대 Zero",
-    amount: 11200,
-    category: "식비",
-    isClassified: true,
-    matchedRuleLabel: "규칙: 스타벅스 -> 식비",
-    tag: "카페",
-    source: "CARD",
-    ledgerId: 16,
-  },
-  {
-    id: 102,
-    occurredAt: "2026-06-01 18:22",
-    merchantName: "배달의민족",
-    description: "저녁 주문",
-    cardLabel: "신한 Deep",
-    amount: 26800,
-    category: null,
-    isClassified: false,
-    matchedRuleLabel: null,
-    tag: "배달",
-    source: "CARD",
-    ledgerId: 17,
-  },
-  {
-    id: 103,
-    occurredAt: "2026-06-02 07:50",
-    merchantName: "서울교통공사",
-    description: "후불 교통",
-    cardLabel: "신한 Deep",
-    amount: 1450,
-    category: "교통",
-    isClassified: true,
-    matchedRuleLabel: "규칙: 서울교통공사 -> 교통",
-    tag: "지하철",
-    source: "CARD",
-    ledgerId: 18,
-  },
-  {
-    id: 104,
-    occurredAt: "2026-06-02 12:40",
-    merchantName: "쿠팡",
-    description: "생활용품 구매",
-    cardLabel: "삼성 taptap",
-    amount: 38700,
-    category: null,
-    isClassified: false,
-    matchedRuleLabel: null,
-    tag: "온라인쇼핑",
-    source: "CARD",
-    ledgerId: 19,
-  },
-  {
-    id: 105,
-    occurredAt: "2026-06-03 09:30",
-    merchantName: "넷플릭스",
-    description: "정기결제",
-    cardLabel: "현대 Zero",
-    amount: 17000,
-    category: "구독",
-    isClassified: true,
-    matchedRuleLabel: "규칙: 넷플릭스 -> 구독",
-    tag: "OTT",
-    source: "CARD",
-    ledgerId: 20,
-  },
-  {
-    id: 106,
-    occurredAt: "2026-06-03 21:18",
-    merchantName: "네이버페이",
-    description: "결제대행",
-    cardLabel: "토스뱅크",
-    amount: 53000,
-    category: null,
-    isClassified: false,
-    matchedRuleLabel: null,
-    tag: "PG",
-    source: "BANK",
-    ledgerId: 21,
-  },
-  {
-    id: 107,
-    occurredAt: "2026-06-04 14:12",
-    merchantName: "올리브영",
-    description: "건강용품",
-    cardLabel: "삼성 taptap",
-    amount: 21400,
-    category: "생활",
-    isClassified: true,
-    matchedRuleLabel: null,
-    tag: "드럭스토어",
-    source: "CARD",
-    ledgerId: 22,
-  },
-];
+const INITIAL_WASHING_TRANSACTIONS: WashingTransactionRecord[] = [];
+
+const INITIAL_WASHING_META_BY_LEDGER_ID: Record<
+  number,
+  Pick<WashingTransactionRecord, "tag" | "matchedRuleLabel" | "source">
+> = {
+  16: { tag: "??", matchedRuleLabel: "??: ???? -> ??", source: "CARD" },
+  17: { tag: "??", matchedRuleLabel: null, source: "CARD" },
+  18: { tag: "??", matchedRuleLabel: "??: ?????? -> ??", source: "CARD" },
+  19: { tag: "?????", matchedRuleLabel: null, source: "CARD" },
+  20: { tag: "OTT", matchedRuleLabel: "??: ???? -> ??", source: "CARD" },
+  21: { tag: "PG", matchedRuleLabel: null, source: "BANK" },
+  22: { tag: "?????", matchedRuleLabel: null, source: "CARD" },
+};
 
 let nextWashingId = 108;
-let washingTransactions: WashingTransactionRecord[] = [
-  ...INITIAL_WASHING_TRANSACTIONS,
-];
+let washingTransactions: WashingTransactionRecord[] = [];
 let washingLastImportedAt = "2026-06-06 18:30:00";
+
+const inferWashingSource = (
+  cardName: string,
+): WashingTransactionRecord["source"] =>
+  cardName === "????" ? "BANK" : "CARD";
+
+const isLedgerTransactionClassified = (tx: LedgerTransaction) =>
+  tx.categoryId != null || !!tx.categoryName;
+
+const buildWashingTransactionFromLedger = (
+  tx: LedgerTransaction,
+  previous?: WashingTransactionRecord,
+): WashingTransactionRecord => {
+  const seed = INITIAL_WASHING_META_BY_LEDGER_ID[tx.id];
+  const isClassified = isLedgerTransactionClassified(tx);
+
+  return {
+    id: tx.id,
+    occurredAt: tx.transactionDate,
+    merchantName: tx.merchant,
+    description: tx.memo ?? "",
+    cardLabel: tx.cardName,
+    amount: tx.amount,
+    category: tx.categoryName ?? null,
+    isClassified,
+    matchedRuleLabel: previous?.matchedRuleLabel ?? seed?.matchedRuleLabel ?? null,
+    tag:
+      previous?.tag ??
+      seed?.tag ??
+      (isClassified ? "?? ??" : "?? ?? ??"),
+    source: previous?.source ?? seed?.source ?? inferWashingSource(tx.cardName),
+    ledgerId: tx.id,
+  };
+};
+
+const syncWashingTransactionsFromLedger = () => {
+  const previousByLedgerId = new Map(
+    washingTransactions
+      .filter(
+        (
+          transaction,
+        ): transaction is WashingTransactionRecord & { ledgerId: number } =>
+          transaction.ledgerId != null,
+      )
+      .map((transaction) => [transaction.ledgerId, transaction]),
+  );
+
+  washingTransactions = ledgerTransactions.map((tx) =>
+    buildWashingTransactionFromLedger(tx, previousByLedgerId.get(tx.id)),
+  );
+};
 
 export const resetWashingTransactions = () => {
   washingTransactions = [...INITIAL_WASHING_TRANSACTIONS];
   nextWashingId = 108;
   washingLastImportedAt = "2026-06-06 18:30:00";
+  syncWashingTransactionsFromLedger();
 };
 
 export const dbWashing = {
-  getOverview: () => ({
-    categories: [...WASHING_CATEGORIES],
-    transactions: washingTransactions,
-    lastImportedAt: washingLastImportedAt,
-  }),
+  getOverview: () => {
+    syncWashingTransactionsFromLedger();
+    return {
+      categories: [...WASHING_CATEGORIES],
+      transactions: [...washingTransactions],
+      lastImportedAt: washingLastImportedAt,
+    };
+  },
 
   bulkClassify: (ids: number[], category: string) => {
     washingTransactions = washingTransactions.map((transaction) =>
@@ -317,10 +284,21 @@ export const dbWashing = {
             category,
             isClassified: true,
             matchedRuleLabel: null,
-            tag: "수동 일괄 세척",
+            tag: "?? ?? ??",
           }
         : transaction,
     );
+
+    ledgerTransactions = ledgerTransactions.map((transaction) =>
+      ids.includes(transaction.id)
+        ? {
+            ...transaction,
+            categoryName: category,
+          }
+        : transaction,
+    );
+
+    syncWashingTransactionsFromLedger();
     washingLastImportedAt = getCurrentTime();
     return dbWashing.getOverview();
   },
@@ -338,33 +316,34 @@ export const dbWashing = {
       category,
       isClassified: category !== null,
       matchedRuleLabel:
-        category === null
-          ? null
-          : washingTransactions[index].matchedRuleLabel,
-      tag: category === null ? "수동 검토 필요" : washingTransactions[index].tag,
+        category === null ? null : washingTransactions[index].matchedRuleLabel,
+      tag: category === null ? "?? ?? ??" : washingTransactions[index].tag,
     };
+
+    const ledgerId = washingTransactions[index].ledgerId;
+    if (ledgerId != null) {
+      const ledgerIndex = ledgerTransactions.findIndex((tx) => tx.id == ledgerId);
+      if (ledgerIndex !== -1) {
+        ledgerTransactions[ledgerIndex] = {
+          ...ledgerTransactions[ledgerIndex],
+          categoryId:
+            category === null ? null : ledgerTransactions[ledgerIndex].categoryId,
+          categoryName: category,
+        };
+      }
+    }
+
+    syncWashingTransactionsFromLedger();
     washingLastImportedAt = getCurrentTime();
-    return washingTransactions[index];
+    return washingTransactions.find((transaction) => transaction.id === id) ?? null;
   },
 
   addFromLedger: (tx: LedgerTransaction) => {
-    const record: WashingTransactionRecord = {
-      id: nextWashingId++,
-      occurredAt: tx.transactionDate,
-      merchantName: tx.merchant,
-      description: tx.memo ?? "",
-      cardLabel: tx.cardName,
-      amount: tx.amount,
-      category: null,
-      isClassified: false,
-      matchedRuleLabel: null,
-      tag: "엑셀 유입",
-      source: "CARD",
-      ledgerId: tx.id,
-    };
-    washingTransactions.push(record);
-    washingLastImportedAt = getCurrentTime();
-    return record;
+    syncWashingTransactionsFromLedger();
+    return (
+      washingTransactions.find((transaction) => transaction.ledgerId === tx.id) ??
+      buildWashingTransactionFromLedger(tx)
+    );
   },
 
   importMockBatch: () => {
@@ -373,27 +352,27 @@ export const dbWashing = {
       {
         id: nextWashingId++,
         occurredAt: `${today} 08:08`,
-        merchantName: "메가MGC커피",
-        description: "출근길 커피",
-        cardLabel: "현대 Zero",
+        merchantName: "??MGC??",
+        description: "??? ??",
+        cardLabel: "?? Zero",
         amount: 3900,
         category: null,
         isClassified: false,
         matchedRuleLabel: null,
-        tag: "신규 유입",
+        tag: "?? ??",
         source: "CARD",
       },
       {
         id: nextWashingId++,
         occurredAt: `${today} 19:48`,
-        merchantName: "오늘의집",
-        description: "소형 가구 결제",
-        cardLabel: "토스뱅크",
+        merchantName: "????",
+        description: "?? ?? ??",
+        cardLabel: "????",
         amount: 78200,
         category: null,
         isClassified: false,
         matchedRuleLabel: null,
-        tag: "신규 유입",
+        tag: "?? ??",
         source: "BANK",
       },
     ];
@@ -439,6 +418,9 @@ const LEDGER_CATEGORIES: LedgerCategory[] = [
   { id: 10, name: "기타", color: "#64748b", displayOrder: 100, isDefault: true },
 ];
 
+let ledgerCategories: LedgerCategory[] = [...LEDGER_CATEGORIES];
+let nextLedgerCategoryId = 11;
+
 const INITIAL_LEDGER_TRANSACTIONS: LedgerTransaction[] = [
   // 2026-05
   { id: 1,  userId: 1, transactionDate: "2026-05-02", merchant: "GS25 역삼점",        categoryId: 6,    categoryName: "편의점",   amount: 3800,  cardName: "신한 Deep",   installment: 1, status: "승인", memo: "간식" },
@@ -476,10 +458,14 @@ const INITIAL_LEDGER_TRANSACTIONS: LedgerTransaction[] = [
 
 let ledgerTransactions: LedgerTransaction[] = [...INITIAL_LEDGER_TRANSACTIONS];
 let nextLedgerId = 31;
+syncWashingTransactionsFromLedger();
 
 export const resetLedgerTransactions = () => {
   ledgerTransactions = [...INITIAL_LEDGER_TRANSACTIONS];
   nextLedgerId = 31;
+  ledgerCategories = [...LEDGER_CATEGORIES];
+  nextLedgerCategoryId = 11;
+  syncWashingTransactionsFromLedger();
 };
 
 export const dbLedger = {
@@ -491,12 +477,21 @@ export const dbLedger = {
     const index = ledgerTransactions.findIndex((tx) => tx.id === id);
     if (index === -1) return null;
     ledgerTransactions[index] = { ...ledgerTransactions[index], ...data };
+    syncWashingTransactionsFromLedger();
     return ledgerTransactions[index];
   },
 
   reset: () => {
     resetLedgerTransactions();
     return [...ledgerTransactions];
+  },
+
+  delete: (id: number) => {
+    const index = ledgerTransactions.findIndex((tx) => tx.id === id);
+    if (index === -1) return false;
+    ledgerTransactions.splice(index, 1);
+    syncWashingTransactionsFromLedger();
+    return true;
   },
 
   bulkAdd: (items: Omit<LedgerTransaction, "id">[]) => {
@@ -516,10 +511,276 @@ export const dbLedger = {
         added.push(newTx);
       }
     }
+    syncWashingTransactionsFromLedger();
     return added;
   },
 
-  getCategories: () => [...LEDGER_CATEGORIES].sort((a, b) => a.displayOrder - b.displayOrder),
+  getCategories: () =>
+    [...ledgerCategories].sort((a, b) => a.displayOrder - b.displayOrder),
+
+  createCategory: (data: { name: string; color: string }) => {
+    const category: LedgerCategory = {
+      id: nextLedgerCategoryId++,
+      name: data.name,
+      color: data.color,
+      displayOrder:
+        Math.max(0, ...ledgerCategories.map((item) => item.displayOrder)) + 10,
+      isDefault: false,
+    };
+    ledgerCategories.push(category);
+    return category;
+  },
+
+  deleteCategory: (id: number) => {
+    const index = ledgerCategories.findIndex((category) => category.id === id);
+    if (index === -1) return false;
+    ledgerCategories.splice(index, 1);
+    ledgerTransactions = ledgerTransactions.map((transaction) =>
+      transaction.categoryId === id
+        ? { ...transaction, categoryId: null, categoryName: null }
+        : transaction,
+    );
+    syncWashingTransactionsFromLedger();
+    return true;
+  },
+};
+
+export interface RuleEngineRule {
+  id: number;
+  keyword: string;
+  categoryId: number;
+  categoryName: string;
+  tag: string | null;
+  appliedCount: number;
+}
+
+export interface RulePatternSuggestion {
+  keyword: string;
+  occurrences: number;
+  totalAmount: number;
+  exampleMerchant: string;
+  recommendedCategoryId: number;
+  recommendedCategoryName: string;
+}
+
+export interface RuleDryRunResult {
+  matchCount: number;
+  newlyClassifiedCount: number;
+  overrideCount: number;
+  hasOverrideRisk: boolean;
+  transactions: {
+    id: number;
+    transactionDate: string;
+    merchant: string;
+    amount: number;
+    currentCategoryId: number | null;
+    currentCategory: string | null;
+    newlyClassified: boolean;
+    override: boolean;
+  }[];
+}
+
+const INITIAL_RULES: Omit<RuleEngineRule, "appliedCount">[] = [
+  {
+    id: 1,
+    keyword: "스타벅스",
+    categoryId: 1,
+    categoryName: "음식음료",
+    tag: "#필수수혈",
+  },
+  {
+    id: 2,
+    keyword: "택시",
+    categoryId: 3,
+    categoryName: "교통",
+    tag: "#야근택시",
+  },
+  {
+    id: 3,
+    keyword: "넷플릭스",
+    categoryId: 5,
+    categoryName: "문화/여가",
+    tag: "#고정지출",
+  },
+];
+
+let nextRuleId = 4;
+let rules: Omit<RuleEngineRule, "appliedCount">[] = [...INITIAL_RULES];
+
+const matchRuleTransactions = (keyword: string) => {
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  if (!normalizedKeyword) return [];
+  return ledgerTransactions.filter((transaction) =>
+    transaction.merchant.toLowerCase().includes(normalizedKeyword),
+  );
+};
+
+const guessRuleCategory = (keyword: string) => {
+  const lowerKeyword = keyword.toLowerCase();
+  if (
+    lowerKeyword.includes("스타벅스") ||
+    lowerKeyword.includes("커피") ||
+    lowerKeyword.includes("카페") ||
+    lowerKeyword.includes("메가")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("음료")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  if (
+    lowerKeyword.includes("택시") ||
+    lowerKeyword.includes("교통") ||
+    lowerKeyword.includes("t머니")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("교통")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  if (
+    lowerKeyword.includes("넷플") ||
+    lowerKeyword.includes("cgv") ||
+    lowerKeyword.includes("영화")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("문화")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  if (
+    lowerKeyword.includes("쿠팡") ||
+    lowerKeyword.includes("이마트") ||
+    lowerKeyword.includes("gs25") ||
+    lowerKeyword.includes("cu")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("생활")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  return LEDGER_CATEGORIES[0];
+};
+
+const getRuleKeyword = (merchant: string) => {
+  const normalized = merchant.replace(/[()[\]]/g, " ").trim();
+  const [firstToken] = normalized.split(/\s+/);
+  if (firstToken.length >= 2) return firstToken;
+  return normalized.slice(0, 5);
+};
+
+export const resetRules = () => {
+  rules = [...INITIAL_RULES];
+  nextRuleId = 4;
+};
+
+export const dbRuleEngine = {
+  getAll: (): RuleEngineRule[] =>
+    rules.map((rule) => ({
+      ...rule,
+      appliedCount: matchRuleTransactions(rule.keyword).length,
+    })),
+
+  getPatterns: (): RulePatternSuggestion[] => {
+    const counts = new Map<string, number>();
+    const samples = new Map<string, string[]>();
+
+    ledgerTransactions
+      .filter((transaction) => transaction.categoryId == null && !transaction.categoryName)
+      .forEach((transaction) => {
+        const keyword = getRuleKeyword(transaction.merchant);
+        if (keyword.length < 2) return;
+        counts.set(keyword, (counts.get(keyword) ?? 0) + 1);
+        const currentSamples = samples.get(keyword) ?? [];
+        if (currentSamples.length < 3) {
+          samples.set(keyword, [...currentSamples, transaction.merchant]);
+        }
+      });
+
+    return [...counts.entries()]
+      .filter(([, count]) => count >= 2)
+      .sort(([leftKeyword, leftCount], [rightKeyword, rightCount]) => {
+        if (rightCount !== leftCount) return rightCount - leftCount;
+        if (rightKeyword.length !== leftKeyword.length) {
+          return rightKeyword.length - leftKeyword.length;
+        }
+        return leftKeyword.localeCompare(rightKeyword, "ko-KR");
+      })
+      .slice(0, 6)
+      .map(([keyword, count]) => {
+        const category = guessRuleCategory(keyword);
+        const keywordSamples = samples.get(keyword) ?? [];
+        return {
+          keyword,
+          occurrences: count,
+          totalAmount: ledgerTransactions
+            .filter((transaction) => getRuleKeyword(transaction.merchant) === keyword)
+            .reduce((sum, transaction) => sum + transaction.amount, 0),
+          exampleMerchant: keywordSamples[0] ?? keyword,
+          recommendedCategoryId: category.id,
+          recommendedCategoryName: category.name,
+        };
+      });
+  },
+
+  dryRun: (payload: {
+    keyword: string;
+    categoryId: number;
+  }): RuleDryRunResult => {
+    const matchedTransactions = matchRuleTransactions(payload.keyword);
+    const transactions = matchedTransactions.map((transaction) => ({
+      id: transaction.id,
+      transactionDate: transaction.transactionDate,
+      merchant: transaction.merchant,
+      amount: transaction.amount,
+      currentCategoryId: transaction.categoryId ?? null,
+      currentCategory: transaction.categoryName ?? null,
+      newlyClassified: transaction.categoryId == null && !transaction.categoryName,
+      override: transaction.categoryId != null || !!transaction.categoryName,
+    }));
+    const overrideCount = transactions.filter((transaction) => transaction.override).length;
+    return {
+      matchCount: transactions.length,
+      newlyClassifiedCount: transactions.filter((transaction) => transaction.newlyClassified).length,
+      overrideCount,
+      hasOverrideRisk: overrideCount > 0,
+      transactions,
+    };
+  },
+
+  create: (payload: {
+    keyword: string;
+    categoryId: number;
+    tag?: string;
+  }) => {
+    const category = LEDGER_CATEGORIES.find((item) => item.id === payload.categoryId);
+    if (!category) return false;
+    const normalizedTag = payload.tag?.trim()
+      ? payload.tag.trim().startsWith("#")
+        ? payload.tag.trim()
+        : `#${payload.tag.trim()}`
+      : "";
+    const rule = {
+      id: nextRuleId++,
+      keyword: payload.keyword.trim(),
+      categoryId: category.id,
+      categoryName: category.name,
+      tag: normalizedTag || null,
+    };
+    rules = [rule, ...rules];
+
+    ledgerTransactions = ledgerTransactions.map((transaction) =>
+      transaction.merchant.toLowerCase().includes(payload.keyword.toLowerCase())
+        ? {
+            ...transaction,
+            categoryId: rule.categoryId,
+            categoryName: rule.categoryName,
+            memo: rule.tag || transaction.memo,
+          }
+        : transaction,
+    );
+    syncWashingTransactionsFromLedger();
+
+    return true;
+  },
+
+  delete: (id: number) => {
+    const before = rules.length;
+    rules = rules.filter((rule) => rule.id !== id);
+    return rules.length !== before;
+  },
 };
 
 export const resetAllMocks = () => {
@@ -527,4 +788,5 @@ export const resetAllMocks = () => {
   resetUsers();
   resetWashingTransactions();
   resetLedgerTransactions();
+  resetRules();
 };

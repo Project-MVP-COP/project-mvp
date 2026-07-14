@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { fetchTransactionById } from "@/features/washing/api/fetchers";
 import {
   applyBulkWash,
+  deleteTransaction,
   importMockTransactions,
   updateTransaction,
 } from "@/features/washing/api/mutations";
@@ -29,6 +30,7 @@ export const action =
             ...tx,
             categoryId: command.categoryId,
             categoryName: command.categoryName,
+            memo: command.memo,
           });
           await queryClient.invalidateQueries({ queryKey: washingKeys.all });
           return { intent: "update_category" };
@@ -37,6 +39,10 @@ export const action =
           await importMockTransactions();
           await queryClient.invalidateQueries({ queryKey: washingKeys.all });
           return { intent: "import_mock" };
+        case "delete_transaction":
+          await deleteTransaction(command.id);
+          await queryClient.invalidateQueries({ queryKey: washingKeys.all });
+          return { intent: "delete_transaction" };
         default:
           await queryClient.invalidateQueries({ queryKey: washingKeys.all });
           return { intent: command.type, error: true };

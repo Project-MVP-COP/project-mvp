@@ -1,6 +1,4 @@
 import {
-  Badge,
-  Box,
   Button,
   Group,
   NativeSelect,
@@ -14,6 +12,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { IconArrowsSort, IconSortAscending, IconSortDescending, IconDatabaseImport, IconFileSpreadsheet, IconSearch } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Form, useActionData, useNavigation, useSubmit } from "react-router";
@@ -60,21 +59,6 @@ const buildCategoryOptions = (tx: TransactionDto, categories: CategoryDto[]) => 
   return opts;
 };
 
-const getStatusBadge = (tx: TransactionDto) => {
-  if (!isTransactionClassified(tx)) {
-    return (
-      <Badge color="red" variant="light">
-        세척 대기
-      </Badge>
-    );
-  }
-  return (
-    <Badge color="yellow" variant="light">
-      수동 분류
-    </Badge>
-  );
-};
-
 const filterLedgerTransactions = (
   transactions: TransactionDto[],
   filters: WashingFilters,
@@ -83,8 +67,7 @@ const filterLedgerTransactions = (
     const keyword = filters.merchantKeyword.trim().toLowerCase();
     const matchesMerchant =
       keyword === "" ||
-      tx.merchant.toLowerCase().includes(keyword) ||
-      (tx.memo ?? "").toLowerCase().includes(keyword);
+      tx.merchant.toLowerCase().includes(keyword);
 
     const classified = isTransactionClassified(tx);
     const matchesCategory =
@@ -114,6 +97,7 @@ export function SourceDataManagementPanel() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<SortField | null>("transactionDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [focusedMemoId, setFocusedMemoId] = useState<number | null>(null);
   const [excelModalOpened, { open: openExcelModal, close: closeExcelModal }] = useDisclosure(false);
 
   const handleSort = (field: SortField) => {
@@ -130,10 +114,10 @@ export function SourceDataManagementPanel() {
   const filteredTransactions = filterLedgerTransactions(transactions, filters);
   const sortedTransactions = sortField
     ? [...filteredTransactions].sort((a, b) => {
-        const mul = sortDir === "asc" ? 1 : -1;
-        if (sortField === "transactionDate") return a.transactionDate.localeCompare(b.transactionDate) * mul;
-        return (a.amount - b.amount) * mul;
-      })
+      const mul = sortDir === "asc" ? 1 : -1;
+      if (sortField === "transactionDate") return a.transactionDate.localeCompare(b.transactionDate) * mul;
+      return (a.amount - b.amount) * mul;
+    })
     : filteredTransactions;
   const totalPages = Math.max(1, Math.ceil(sortedTransactions.length / PAGE_SIZE));
   const paginatedTransactions = sortedTransactions.slice(
@@ -155,6 +139,11 @@ export function SourceDataManagementPanel() {
     navigation.formData?.get("intent") === "update_category" &&
     navigation.formData?.get("id") === String(txId);
 
+  const isDeleteSubmitting = (txId: number) =>
+    navigation.state === "submitting" &&
+    navigation.formData?.get("intent") === "delete_transaction" &&
+    navigation.formData?.get("id") === String(txId);
+
   const resetFilters = useCallback(() => {
     setFilters(DEFAULT_WASHING_FILTERS);
     setCurrentPage(1);
@@ -174,7 +163,7 @@ export function SourceDataManagementPanel() {
         toast.error("Mock 데이터 추가에 실패했습니다.");
       } else {
         toast.success("Mock 데이터가 추가됐습니다.");
-        resetFilters();
+        window.setTimeout(resetFilters, 0);
       }
     }
 
@@ -183,6 +172,15 @@ export function SourceDataManagementPanel() {
         toast.error("카테고리 저장에 실패했습니다.");
       } else {
         toast.success("카테고리가 저장됐습니다.");
+      }
+    }
+
+    if (actionData.intent === "delete_transaction") {
+      if (actionData.error) {
+        toast.error("원천 데이터 삭제에 실패했습니다.");
+      } else {
+        toast.success("원천 데이터가 삭제됐습니다.");
+        window.setTimeout(resetFilters, 0);
       }
     }
   }, [actionData, resetFilters]);
@@ -227,153 +225,199 @@ export function SourceDataManagementPanel() {
             </Text>
           </Stack>
 
-        <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
-          <TextInput
-            label="가맹점 검색"
-            placeholder="가맹점 또는 설명 검색"
-            leftSection={<IconSearch size={14} />}
-            value={filters.merchantKeyword}
-            onChange={(event) => {
-              const value = event.currentTarget.value;
-              updateFilters((current) => ({ ...current, merchantKeyword: value }));
-            }}
-          />
-          <NativeSelect
-            label="카테고리 필터"
-            value={filters.category}
-            onChange={(event) => {
-              const value = event.currentTarget.value;
-              updateFilters((current) => ({ ...current, category: value }));
-            }}
-            data={categorySelectData(categories)}
-          />
-          <NativeSelect
-            label="세척 상태"
-            value={filters.status}
-            onChange={(event) => {
-              const value = event.currentTarget.value as "all" | "classified" | "unclassified";
-              updateFilters((current) => ({ ...current, status: value }));
-            }}
-            data={[
-              { value: "all", label: "전체 상태" },
-              { value: "classified", label: "세척 완료" },
-              { value: "unclassified", label: "세척 대기" },
-            ]}
-          />
-        </SimpleGrid>
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+            <TextInput
+              label="가맹점 검색"
+              placeholder="가맹점 검색"
+              leftSection={<IconSearch size={14} />}
+              value={filters.merchantKeyword}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                updateFilters((current) => ({ ...current, merchantKeyword: value }));
+              }}
+            />
+            <NativeSelect
+              label="카테고리 필터"
+              value={filters.category}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                updateFilters((current) => ({ ...current, category: value }));
+              }}
+              data={categorySelectData(categories)}
+            />
+            <NativeSelect
+              label="세척 상태"
+              value={filters.status}
+              onChange={(event) => {
+                const value = event.currentTarget.value as "all" | "classified" | "unclassified";
+                updateFilters((current) => ({ ...current, status: value }));
+              }}
+              data={[
+                { value: "all", label: "전체 상태" },
+                { value: "classified", label: "세척 완료" },
+                { value: "unclassified", label: "세척 대기" },
+              ]}
+            />
+          </SimpleGrid>
 
-        <Group justify="space-between">
-          <Text size="sm" c="dimmed">
-            {sortedTransactions.length === 0
-              ? "총 0건"
-              : `총 ${sortedTransactions.length}건 중 ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, sortedTransactions.length)}건 표시`}
-          </Text>
-          <Button variant="light" color="gray" onClick={resetFilters}>
-            필터 초기화
-          </Button>
-        </Group>
+          <Group justify="space-between">
+            <Text size="sm" c="dimmed">
+              {sortedTransactions.length === 0
+                ? "총 0건"
+                : `총 ${sortedTransactions.length}건 중 ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, sortedTransactions.length)}건 표시`}
+            </Text>
+            <Button variant="light" color="gray" onClick={resetFilters}>
+              필터 초기화
+            </Button>
+          </Group>
 
-        <ScrollArea>
-          <Table highlightOnHover verticalSpacing="sm" horizontalSpacing="md">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th style={{ cursor: "pointer" }} onClick={() => handleSort("transactionDate")}>
-                  <Box component="span" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    일자
-                    {sortField === "transactionDate" ? (
-                      sortDir === "asc" ? <IconSortAscending size={14} /> : <IconSortDescending size={14} />
-                    ) : (
-                      <IconArrowsSort size={14} color="var(--mantine-color-dimmed)" />
-                    )}
-                  </Box>
-                </Table.Th>
-                <Table.Th>가맹점</Table.Th>
-                <Table.Th>카드</Table.Th>
-                <Table.Th ta="right" style={{ cursor: "pointer" }} onClick={() => handleSort("amount")}>
-                  <Box component="span" w="100%" style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-                    {sortField === "amount" ? (
-                      sortDir === "asc" ? <IconSortAscending size={14} /> : <IconSortDescending size={14} />
-                    ) : (
-                      <IconArrowsSort size={14} color="var(--mantine-color-dimmed)" />
-                    )}
-                    금액
-                  </Box>
-                </Table.Th>
-                <Table.Th>상태</Table.Th>
-                <Table.Th>규칙 / 태그</Table.Th>
-                <Table.Th>카테고리 변경</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {filteredTransactions.length === 0 ? (
+          <ScrollArea>
+            <Table highlightOnHover verticalSpacing="sm" horizontalSpacing="md">
+              <Table.Thead>
                 <Table.Tr>
-                  <Table.Td colSpan={7}>
-                    <Text ta="center" c="dimmed" py="xl">
-                      조건에 맞는 원천 데이터가 없습니다.
-                    </Text>
-                  </Table.Td>
+                  <Table.Th onClick={() => handleSort("transactionDate")}>
+                    <Group component="span" gap={4} align="center" wrap="nowrap">
+                      일자
+                      {sortField === "transactionDate" ? (
+                        sortDir === "asc" ? <IconSortAscending size={14} /> : <IconSortDescending size={14} />
+                      ) : (
+                        <IconArrowsSort size={14} color="var(--mantine-color-dimmed)" />
+                      )}
+                    </Group>
+                  </Table.Th>
+                  <Table.Th>가맹점명</Table.Th>
+                  <Table.Th>카드사</Table.Th>
+                  <Table.Th>카테고리</Table.Th>
+                  <Table.Th ta="right" onClick={() => handleSort("amount")}>
+                    <Group component="span" w="100%" gap={4} align="center" justify="flex-end" wrap="nowrap">
+                      {sortField === "amount" ? (
+                        sortDir === "asc" ? <IconSortAscending size={14} /> : <IconSortDescending size={14} />
+                      ) : (
+                        <IconArrowsSort size={14} color="var(--mantine-color-dimmed)" />
+                      )}
+                      금액
+                    </Group>
+                  </Table.Th>
+                  <Table.Th>매핑 적용 규칙/태그</Table.Th>
+                  <Table.Th>동작</Table.Th>
                 </Table.Tr>
-              ) : (
-                paginatedTransactions.map((tx) => (
-                  <Table.Tr key={tx.id}>
-                    <Table.Td>{tx.transactionDate}</Table.Td>
-                    <Table.Td>
-                      <Stack gap={2}>
-                        <Text fw={600}>{tx.merchant}</Text>
-                        <Text size="xs" c="dimmed">
-                          {tx.memo ?? ""}
-                        </Text>
-                      </Stack>
-                    </Table.Td>
-                    <Table.Td>{tx.cardName}</Table.Td>
-                    <Table.Td ta="right" fw={700}>
-                      {formatAmount(tx.amount)}원
-                    </Table.Td>
-                    <Table.Td>{getStatusBadge(tx)}</Table.Td>
-                    <Table.Td>
-                      <Stack gap={4}>
-                        <Text size="sm">수동 분류 필요</Text>
-                        <Badge color="gray" variant="light" w="fit-content">
-                          {tx.status}
-                        </Badge>
-                      </Stack>
-                    </Table.Td>
-                    <Table.Td>
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="update_category" />
-                        <input type="hidden" name="id" value={tx.id} />
-                        <Group align="flex-end" wrap="nowrap">
-                          <NativeSelect
-                            key={`${tx.id}-${tx.categoryId ?? ""}-${tx.categoryName ?? ""}`}
-                            name="category"
-                            defaultValue={buildCategoryValue(tx, categories)}
-                            data={buildCategoryOptions(tx, categories)}
-                          />
-                          <Button type="submit" size="xs" loading={isCategoryUpdateSubmitting(tx.id)}>
-                            저장
-                          </Button>
-                        </Group>
-                      </Form>
+              </Table.Thead>
+              <Table.Tbody>
+                {filteredTransactions.length === 0 ? (
+                  <Table.Tr>
+                    <Table.Td colSpan={7}>
+                      <Text ta="center" c="dimmed" py="xl">
+                        조건에 맞는 원천 데이터가 없습니다.
+                      </Text>
                     </Table.Td>
                   </Table.Tr>
-                ))
-              )}
-            </Table.Tbody>
-          </Table>
-        </ScrollArea>
+                ) : (
+                  paginatedTransactions.map((tx) => (
+                    <Table.Tr key={tx.id}>
+                      <Table.Td>{tx.transactionDate}</Table.Td>
+                      <Table.Td>
+                        <Text fw={600}>{tx.merchant}</Text>
+                      </Table.Td>
+                      <Table.Td>{tx.cardName}</Table.Td>
+                      <Table.Td>
+                        <NativeSelect
+                          form={`category-form-${tx.id}`}
+                          key={`${tx.id}-${tx.categoryId ?? ""}-${tx.categoryName ?? ""}`}
+                          name="category"
+                          defaultValue={buildCategoryValue(tx, categories)}
+                          data={buildCategoryOptions(tx, categories)}
+                        />
+                      </Table.Td>
+                      <Table.Td ta="right" fw={700}>
+                        {formatAmount(tx.amount)}원
+                      </Table.Td>
+                      <Table.Td>
+                        <TextInput
+                          form={`category-form-${tx.id}`}
+                          name="memo"
+                          defaultValue={tx.memo ?? ""}
+                          placeholder="매핑 적용 규칙 또는 태그 입력"
+                          readOnly={focusedMemoId !== tx.id}
+                          onFocus={() => setFocusedMemoId(tx.id)}
+                          onBlur={() =>
+                            setFocusedMemoId((current) => (current === tx.id ? null : current))
+                          }
+                        />
+                      </Table.Td>
+                      <Table.Td>
+                        <Group wrap="nowrap" gap="xs">
+                          <Form method="post" id={`category-form-${tx.id}`}>
+                            <input type="hidden" name="intent" value="update_category" />
+                            <input type="hidden" name="id" value={tx.id} />
+                            <Button type="submit" size="xs" loading={isCategoryUpdateSubmitting(tx.id)}>
+                              저장
+                            </Button>
+                          </Form>
+                          <Button
+                            size="xs"
+                            color="red"
+                            variant="light"
+                            loading={isDeleteSubmitting(tx.id)}
+                            onClick={() =>
+                              modals.openConfirmModal({
+                                title: "원천 데이터 삭제",
+                                children: (
+                                  <Stack gap="xs">
+                                    <Text size="sm">아래 항목을 삭제하시겠습니까?</Text>
+                                    <Stack gap={4}>
+                                      <Group justify="space-between">
+                                        <Text size="sm" c="dimmed">일자</Text>
+                                        <Text size="sm">{tx.transactionDate}</Text>
+                                      </Group>
+                                      <Group justify="space-between">
+                                        <Text size="sm" c="dimmed">가맹점</Text>
+                                        <Text size="sm" fw={600}>{tx.merchant}</Text>
+                                      </Group>
+                                      <Group justify="space-between">
+                                        <Text size="sm" c="dimmed">카드사</Text>
+                                        <Text size="sm">{tx.cardName}</Text>
+                                      </Group>
+                                      <Group justify="space-between">
+                                        <Text size="sm" c="dimmed">금액</Text>
+                                        <Text size="sm" fw={600}>{formatAmount(tx.amount)}원</Text>
+                                      </Group>
+                                    </Stack>
+                                  </Stack>
+                                ),
+                                labels: { confirm: "삭제", cancel: "취소" },
+                                confirmProps: { color: "red" },
+                                onConfirm: () => {
+                                  const formData = new FormData();
+                                  formData.append("intent", "delete_transaction");
+                                  formData.append("id", String(tx.id));
+                                  submit(formData, { method: "post" });
+                                },
+                              })
+                            }
+                          >
+                            삭제
+                          </Button>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))
+                )}
+              </Table.Tbody>
+            </Table>
+          </ScrollArea>
 
-        {totalPages > 1 && (
-          <Group justify="center">
-            <Pagination
-              total={totalPages}
-              value={currentPage}
-              onChange={setCurrentPage}
-              size="sm"
-            />
-          </Group>
-        )}
-      </Stack>
-    </Paper>
+          {totalPages > 1 && (
+            <Group justify="center">
+              <Pagination
+                total={totalPages}
+                value={currentPage}
+                onChange={setCurrentPage}
+                size="sm"
+              />
+            </Group>
+          )}
+        </Stack>
+      </Paper>
     </>
   );
 }

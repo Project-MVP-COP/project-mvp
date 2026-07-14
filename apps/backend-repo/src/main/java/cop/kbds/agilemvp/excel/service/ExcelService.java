@@ -258,17 +258,28 @@ public class ExcelService {
     public List<TransactionDto> parseUpload(MultipartFile file, Long userId) {
         try (Workbook wb = WorkbookFactory.create(file.getInputStream())) {
             BankType bankType = detectBankType(wb);
-            return switch (bankType) {
+            List<TransactionDto> parsed = switch (bankType) {
                 case SHINHAN  -> parseShinhancardFormat(wb);
                 case KB       -> parseKbFormat(wb);
                 case TEMPLATE -> parseTemplateFormat(wb, userId);
                 case UNKNOWN  -> throw new BusinessException(CommonErrorCode.INVALID_INPUT,
                         "지원하지 않는 엑셀 형식입니다. 신한카드 / KB국민카드 / 서비스 양식 파일만 업로드 가능합니다.");
             };
+            normalizePreviewTransactions(parsed, userId);
+            return parsed;
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
             throw new BusinessException(CommonErrorCode.INVALID_INPUT, "파일을 읽을 수 없습니다: " + e.getMessage());
+        }
+    }
+
+    private void normalizePreviewTransactions(List<TransactionDto> transactions, Long userId) {
+        for (TransactionDto transaction : transactions) {
+            transaction.setUserId(userId);
+            boolean hasCategory = transaction.getCategoryId() != null
+                    || (transaction.getCategoryName() != null && !transaction.getCategoryName().isBlank());
+            transaction.setIsClassified(hasCategory);
         }
     }
 

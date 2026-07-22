@@ -15,6 +15,7 @@ public interface TransactionMapper {
     TransactionSummaryDto searchSummary(TransactionSearchDto params);
     TransactionDto findById(@Param("id") Long id);
     void insert(TransactionDto dto);
+    int insertIgnoreDuplicate(TransactionDto dto);
     void update(TransactionDto dto);
     void updateCategory(@Param("id") Long id, @Param("categoryId") Long categoryId, @Param("tag") String tag);
     void updateTag(@Param("id") Long id, @Param("tag") String tag);

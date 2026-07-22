@@ -12,6 +12,7 @@ public interface TransactionRepository {
     TransactionSummaryDto searchSummary(TransactionSearchDto params);
     TransactionDto findById(Long id);
     void insert(TransactionDto dto);
+    boolean insertIgnoreDuplicate(TransactionDto dto);
     void update(TransactionDto dto);
     void updateCategory(Long id, Long categoryId, String tag);
     void updateTag(Long id, String tag);

@@ -12,9 +12,8 @@ export type WashingCommand =
       id: number;
       categoryId: number | null;
       categoryName: string | null;
-      memo: string | null;
+      tag: string | null;
     }
-  | { type: "import_mock" }
   | { type: "delete_transaction"; id: number }
   | { type: "unknown" };
 
@@ -29,35 +28,27 @@ export const parseWashingCommand = (formData: FormData): WashingCommand => {
 
   switch (intent) {
     case "bulk_wash":
-      return {
+      {
+        const category = parseCategoryValue(formData.get("category"));
+        return {
         type: "bulk_wash",
         payload: {
           ids: extractNumberList(formData, "ids"),
-          category: extractString(formData, "category"),
+          categoryId: category.categoryId ?? 0,
+          categoryName: category.categoryName ?? "",
         },
       };
-    case "update_category": {
-      const catRaw = (formData.get("category") as string) ?? "";
-      let categoryId: number | null = null;
-      let categoryName: string | null = null;
-      if (catRaw !== "") {
-        const colonIdx = catRaw.indexOf(":");
-        if (colonIdx !== -1) {
-          const parsedId = Number(catRaw.substring(0, colonIdx));
-          categoryId = parsedId === 0 ? null : parsedId;
-          categoryName = catRaw.substring(colonIdx + 1) || null;
-        }
       }
+    case "update_category": {
+      const category = parseCategoryValue(formData.get("category"));
       return {
         type: "update_category",
         id: extractNumber(formData, "id"),
-        categoryId,
-        categoryName,
-        memo: normalizeCategory(formData.get("memo")),
+        categoryId: category.categoryId,
+        categoryName: category.categoryName,
+        tag: normalizeCategory(formData.get("tag")),
       };
     }
-    case "import_mock":
-      return { type: "import_mock" };
     case "delete_transaction":
       return { type: "delete_transaction", id: extractNumber(formData, "id") };
     default:
@@ -127,8 +118,24 @@ export const normalizeCategory = (value: FormDataEntryValue | null) => {
   return normalized === "" ? null : normalized;
 };
 
-const extractString = (formData: FormData, key: string) =>
-  String(formData.get(key) || "");
+const parseCategoryValue = (value: FormDataEntryValue | null) => {
+  const raw = String(value || "");
+  if (raw === "") {
+    return { categoryId: null, categoryName: null };
+  }
+
+  const colonIdx = raw.indexOf(":");
+  if (colonIdx === -1) {
+    return { categoryId: null, categoryName: raw };
+  }
+
+  const parsedId = Number(raw.substring(0, colonIdx));
+  return {
+    categoryId: parsedId === 0 ? null : parsedId,
+    categoryName: raw.substring(colonIdx + 1) || null,
+  };
+};
+
 
 const extractNumber = (formData: FormData, key: string) =>
   Number(formData.get(key));

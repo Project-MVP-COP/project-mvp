@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse } from "msw";
-import { db, dbLedger, dbRuleEngine, dbUser, dbWashing } from "./db";
+import { db, dbLedger, dbRuleEngine, dbUser } from "./db";
 
 const IS_TEST = import.meta.env.MODE === "test";
 
@@ -79,87 +79,6 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.get("/api/washing/overview", async () => {
-    if (!IS_TEST) await delay();
-    return HttpResponse.json(dbWashing.getOverview());
-  }),
-
-  http.post("/api/washing/bulk-classify", async ({ request }) => {
-    if (!IS_TEST) await delay();
-    const body = (await request.json()) as {
-      ids?: number[];
-      category?: string;
-    };
-
-    if (!body.category || !Array.isArray(body.ids) || body.ids.length === 0) {
-      return HttpResponse.json(
-        {
-          type: "about:blank",
-          title: "Bad Request",
-          status: 400,
-          detail: "일괄 세척 대상과 카테고리가 필요합니다.",
-          instance: "/api/washing/bulk-classify",
-          errorCode: "WASH001",
-        },
-        { status: 400 },
-      );
-    }
-
-    const overview = dbWashing.bulkClassify(body.ids, body.category);
-
-    const matchedLedgerCategory = dbLedger.getCategories().find(
-      (c) => c.name === body.category,
-    );
-    overview.transactions
-      .filter((tx) => body.ids!.includes(tx.id) && tx.ledgerId != null)
-      .forEach((tx) => {
-        dbLedger.update(tx.ledgerId!, {
-          categoryId: matchedLedgerCategory?.id ?? null,
-          categoryName: body.category,
-        });
-      });
-
-    return HttpResponse.json(overview);
-  }),
-
-  http.patch(
-    "/api/washing/transactions/:id/category",
-    async ({ params, request }) => {
-      if (!IS_TEST) await delay();
-      const id = Number(params.id);
-      const body = (await request.json()) as { category?: string | null };
-      const updated = dbWashing.updateCategory(id, body.category ?? null);
-
-      if (!updated) {
-        return new HttpResponse(null, { status: 404 });
-      }
-
-      return HttpResponse.json(updated);
-    },
-  ),
-
-  http.post("/api/washing/import-mock", async () => {
-    if (!IS_TEST) await delay();
-    const today = new Date().toISOString().slice(0, 10);
-    const mockItems: Omit<import("./db").LedgerTransaction, "id">[] = [
-      {
-        userId: 1, transactionDate: today,
-        merchant: "메가MGC커피", categoryId: null, categoryName: null,
-        amount: 3900, cardName: "현대 Zero", installment: 1, status: "승인",
-        memo: "출근길 커피",
-      },
-      {
-        userId: 1, transactionDate: today,
-        merchant: "오늘의집", categoryId: null, categoryName: null,
-        amount: 78200, cardName: "토스뱅크", installment: 1, status: "승인",
-        memo: "소형 가구 결제",
-      },
-    ];
-    const added = dbLedger.bulkAdd(mockItems);
-    added.forEach((tx) => dbWashing.addFromLedger(tx));
-    return HttpResponse.json(dbWashing.getOverview(), { status: 201 });
-  }),
-
   http.get("/api/transactions", async () => {
     if (!IS_TEST) await delay();
     return HttpResponse.json(dbLedger.getAll());
@@ -191,6 +110,37 @@ export const handlers = [
     const id = Number(params.id);
     const body = (await request.json()) as Record<string, unknown>;
     const updated = dbLedger.update(id, body as Parameters<typeof dbLedger.update>[1]);
+    if (!updated) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json(updated);
+  }),
+
+  http.patch("/api/transactions/:id/category", async ({ params, request }) => {
+    if (!IS_TEST) await delay();
+    const id = Number(params.id);
+    const body = (await request.json()) as { categoryId?: number };
+    const category = dbLedger
+      .getCategories()
+      .find((item) => item.id === body.categoryId);
+    if (!category) return new HttpResponse(null, { status: 404 });
+    const updated = dbLedger.update(id, {
+      categoryId: category.id,
+      categoryName: category.name,
+      isClassified: true,
+    });
+    if (!updated) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json(updated);
+  }),
+
+  http.patch("/api/transactions/:id/tag", async ({ params, request }) => {
+    if (!IS_TEST) await delay();
+    const id = Number(params.id);
+    const body = (await request.json()) as { tag?: string | null };
+    const normalizedTag = body.tag?.trim()
+      ? body.tag.trim().startsWith("#")
+        ? body.tag.trim()
+        : `#${body.tag.trim()}`
+      : null;
+    const updated = dbLedger.update(id, { tag: normalizedTag });
     if (!updated) return new HttpResponse(null, { status: 404 });
     return HttpResponse.json(updated);
   }),
@@ -365,9 +315,6 @@ export const handlers = [
     if (!IS_TEST) await delay();
     const body = (await request.json()) as Omit<import("./db").LedgerTransaction, "id">[];
     const added = dbLedger.bulkAdd(body);
-    added
-      .filter((tx) => tx.categoryId == null)
-      .forEach((tx) => dbWashing.addFromLedger(tx));
     return HttpResponse.json({ added, skippedCount: body.length - added.length }, { status: 200 });
   }),
 

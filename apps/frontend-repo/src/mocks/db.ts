@@ -403,6 +403,8 @@ export interface LedgerTransaction {
   installment: number;
   status: "승인" | "취소";
   memo: string | null;
+  tag?: string | null;
+  isClassified?: boolean;
 }
 
 const LEDGER_CATEGORIES: LedgerCategory[] = [
@@ -767,7 +769,8 @@ export const dbRuleEngine = {
             ...transaction,
             categoryId: rule.categoryId,
             categoryName: rule.categoryName,
-            memo: rule.tag || transaction.memo,
+            tag: rule.tag || transaction.tag,
+            isClassified: true,
           }
         : transaction,
     );

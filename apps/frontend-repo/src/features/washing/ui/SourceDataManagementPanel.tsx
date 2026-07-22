@@ -13,7 +13,7 @@ import {
   Title,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
-import { IconArrowsSort, IconSortAscending, IconSortDescending, IconDatabaseImport, IconFileSpreadsheet, IconSearch } from "@tabler/icons-react";
+import { IconArrowsSort, IconSortAscending, IconSortDescending, IconFileSpreadsheet, IconSearch } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Form, useActionData, useNavigation, useSubmit } from "react-router";
 import { toast } from "@/shared/ui/toast";
@@ -130,10 +130,6 @@ export function SourceDataManagementPanel() {
     setCurrentPage(1);
   };
 
-  const isImportMockSubmitting =
-    navigation.state === "submitting" &&
-    navigation.formData?.get("intent") === "import_mock";
-
   const isCategoryUpdateSubmitting = (txId: number) =>
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "update_category" &&
@@ -158,15 +154,6 @@ export function SourceDataManagementPanel() {
     if (!actionData || actionData === seenAction.current) return;
     seenAction.current = actionData;
 
-    if (actionData.intent === "import_mock") {
-      if (actionData.error) {
-        toast.error("Mock 데이터 추가에 실패했습니다.");
-      } else {
-        toast.success("Mock 데이터가 추가됐습니다.");
-        window.setTimeout(resetFilters, 0);
-      }
-    }
-
     if (actionData.intent === "update_category") {
       if (actionData.error) {
         toast.error("카테고리 저장에 실패했습니다.");
@@ -185,12 +172,6 @@ export function SourceDataManagementPanel() {
     }
   }, [actionData, resetFilters]);
 
-  const triggerImportMock = () => {
-    const formData = new FormData();
-    formData.append("intent", "import_mock");
-    submit(formData, { method: "post" });
-  };
-
   return (
     <>
       <ExcelUploadModal opened={excelModalOpened} onClose={closeExcelModal} onSuccess={resetFilters} />
@@ -202,15 +183,6 @@ export function SourceDataManagementPanel() {
               <Group gap="xs" wrap="nowrap">
                 <Button
                   variant="light"
-                  color="blue"
-                  leftSection={<IconDatabaseImport size={16} />}
-                  onClick={triggerImportMock}
-                  loading={isImportMockSubmitting}
-                >
-                  Mock 데이터 추가 적재
-                </Button>
-                <Button
-                  variant="light"
                   color="green"
                   leftSection={<IconFileSpreadsheet size={16} />}
                   onClick={openExcelModal}
@@ -220,8 +192,8 @@ export function SourceDataManagementPanel() {
               </Group>
             </Group>
             <Text size="sm" c="dimmed">
-              원천 데이터 필터링과 개별 분류 수정 흐름을 이 영역에 모아서,
-              추후 백엔드 API가 붙어도 화면 구조를 유지할 수 있게 구성했습니다.
+              실제 거래 데이터 필터링과 개별 분류 수정 흐름을 이 영역에 모았습니다.
+              카테고리와 태그 변경 사항은 백엔드 거래 API로 저장됩니다.
             </Text>
           </Stack>
 
@@ -334,8 +306,8 @@ export function SourceDataManagementPanel() {
                       <Table.Td>
                         <TextInput
                           form={`category-form-${tx.id}`}
-                          name="memo"
-                          defaultValue={tx.memo ?? ""}
+                          name="tag"
+                          defaultValue={tx.tag ?? ""}
                           placeholder="매핑 적용 규칙 또는 태그 입력"
                           readOnly={focusedMemoId !== tx.id}
                           onFocus={() => setFocusedMemoId(tx.id)}

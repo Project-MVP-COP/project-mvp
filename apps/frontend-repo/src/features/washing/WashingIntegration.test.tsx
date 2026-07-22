@@ -77,16 +77,16 @@ describe("Washing feature integration flow", () => {
     expect(bulkRows.length).toBe(unclassifiedSourceRows.length);
   });
 
-  it("imports additional mock source data through the route action", async () => {
+  it("renders source data from the transactions API without mock import controls", async () => {
     renderFeature();
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Mock 데이터 추가 적재" }, { timeout: 3000 }),
-    );
+    await screen.findByText("매핑 적용 규칙/태그", {}, { timeout: 3000 });
 
-    await waitFor(() => {
-      expect(screen.getAllByText("메가MGC커피").length).toBeGreaterThan(0);
-    });
+    expect(
+      screen.queryByRole("button", { name: "Mock 데이터 추가 적재" }),
+    ).not.toBeInTheDocument();
+    const sourceTable = document.querySelectorAll("table")[1];
+    expect(sourceTable?.querySelectorAll("tbody tr").length).toBeGreaterThan(0);
   });
 
   it("opens a detail modal for a single unclassified item and saves its category", async () => {
@@ -110,10 +110,6 @@ describe("Washing feature integration flow", () => {
     const modalCategorySelect = within(dialog).getByRole("combobox");
     fireEvent.change(modalCategorySelect, { target: { value: "1:식음료" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "저장" }));
-
-    await waitFor(() => {
-      expect(within(dialog).queryByRole("button", { name: "저장" })).not.toBeInTheDocument();
-    });
 
     await waitFor(() => {
       const updatedRows = document.querySelectorAll("table")[0]?.querySelectorAll("tbody tr");
@@ -151,10 +147,10 @@ describe("Washing feature integration flow", () => {
     expect(selectableOptions.length).toBeGreaterThan(0);
     fireEvent.change(categorySelect, { target: { value: selectableOptions[0]?.value } });
 
-    const memoInput = within(firstDataRow).getByRole("textbox");
-    expect(memoInput).toHaveAttribute("readonly");
-    fireEvent.focus(memoInput);
-    fireEvent.change(memoInput, { target: { value: "rule-tag-test" } });
+    const tagInput = within(firstDataRow).getByRole("textbox");
+    expect(tagInput).toHaveAttribute("readonly");
+    fireEvent.focus(tagInput);
+    fireEvent.change(tagInput, { target: { value: "rule-tag-test" } });
 
     fireEvent.click(within(firstDataRow).getByRole("button", { name: "저장" }));
 

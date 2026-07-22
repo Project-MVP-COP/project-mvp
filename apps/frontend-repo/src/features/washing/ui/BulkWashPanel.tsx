@@ -70,8 +70,12 @@ const detailTransactionReducer = (
 
 export function BulkWashPanel({ overview }: BulkWashPanelProps) {
   const { data: categories } = useSuspenseQuery(washingQueries.categories());
-  const categoryNames = useMemo(
-    () => categories.map((category) => category.name),
+  const categoryOptions = useMemo(
+    () =>
+      categories.map((category) => ({
+        value: `${category.id}:${category.name}`,
+        label: category.name,
+      })),
     [categories],
   );
   const submit = useSubmit();
@@ -84,24 +88,25 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
     overview.transactions,
   );
   const [selectedIds, updateSelectedIds] = useReducer(selectedIdsReducer, []);
-  const [selectedCategory, setSelectedCategory] = useState(categoryNames[0] ?? "");
+  const [selectedCategory, setSelectedCategory] = useState(
+    categoryOptions[0]?.value ?? "",
+  );
   const [detailTransaction, updateDetailTransaction] = useReducer(
     detailTransactionReducer,
     null,
   );
   const [detailCategory, setDetailCategory] = useState(
-    categoryNames[0]
-      ? buildCategoryOptionValue(categoryNames[0], categories)
-      : "",
+    categoryOptions[0]?.value ?? "",
   );
 
   const selectedCategoryValue =
-    selectedCategory && categoryNames.includes(selectedCategory)
+    selectedCategory &&
+    categoryOptions.some((option) => option.value === selectedCategory)
       ? selectedCategory
-      : (categoryNames[0] ?? "");
+      : (categoryOptions[0]?.value ?? "");
   const defaultDetailCategory = detailTransaction
     ? buildCategoryOptionValue(
-      detailTransaction.category ?? categoryNames[0] ?? "",
+      detailTransaction.category ?? categoryOptions[0]?.label ?? "",
       categories,
     )
     : "";
@@ -186,7 +191,7 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
     updateDetailTransaction(transaction);
     setDetailCategory(
       buildCategoryOptionValue(
-        transaction.category ?? categoryNames[0] ?? "",
+        transaction.category ?? categoryOptions[0]?.label ?? "",
         categories,
       ),
     );
@@ -213,7 +218,7 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
             <input type="hidden" name="intent" value="update_category" />
             <input type="hidden" name="origin" value="bulk-detail" />
             <input type="hidden" name="id" value={detailTransaction.id} />
-            <input type="hidden" name="memo" value={detailTransaction.description} />
+            <input type="hidden" name="tag" value={detailTransaction.tag} />
             <Stack gap="md">
             <Stack gap={6}>
               <Group justify="space-between">
@@ -399,7 +404,7 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
                 label="일괄 적용 카테고리"
                 value={selectedCategoryValue}
                 onChange={(event) => setSelectedCategory(event.currentTarget.value)}
-                data={categoryNames}
+                data={categoryOptions}
               />
               <Button
                 leftSection={<IconWashDryclean size={16} />}

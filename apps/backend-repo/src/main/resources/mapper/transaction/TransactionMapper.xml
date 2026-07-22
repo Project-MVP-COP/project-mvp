@@ -45,6 +45,13 @@
                 CASE WHEN #{categoryId,jdbcType=BIGINT} IS NULL THEN FALSE ELSE TRUE END)
     </insert>
 
+    <insert id="insertIgnoreDuplicate" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO transactions (user_id, transaction_date, merchant, category_id, amount, card_name, installment, status, memo, tag, is_classified)
+        VALUES (#{userId}, CAST(#{transactionDate} AS DATE), #{merchant}, #{categoryId,jdbcType=BIGINT}, #{amount}, #{cardName}, #{installment}, #{status}, #{memo}, #{tag},
+                CASE WHEN #{categoryId,jdbcType=BIGINT} IS NULL THEN FALSE ELSE TRUE END)
+        ON CONFLICT DO NOTHING
+    </insert>
+
     <update id="update">
         UPDATE transactions
         SET transaction_date = CAST(#{transactionDate} AS DATE),

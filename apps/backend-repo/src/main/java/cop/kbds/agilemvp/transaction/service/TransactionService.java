@@ -13,7 +13,6 @@ import cop.kbds.agilemvp.transaction.controller.TransactionPageResult;
 import cop.kbds.agilemvp.transaction.controller.TransactionSearchDto;
 import cop.kbds.agilemvp.transaction.controller.TransactionSummaryDto;
 import cop.kbds.agilemvp.transaction.repository.TransactionRepository;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,10 +92,9 @@ public class TransactionService {
             }
             dto.setTag(TagUtil.normalize(dto.getTag()));
             syncClassifiedFlag(dto);
-            try {
-                transactionRepository.insert(dto);
+            if (transactionRepository.insertIgnoreDuplicate(dto)) {
                 added.add(dto);
-            } catch (DataIntegrityViolationException e) {
+            } else {
                 skippedCount++;
             }
         }

@@ -18,6 +18,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     @Override public TransactionSummaryDto searchSummary(TransactionSearchDto p) { return transactionMapper.searchSummary(p); }
     @Override public TransactionDto        findById(Long id)                     { return transactionMapper.findById(id); }
     @Override public void insert(TransactionDto dto)                             { transactionMapper.insert(dto); }
+    @Override public boolean insertIgnoreDuplicate(TransactionDto dto)            { return transactionMapper.insertIgnoreDuplicate(dto) > 0; }
     @Override public void update(TransactionDto dto)                             { transactionMapper.update(dto); }
     @Override public void updateCategory(Long id, Long categoryId, String tag)    { transactionMapper.updateCategory(id, categoryId, tag); }
     @Override public void updateTag(Long id, String tag)                         { transactionMapper.updateTag(id, tag); }

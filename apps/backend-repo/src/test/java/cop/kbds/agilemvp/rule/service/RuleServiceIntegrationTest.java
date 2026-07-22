@@ -233,6 +233,41 @@ class RuleServiceIntegrationTest {
         assertThat(transaction.get("APPLIED_RULE_ID")).isNotNull();
     }
 
+    @Test
+    @DisplayName("엑셀 일괄 업로드는 기존 중복 거래를 건너뛰고 신규 거래를 저장한다")
+    void addBulk_WithExistingDuplicate_SkipsDuplicateAndAddsRemainingTransactions() {
+        Long userId = createUser("bulk-duplicate-user", "일괄중복유저");
+        insertTransaction(userId, "2026-07-10", "메가MGC커피", null, 3900L, null, false);
+
+        List<TransactionDto> transactions = List.of(
+                TransactionDto.builder()
+                        .transactionDate("2026-07-10")
+                        .merchant("메가MGC커피")
+                        .amount(3900L)
+                        .cardName("테스트카드")
+                        .installment(1)
+                        .status("승인")
+                        .build(),
+                TransactionDto.builder()
+                        .transactionDate("2026-07-11")
+                        .merchant("신규가맹점")
+                        .amount(12000L)
+                        .cardName("테스트카드")
+                        .installment(1)
+                        .status("승인")
+                        .build()
+        );
+
+        BulkUploadResult result = transactionService.addBulk(transactions, userId);
+
+        assertThat(result.skippedCount()).isEqualTo(1);
+        assertThat(result.added()).hasSize(1);
+        assertThat(result.added().getFirst().getMerchant()).isEqualTo("신규가맹점");
+        assertThat(transactionService.findAll(userId))
+                .extracting(TransactionDto::getMerchant)
+                .containsExactlyInAnyOrder("메가MGC커피", "신규가맹점");
+    }
+
     private Long createUser(String loginId, String nickname) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {

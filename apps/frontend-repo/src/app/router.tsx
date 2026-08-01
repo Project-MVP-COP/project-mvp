@@ -41,11 +41,13 @@ export const router = createBrowserRouter([
     path: "/login",
     element: <LoginPage />,
     action: loginAction(),
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/register",
     element: <RegisterPage />,
     action: registerAction(),
+    errorElement: <ErrorBoundary />,
   },
   
   // 2. 인증 가드가 탑재된 공통 레이아웃 보호 영역 라우트
@@ -57,7 +59,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/sample" replace />,
+        element: <Navigate to="/washing" replace />,
       },
       {
         path: "sample",

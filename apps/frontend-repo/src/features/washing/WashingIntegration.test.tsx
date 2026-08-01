@@ -77,16 +77,11 @@ describe("Washing feature integration flow", () => {
     expect(bulkRows.length).toBe(unclassifiedSourceRows.length);
   });
 
-  it("imports additional mock source data through the route action", async () => {
+  it("does not expose the mock import button", async () => {
     renderFeature();
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Mock 데이터 추가 적재" }, { timeout: 3000 }),
-    );
-
-    await waitFor(() => {
-      expect(screen.getAllByText("메가MGC커피").length).toBeGreaterThan(0);
-    });
+    await screen.findByText("매핑 적용 규칙/태그", {}, { timeout: 3000 });
+    expect(screen.queryByRole("button", { name: "Mock 데이터 추가 적재" })).not.toBeInTheDocument();
   });
 
   it("opens a detail modal for a single unclassified item and saves its category", async () => {
@@ -140,7 +135,7 @@ describe("Washing feature integration flow", () => {
     expect(sourceTable).toBeDefined();
     if (!sourceTable) throw new Error("Expected source data table");
 
-    const firstDataRow = sourceTable.querySelector("tbody tr");
+    const firstDataRow = sourceTable.querySelector<HTMLElement>("tbody tr");
     expect(firstDataRow).not.toBeNull();
     if (!firstDataRow) throw new Error("Expected source data row");
 

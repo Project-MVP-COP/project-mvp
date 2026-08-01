@@ -14,7 +14,7 @@ import {
   Title,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
-import { IconArrowsSort, IconSortAscending, IconSortDescending, IconDatabaseImport, IconFileSpreadsheet, IconSearch } from "@tabler/icons-react";
+import { IconArrowsSort, IconSortAscending, IconSortDescending, IconFileSpreadsheet, IconSearch } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Form, useActionData, useNavigation, useSubmit } from "react-router";
 import { toast } from "@/shared/ui/toast";
@@ -131,10 +131,6 @@ export function SourceDataManagementPanel() {
     setCurrentPage(1);
   };
 
-  const isImportMockSubmitting =
-    navigation.state === "submitting" &&
-    navigation.formData?.get("intent") === "import_mock";
-
   const isCategoryUpdateSubmitting = (txId: number) =>
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "update_category" &&
@@ -186,12 +182,6 @@ export function SourceDataManagementPanel() {
     }
   }, [actionData, resetFilters]);
 
-  const triggerImportMock = () => {
-    const formData = new FormData();
-    formData.append("intent", "import_mock");
-    submit(formData, { method: "post" });
-  };
-
   return (
     <>
       <ExcelUploadModal opened={excelModalOpened} onClose={closeExcelModal} onSuccess={resetFilters} />
@@ -203,10 +193,10 @@ export function SourceDataManagementPanel() {
               <Group gap="xs" wrap="nowrap">
                 <Button
                   variant="light"
-                  color="blue"
-                  leftSection={<IconDatabaseImport size={16} />}
-                  onClick={triggerImportMock}
-                  loading={isImportMockSubmitting}
+                  color="green"
+                  leftSection={<IconFileSpreadsheet size={16} />}
+                  onClick={openExcelModal}
+                  style={{ display: "none" }}
                 >
                   Mock 데이터 추가 적재
                 </Button>

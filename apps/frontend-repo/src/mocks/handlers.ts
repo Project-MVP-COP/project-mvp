@@ -79,12 +79,12 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.get("/api/washing/overview", async () => {
+  http.get("/api/transactions/overview", async () => {
     if (!IS_TEST) await delay();
     return HttpResponse.json(dbWashing.getOverview());
   }),
 
-  http.post("/api/washing/bulk-classify", async ({ request }) => {
+  http.post("/api/transactions/bulk-classify", async ({ request }) => {
     if (!IS_TEST) await delay();
     const body = (await request.json()) as {
       ids?: number[];
@@ -98,7 +98,7 @@ export const handlers = [
           title: "Bad Request",
           status: 400,
           detail: "일괄 세척 대상과 카테고리가 필요합니다.",
-          instance: "/api/washing/bulk-classify",
+          instance: "/api/transactions/bulk-classify",
           errorCode: "WASH001",
         },
         { status: 400 },
@@ -123,12 +123,20 @@ export const handlers = [
   }),
 
   http.patch(
-    "/api/washing/transactions/:id/category",
+    "/api/transactions/:id/category",
     async ({ params, request }) => {
       if (!IS_TEST) await delay();
       const id = Number(params.id);
-      const body = (await request.json()) as { category?: string | null };
-      const updated = dbWashing.updateCategory(id, body.category ?? null);
+      const body = (await request.json()) as {
+        category?: string | null;
+        categoryId?: number | null;
+      };
+      const matchedCategory =
+        body.categoryId == null
+          ? null
+          : dbLedger.getCategories().find((category) => category.id === body.categoryId) ?? null;
+      const nextCategory = body.category ?? matchedCategory?.name ?? null;
+      const updated = dbWashing.updateCategory(id, nextCategory);
 
       if (!updated) {
         return new HttpResponse(null, { status: 404 });
@@ -138,7 +146,7 @@ export const handlers = [
     },
   ),
 
-  http.post("/api/washing/import-mock", async () => {
+  http.post("/api/transactions/import-mock", async () => {
     if (!IS_TEST) await delay();
     const today = new Date().toISOString().slice(0, 10);
     const mockItems: Omit<import("./db").LedgerTransaction, "id">[] = [

@@ -12,8 +12,30 @@ import type {
 } from "@/features/washing/model/types";
 
 export const fetchWashingOverview = async (): Promise<WashingOverview> => {
-  const { data } = await api.get("/api/washing/overview");
-  return WashingOverviewSchema.parse(data);
+  const [transactionsResponse, categoriesResponse] = await Promise.all([
+    api.get("/api/transactions"),
+    api.get("/api/categories"),
+  ]);
+  const transactions = TransactionDtoListSchema.parse(transactionsResponse.data);
+  const categories = CategoryDtoListSchema.parse(categoriesResponse.data);
+
+  return WashingOverviewSchema.parse({
+    categories: categories.map((category) => category.name),
+    transactions: transactions.map((transaction) => ({
+      id: transaction.id,
+      occurredAt: transaction.transactionDate,
+      merchantName: transaction.merchant,
+      description: transaction.memo ?? "",
+      cardLabel: transaction.cardName,
+      amount: transaction.amount,
+      category: transaction.categoryName ?? null,
+      isClassified: transaction.categoryId != null || !!transaction.categoryName,
+      matchedRuleLabel: transaction.memo ?? null,
+      tag: transaction.memo ?? "manual pending",
+      source: "CARD",
+    })),
+    lastImportedAt: new Date().toISOString(),
+  });
 };
 
 export const fetchTransactions = async (): Promise<TransactionDto[]> => {

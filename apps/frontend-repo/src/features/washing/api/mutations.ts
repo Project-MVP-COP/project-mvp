@@ -1,5 +1,9 @@
 import { api } from "@/shared/api/axios";
-import { BulkAddResponseSchema, TransactionDtoListSchema } from "@/features/washing/model/schemas";
+import {
+  BulkAddResponseSchema,
+  CategoryDtoListSchema,
+  TransactionDtoListSchema,
+} from "@/features/washing/model/schemas";
 import type {
   BulkAddResponse,
   BulkWashRequest,
@@ -7,12 +11,27 @@ import type {
 } from "@/features/washing/model/types";
 
 export const applyBulkWash = async (payload: BulkWashRequest) => {
-  const { data } = await api.post("/api/washing/bulk-classify", payload);
-  return data;
+  const { data: categoriesData } = await api.get("/api/categories");
+  const categories = CategoryDtoListSchema.parse(categoriesData);
+  const matchedCategory = categories.find((category) => category.name === payload.category);
+
+  if (!matchedCategory) {
+    throw new Error(`Unknown category: ${payload.category}`);
+  }
+
+  const results = await Promise.all(
+    payload.ids.map((id) =>
+      api.patch(`/api/transactions/${id}/category`, {
+        categoryId: matchedCategory.id,
+      }),
+    ),
+  );
+
+  return results.map((result) => result.data);
 };
 
 export const importMockTransactions = async () => {
-  const { data } = await api.post("/api/washing/import-mock");
+  const { data } = await api.post("/api/transactions/import-mock");
   return data;
 };
 

@@ -305,7 +305,7 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
             </Badge>
           </Group>
 
-          <ScrollArea>
+          <ScrollArea h={320} type="auto">
             <Table highlightOnHover verticalSpacing="sm" horizontalSpacing="md">
               <Table.Thead>
                 <Table.Tr>

@@ -30,8 +30,10 @@ export const TransactionDtoSchema = z.object({
   amount: z.number(),
   cardName: z.string(),
   installment: z.number(),
-  status: z.enum(["승인", "취소"]),
+  status: z.string(),
   memo: z.string().nullable().optional(),
+  tag: z.string().nullable().optional(),
+  isClassified: z.boolean().optional(),
 });
 
 export const TransactionDtoListSchema = z.array(TransactionDtoSchema);

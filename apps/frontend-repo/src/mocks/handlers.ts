@@ -136,7 +136,11 @@ export const handlers = [
           ? null
           : dbLedger.getCategories().find((category) => category.id === body.categoryId) ?? null;
       const nextCategory = body.category ?? matchedCategory?.name ?? null;
-      const updated = dbWashing.updateCategory(id, nextCategory);
+      const updated = dbLedger.update(id, {
+        categoryId: body.categoryId ?? null,
+        categoryName: nextCategory,
+        isClassified: body.categoryId != null,
+      });
 
       if (!updated) {
         return new HttpResponse(null, { status: 404 });
@@ -145,6 +149,25 @@ export const handlers = [
       return HttpResponse.json(updated);
     },
   ),
+
+  http.patch("/api/transactions/:id/tag", async ({ params, request }) => {
+    if (!IS_TEST) await delay();
+    const id = Number(params.id);
+    const body = (await request.json()) as { tag?: string | null };
+    const normalizedTag =
+      body.tag && body.tag.trim()
+        ? body.tag.trim().startsWith("#")
+          ? body.tag.trim()
+          : `#${body.tag.trim()}`
+        : null;
+    const updated = dbLedger.update(id, { tag: normalizedTag });
+
+    if (!updated) {
+      return new HttpResponse(null, { status: 404 });
+    }
+
+    return HttpResponse.json(updated);
+  }),
 
   http.post("/api/transactions/import-mock", async () => {
     if (!IS_TEST) await delay();

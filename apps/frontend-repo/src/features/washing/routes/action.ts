@@ -3,8 +3,9 @@ import { fetchTransactionById } from "@/features/washing/api/fetchers";
 import {
   applyBulkWash,
   deleteTransaction,
-  importMockTransactions,
   updateTransaction,
+  updateTransactionCategory,
+  updateTransactionTag,
 } from "@/features/washing/api/mutations";
 import { washingKeys } from "@/features/washing/api/queries";
 import { parseWashingCommand } from "@/features/washing/model/core";
@@ -26,19 +27,22 @@ export const action =
           return { intent: "bulk_wash", count: command.payload.ids.length };
         case "update_category": {
           const tx = await fetchTransactionById(command.id);
-          await updateTransaction(command.id, {
-            ...tx,
-            categoryId: command.categoryId,
-            categoryName: command.categoryName,
-            memo: command.memo,
-          });
+          if (command.categoryId == null) {
+            await updateTransaction(command.id, {
+              ...tx,
+              categoryId: null,
+              categoryName: null,
+              isClassified: false,
+            });
+          } else if (tx.categoryId !== command.categoryId) {
+            await updateTransactionCategory(command.id, command.categoryId);
+          }
+          if ((tx.tag ?? null) !== command.tag) {
+            await updateTransactionTag(command.id, command.tag);
+          }
           await queryClient.invalidateQueries({ queryKey: washingKeys.all });
           return { intent: "update_category" };
         }
-        case "import_mock":
-          await importMockTransactions();
-          await queryClient.invalidateQueries({ queryKey: washingKeys.all });
-          return { intent: "import_mock" };
         case "delete_transaction":
           await deleteTransaction(command.id);
           await queryClient.invalidateQueries({ queryKey: washingKeys.all });

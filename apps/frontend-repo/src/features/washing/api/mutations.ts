@@ -1,7 +1,6 @@
 import { api } from "@/shared/api/axios";
 import {
   BulkAddResponseSchema,
-  CategoryDtoListSchema,
   TransactionDtoListSchema,
 } from "@/features/washing/model/schemas";
 import type {
@@ -11,18 +10,10 @@ import type {
 } from "@/features/washing/model/types";
 
 export const applyBulkWash = async (payload: BulkWashRequest) => {
-  const { data: categoriesData } = await api.get("/api/categories");
-  const categories = CategoryDtoListSchema.parse(categoriesData);
-  const matchedCategory = categories.find((category) => category.name === payload.category);
-
-  if (!matchedCategory) {
-    throw new Error(`Unknown category: ${payload.category}`);
-  }
-
   const results = await Promise.all(
     payload.ids.map((id) =>
       api.patch(`/api/transactions/${id}/category`, {
-        categoryId: matchedCategory.id,
+        categoryId: payload.categoryId,
       }),
     ),
   );
@@ -30,13 +21,28 @@ export const applyBulkWash = async (payload: BulkWashRequest) => {
   return results.map((result) => result.data);
 };
 
-export const importMockTransactions = async () => {
-  const { data } = await api.post("/api/transactions/import-mock");
+export const updateTransaction = async (id: number, payload: TransactionDto) => {
+  const { data } = await api.put(`/api/transactions/${id}`, payload);
   return data;
 };
 
-export const updateTransaction = async (id: number, payload: TransactionDto) => {
-  const { data } = await api.put(`/api/transactions/${id}`, payload);
+export const updateTransactionCategory = async (
+  id: number,
+  categoryId: number,
+) => {
+  const { data } = await api.patch(`/api/transactions/${id}/category`, {
+    categoryId,
+  });
+  return data;
+};
+
+export const updateTransactionTag = async (
+  id: number,
+  tag: string | null,
+) => {
+  const { data } = await api.patch(`/api/transactions/${id}/tag`, {
+    tag,
+  });
   return data;
 };
 

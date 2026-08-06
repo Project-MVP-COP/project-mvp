@@ -84,7 +84,9 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
     overview.transactions,
   );
   const [selectedIds, updateSelectedIds] = useReducer(selectedIdsReducer, []);
-  const [selectedCategory, setSelectedCategory] = useState(categoryNames[0] ?? "");
+  const [selectedCategory, setSelectedCategory] = useState(
+    categories[0] ? `${categories[0].id}:${categories[0].name}` : "",
+  );
   const [detailTransaction, updateDetailTransaction] = useReducer(
     detailTransactionReducer,
     null,
@@ -95,10 +97,15 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
       : "",
   );
 
+  const bulkCategoryOptions = categories.map((category) => ({
+    value: `${category.id}:${category.name}`,
+    label: category.name,
+  }));
   const selectedCategoryValue =
-    selectedCategory && categoryNames.includes(selectedCategory)
+    selectedCategory &&
+    bulkCategoryOptions.some((option) => option.value === selectedCategory)
       ? selectedCategory
-      : (categoryNames[0] ?? "");
+      : (bulkCategoryOptions[0]?.value ?? "");
   const defaultDetailCategory = detailTransaction
     ? buildCategoryOptionValue(
       detailTransaction.category ?? categoryNames[0] ?? "",
@@ -208,12 +215,13 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
             method="post"
             onSubmit={() => {
               detailSubmitIdRef.current = detailTransaction.id;
+              updateDetailTransaction(null);
             }}
           >
             <input type="hidden" name="intent" value="update_category" />
             <input type="hidden" name="origin" value="bulk-detail" />
             <input type="hidden" name="id" value={detailTransaction.id} />
-            <input type="hidden" name="memo" value={detailTransaction.description} />
+            <input type="hidden" name="tag" value={detailTransaction.tag} />
             <Stack gap="md">
             <Stack gap={6}>
               <Group justify="space-between">
@@ -399,7 +407,7 @@ export function BulkWashPanel({ overview }: BulkWashPanelProps) {
                 label="일괄 적용 카테고리"
                 value={selectedCategoryValue}
                 onChange={(event) => setSelectedCategory(event.currentTarget.value)}
-                data={categoryNames}
+                data={bulkCategoryOptions}
               />
               <Button
                 leftSection={<IconWashDryclean size={16} />}

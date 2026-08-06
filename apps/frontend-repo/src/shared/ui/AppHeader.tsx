@@ -30,16 +30,25 @@ import {
   IconSun,
   IconTool,
 } from "@tabler/icons-react";
+import type { ForwardRefExoticComponent, RefAttributes } from "react";
 import { useState } from "react";
+import type { IconProps } from "@tabler/icons-react";
 
 const userAvatarDefault =
   "https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-5.png";
 
-const navTabs = [
+interface NavTab {
+  label: string;
+  value: string;
+  icon: ForwardRefExoticComponent<IconProps & RefAttributes<SVGSVGElement>>;
+  disabled?: boolean;
+}
+
+const navTabs: NavTab[] = [
   { label: "내역 세척 및 관리", value: "/washing", icon: IconBrush },
   { label: "규칙 엔진 빌더", value: "/rules", icon: IconTool },
-  { label: "피벗 분석", value: "/pivot", icon: IconLayoutGrid, disabled: true },
-  { label: "미래 가치 시뮬레이터", value: "/sim", icon: IconChartLine, disabled: true },
+  { label: "피벗 분석", value: "/pivot", icon: IconLayoutGrid },
+  { label: "미래 가치 시뮬레이터", value: "/sim", icon: IconChartLine },
   { label: "샘플", value: "/sample", icon: IconSparkles },
 ];
 

@@ -24,8 +24,16 @@ export const createRule = async (
   await api.post("/api/rules", payload);
 };
 
-export const deleteRule = async (id: number) => {
-  await api.delete(`/api/rules/${id}`);
+export const deleteRule = async ({
+  id,
+  restoreTransactions,
+}: {
+  id: number;
+  restoreTransactions: boolean;
+}): Promise<void> => {
+  await api.delete(`/api/rules/${id}`, {
+    params: { restoreTransactions },
+  });
 };
 
 export const createCategory = async (

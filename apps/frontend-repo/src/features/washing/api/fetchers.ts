@@ -29,9 +29,11 @@ export const fetchWashingOverview = async (): Promise<WashingOverview> => {
       cardLabel: transaction.cardName,
       amount: transaction.amount,
       category: transaction.categoryName ?? null,
-      isClassified: transaction.categoryId != null || !!transaction.categoryName,
-      matchedRuleLabel: transaction.memo ?? null,
-      tag: transaction.memo ?? "manual pending",
+      isClassified:
+        transaction.isClassified ??
+        (transaction.categoryId != null || !!transaction.categoryName),
+      matchedRuleLabel: transaction.tag ?? null,
+      tag: transaction.tag ?? "",
       source: "CARD",
     })),
     lastImportedAt: new Date().toISOString(),

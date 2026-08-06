@@ -3,6 +3,7 @@
   Alert,
   Badge,
   Button,
+  Checkbox,
   ColorInput,
   ColorPicker,
   ColorSwatch,
@@ -316,9 +317,16 @@ export function RuleEngineBuilderPanel({
 
   const deleteRuleMutation = useMutation({
     mutationFn: deleteRule,
-    onSuccess: async () => {
+    onSuccess: async (_, variables) => {
       await invalidateRuleQueries();
-      toast.success("매핑 규칙을 삭제했습니다.");
+      if (variables.restoreTransactions) {
+        onRuleApplied?.();
+      }
+      toast.success(
+        variables.restoreTransactions
+          ? "매핑 규칙을 삭제하고 적용 거래를 미분류로 복원했습니다."
+          : "매핑 규칙을 삭제했습니다.",
+      );
     },
   });
 
@@ -378,6 +386,39 @@ export function RuleEngineBuilderPanel({
       labels: { confirm: "삭제", cancel: "취소" },
       confirmProps: { color: "red" },
       onConfirm: () => deleteCategoryMutation.mutate(categoryToRemove.id),
+    });
+  };
+
+  const confirmDeleteRule = (rule: {
+    id: number;
+    keyword: string;
+    appliedCount: number;
+  }) => {
+    let restoreTransactions = false;
+
+    modals.openConfirmModal({
+      title: "규칙 삭제",
+      children: (
+        <Stack gap="sm">
+          <Text size="sm">
+            "{rule.keyword}" 규칙을 삭제할까요?
+          </Text>
+          <Checkbox
+            label="이 규칙으로 분류된 거래를 미분류 상태로 복원"
+            description={`${rule.appliedCount}건의 현재 적용 거래가 대상이 될 수 있습니다.`}
+            onChange={(event) => {
+              restoreTransactions = event.currentTarget.checked;
+            }}
+          />
+        </Stack>
+      ),
+      labels: { confirm: "삭제", cancel: "취소" },
+      confirmProps: { color: "red" },
+      onConfirm: () =>
+        deleteRuleMutation.mutate({
+          id: rule.id,
+          restoreTransactions,
+        }),
     });
   };
 
@@ -598,8 +639,16 @@ export function RuleEngineBuilderPanel({
                           </Badge>
                         </Group>
                         <Text size="xs" c="dimmed">
-                          예시: {suggestion.exampleMerchant} · 합계 {formatAmount(suggestion.totalAmount)}원
+                          예시: {suggestion.exampleMerchant}
                         </Text>
+                        <Group gap="xs">
+                          <Text size="xs" c="dimmed" fw={700}>
+                            추천 카테고리
+                          </Text>
+                          <Badge variant="light" color="orange">
+                            {suggestion.recommendedCategoryName}
+                          </Badge>
+                        </Group>
                       </Stack>
                       <Button size="xs" color="teal" onClick={() => applySuggestion(suggestion)}>
                         규칙 만들기
@@ -791,19 +840,7 @@ export function RuleEngineBuilderPanel({
                             variant="subtle"
                             color="gray"
                             loading={deleteRuleMutation.isPending}
-                            onClick={() =>
-                              modals.openConfirmModal({
-                                title: "규칙 삭제",
-                                children: (
-                                  <Text size="sm">
-                                    "{rule.keyword}" 규칙을 삭제할까요?
-                                  </Text>
-                                ),
-                                labels: { confirm: "삭제", cancel: "취소" },
-                                confirmProps: { color: "red" },
-                                onConfirm: () => deleteRuleMutation.mutate(rule.id),
-                              })
-                            }
+                            onClick={() => confirmDeleteRule(rule)}
                             aria-label={`${rule.keyword} 규칙 삭제`}
                           >
                             <IconTrash size={16} />

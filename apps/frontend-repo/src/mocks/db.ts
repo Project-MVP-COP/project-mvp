@@ -214,7 +214,7 @@ const inferWashingSource = (
   cardName === "????" ? "BANK" : "CARD";
 
 const isLedgerTransactionClassified = (tx: LedgerTransaction) =>
-  tx.categoryId != null || !!tx.categoryName;
+  tx.isClassified ?? (tx.categoryId != null || !!tx.categoryName);
 
 const buildWashingTransactionFromLedger = (
   tx: LedgerTransaction,
@@ -234,6 +234,7 @@ const buildWashingTransactionFromLedger = (
     isClassified,
     matchedRuleLabel: previous?.matchedRuleLabel ?? seed?.matchedRuleLabel ?? null,
     tag:
+      tx.tag ??
       previous?.tag ??
       seed?.tag ??
       (isClassified ? "?? ??" : "?? ?? ??"),
@@ -403,6 +404,8 @@ export interface LedgerTransaction {
   installment: number;
   status: "승인" | "취소";
   memo: string | null;
+  tag?: string | null;
+  isClassified?: boolean;
 }
 
 const LEDGER_CATEGORIES: LedgerCategory[] = [
@@ -619,9 +622,20 @@ const guessRuleCategory = (keyword: string) => {
   const lowerKeyword = keyword.toLowerCase();
   if (
     lowerKeyword.includes("스타벅스") ||
+    lowerKeyword.includes("빽다방") ||
     lowerKeyword.includes("커피") ||
     lowerKeyword.includes("카페") ||
-    lowerKeyword.includes("메가")
+    lowerKeyword.includes("메가") ||
+    lowerKeyword.includes("이디야")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("음료")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  if (
+    lowerKeyword.includes("배달의민족") ||
+    lowerKeyword.includes("요기요") ||
+    lowerKeyword.includes("쿠팡이츠") ||
+    lowerKeyword.includes("마켓컬리")
   ) {
     return LEDGER_CATEGORIES.find((category) => category.name.includes("음료")) ??
       LEDGER_CATEGORIES[0];
@@ -636,6 +650,9 @@ const guessRuleCategory = (keyword: string) => {
   }
   if (
     lowerKeyword.includes("넷플") ||
+    lowerKeyword.includes("멜론") ||
+    lowerKeyword.includes("디즈니플러스") ||
+    lowerKeyword.includes("유튜브프리미엄") ||
     lowerKeyword.includes("cgv") ||
     lowerKeyword.includes("영화")
   ) {
@@ -644,11 +661,27 @@ const guessRuleCategory = (keyword: string) => {
   }
   if (
     lowerKeyword.includes("쿠팡") ||
+    lowerKeyword.includes("11번가") ||
+    lowerKeyword.includes("g마켓") ||
+    lowerKeyword.includes("무신사")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("쇼핑")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  if (
+    lowerKeyword.includes("교보문고") ||
+    lowerKeyword.includes("클래스") ||
+    lowerKeyword.includes("예스24")
+  ) {
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("교육")) ??
+      LEDGER_CATEGORIES[0];
+  }
+  if (
     lowerKeyword.includes("이마트") ||
     lowerKeyword.includes("gs25") ||
     lowerKeyword.includes("cu")
   ) {
-    return LEDGER_CATEGORIES.find((category) => category.name.includes("생활")) ??
+    return LEDGER_CATEGORIES.find((category) => category.name.includes("편의점")) ??
       LEDGER_CATEGORIES[0];
   }
   return LEDGER_CATEGORIES[0];
@@ -767,7 +800,8 @@ export const dbRuleEngine = {
             ...transaction,
             categoryId: rule.categoryId,
             categoryName: rule.categoryName,
-            memo: rule.tag || transaction.memo,
+            tag: rule.tag,
+            isClassified: true,
           }
         : transaction,
     );

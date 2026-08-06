@@ -154,15 +154,6 @@ export function SourceDataManagementPanel() {
     if (!actionData || actionData === seenAction.current) return;
     seenAction.current = actionData;
 
-    if (actionData.intent === "import_mock") {
-      if (actionData.error) {
-        toast.error("Mock 데이터 추가에 실패했습니다.");
-      } else {
-        toast.success("Mock 데이터가 추가됐습니다.");
-        window.setTimeout(resetFilters, 0);
-      }
-    }
-
     if (actionData.intent === "update_category") {
       if (actionData.error) {
         toast.error("카테고리 저장에 실패했습니다.");
@@ -195,23 +186,14 @@ export function SourceDataManagementPanel() {
                   color="green"
                   leftSection={<IconFileSpreadsheet size={16} />}
                   onClick={openExcelModal}
-                  style={{ display: "none" }}
-                >
-                  Mock 데이터 추가 적재
-                </Button>
-                <Button
-                  variant="light"
-                  color="green"
-                  leftSection={<IconFileSpreadsheet size={16} />}
-                  onClick={openExcelModal}
                 >
                   엑셀 업로드
                 </Button>
               </Group>
             </Group>
             <Text size="sm" c="dimmed">
-              원천 데이터 필터링과 개별 분류 수정 흐름을 이 영역에 모아서,
-              추후 백엔드 API가 붙어도 화면 구조를 유지할 수 있게 구성했습니다.
+              원천 데이터 필터링과 개별 분류 수정 흐름을 이 영역에 모았습니다.
+              카테고리와 태그 변경 사항은 저장 즉시 거래 데이터에 반영됩니다.
             </Text>
           </Stack>
 
@@ -324,8 +306,8 @@ export function SourceDataManagementPanel() {
                       <Table.Td>
                         <TextInput
                           form={`category-form-${tx.id}`}
-                          name="memo"
-                          defaultValue={tx.memo ?? ""}
+                          name="tag"
+                          defaultValue={tx.tag ?? ""}
                           placeholder="매핑 적용 규칙 또는 태그 입력"
                           readOnly={focusedMemoId !== tx.id}
                           onFocus={() => setFocusedMemoId(tx.id)}

@@ -12,9 +12,8 @@ export type WashingCommand =
       id: number;
       categoryId: number | null;
       categoryName: string | null;
-      memo: string | null;
+      tag: string | null;
     }
-  | { type: "import_mock" }
   | { type: "delete_transaction"; id: number }
   | { type: "unknown" };
 
@@ -29,35 +28,27 @@ export const parseWashingCommand = (formData: FormData): WashingCommand => {
 
   switch (intent) {
     case "bulk_wash":
-      return {
-        type: "bulk_wash",
-        payload: {
-          ids: extractNumberList(formData, "ids"),
-          category: extractString(formData, "category"),
-        },
-      };
-    case "update_category": {
-      const catRaw = (formData.get("category") as string) ?? "";
-      let categoryId: number | null = null;
-      let categoryName: string | null = null;
-      if (catRaw !== "") {
-        const colonIdx = catRaw.indexOf(":");
-        if (colonIdx !== -1) {
-          const parsedId = Number(catRaw.substring(0, colonIdx));
-          categoryId = parsedId === 0 ? null : parsedId;
-          categoryName = catRaw.substring(colonIdx + 1) || null;
-        }
+      {
+        const category = parseCategoryValue(extractString(formData, "category"));
+        return {
+          type: "bulk_wash",
+          payload: {
+            ids: extractNumberList(formData, "ids"),
+            categoryId: category.id ?? 0,
+            categoryName: category.name ?? "",
+          },
+        };
       }
+    case "update_category": {
+      const category = parseCategoryValue(extractString(formData, "category"));
       return {
         type: "update_category",
         id: extractNumber(formData, "id"),
-        categoryId,
-        categoryName,
-        memo: normalizeCategory(formData.get("memo")),
+        categoryId: category.id,
+        categoryName: category.name,
+        tag: normalizeCategory(formData.get("tag")),
       };
     }
-    case "import_mock":
-      return { type: "import_mock" };
     case "delete_transaction":
       return { type: "delete_transaction", id: extractNumber(formData, "id") };
     default:
@@ -138,3 +129,23 @@ const extractNumberList = (formData: FormData, key: string) =>
     .split(",")
     .map((value) => Number(value.trim()))
     .filter((value) => Number.isFinite(value));
+
+const parseCategoryValue = (value: string) => {
+  const normalized = value.trim();
+  if (!normalized) {
+    return { id: null, name: null };
+  }
+
+  const colonIndex = normalized.indexOf(":");
+  if (colonIndex === -1) {
+    return { id: null, name: normalized };
+  }
+
+  const parsedId = Number(normalized.slice(0, colonIndex));
+  const parsedName = normalized.slice(colonIndex + 1).trim();
+
+  return {
+    id: parsedId === 0 || !Number.isFinite(parsedId) ? null : parsedId,
+    name: parsedName || null,
+  };
+};

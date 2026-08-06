@@ -15,7 +15,8 @@ export type BulkAddResponse = z.infer<typeof BulkAddResponseSchema>;
 
 export interface BulkWashRequest {
   ids: number[];
-  category: string;
+  categoryId: number;
+  categoryName: string;
 }
 
 export interface WashingFilters {
@@ -27,6 +28,5 @@ export interface WashingFilters {
 export type ActionResult =
   | { intent: "bulk_wash"; count: number; error?: never }
   | { intent: "update_category"; error?: never }
-  | { intent: "import_mock"; error?: never }
   | { intent: "delete_transaction"; error?: never }
   | { intent: string; error: true };

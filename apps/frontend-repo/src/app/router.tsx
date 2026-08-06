@@ -11,6 +11,7 @@ import { loader as washingLoader } from "@/features/washing/routes/loader";
 import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import { NotFoundPage } from "@/shared/ui/NotFoundPage";
 import { createBrowserRouter, redirect, Navigate } from "react-router";
+import { ComingSoonPage } from "./ComingSoonPage";
 import { Layout } from "./Layout";
 import { RuleEngineBuilderPage } from "./RuleEngineBuilderPage";
 import { queryClient } from "./queryClient";
@@ -78,6 +79,24 @@ export const router = createBrowserRouter([
         element: <RuleEngineBuilderPage />,
         loader: ruleEngineLoader(),
         action: washingAction(queryClient),
+      },
+      {
+        path: "pivot",
+        element: (
+          <ComingSoonPage
+            title="피벗 분석 준비 중"
+            description="다차원 피벗 분석 화면은 현재 준비 중입니다."
+          />
+        ),
+      },
+      {
+        path: "sim",
+        element: (
+          <ComingSoonPage
+            title="미래 가치 시뮬레이터 준비 중"
+            description="미래 가치 시뮬레이터 화면은 현재 준비 중입니다."
+          />
+        ),
       },
       {
         path: "*",

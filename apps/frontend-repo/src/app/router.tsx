@@ -1,6 +1,8 @@
 import LoginPage from "@/features/auth/routes/LoginPage";
 import RegisterPage from "@/features/auth/routes/RegisterPage";
 import { loginAction, registerAction } from "@/features/auth/routes/action";
+import { AiInsightsPage } from "@/features/ai-insights/routes/AiInsightsPage";
+import { loader as aiInsightsLoader } from "@/features/ai-insights/routes/loader";
 import { ruleEngineQueries } from "@/features/rule-engine-builder/api/queries";
 import { SamplePage } from "@/features/sample/routes/SamplePage";
 import { action as sampleAction } from "@/features/sample/routes/action";
@@ -79,6 +81,11 @@ export const router = createBrowserRouter([
         element: <RuleEngineBuilderPage />,
         loader: ruleEngineLoader(),
         action: washingAction(queryClient),
+      },
+      {
+        path: "insights",
+        element: <AiInsightsPage />,
+        loader: aiInsightsLoader(queryClient),
       },
       {
         path: "pivot",

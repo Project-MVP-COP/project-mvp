@@ -231,6 +231,93 @@ export const handlers = [
     return HttpResponse.json(dbLedger.getCategories());
   }),
 
+  http.post("/api/insights", async ({ request }) => {
+    if (!IS_TEST) await delay();
+    const body = (await request.json()) as {
+      period?: string;
+      categoryId?: number | null;
+      transactions?: Array<{
+        merchant?: string;
+        categoryName?: string | null;
+        amount?: number;
+        isClassified?: boolean;
+      }>;
+    };
+
+    if (!body.period || !Array.isArray(body.transactions)) {
+      return HttpResponse.json(
+        {
+          type: "about:blank",
+          title: "Bad Request",
+          status: 400,
+          detail: "잘못된 입력값입니다.",
+          errors: {
+            period: body.period ? undefined : "분석 기간을 선택해주세요.",
+            transactions: Array.isArray(body.transactions)
+              ? undefined
+              : "분석할 거래 내역을 한 건 이상 입력해주세요.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    if (body.transactions.length === 0) {
+      return HttpResponse.json(
+        {
+          type: "about:blank",
+          title: "Bad Request",
+          status: 400,
+          detail: "잘못된 입력값입니다.",
+          errors: {
+            transactions: "분석할 거래 내역을 한 건 이상 입력해주세요.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    const totalAmount = body.transactions.reduce(
+      (sum, transaction) => sum + (transaction.amount ?? 0),
+      0,
+    );
+    const unclassifiedCount = body.transactions.filter(
+      (transaction) => transaction.isClassified === false,
+    ).length;
+    const categoryAmounts = new Map<string, number>();
+    body.transactions.forEach((transaction) => {
+      const categoryName = transaction.categoryName || "미분류";
+      categoryAmounts.set(
+        categoryName,
+        (categoryAmounts.get(categoryName) ?? 0) + (transaction.amount ?? 0),
+      );
+    });
+    const topCategory =
+      [...categoryAmounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ??
+      "미분류";
+
+    return HttpResponse.json({
+      summary: `선택한 조건의 ${body.transactions.length}건 거래를 분석했습니다. 총 ${totalAmount.toLocaleString()}원 중 ${topCategory} 영역의 비중이 가장 높고, 미분류 ${unclassifiedCount}건은 추가 정리 후 다시 분석하면 더 정확합니다.`,
+      cards: [
+        {
+          title: "가장 큰 지출 영역",
+          description: `${topCategory} 지출이 가장 크게 나타났습니다. 이번 달 절감 목표 후보로 우선 검토할 수 있습니다.`,
+        },
+        {
+          title: "반복 소비 패턴",
+          description:
+            "같은 가맹점 또는 같은 카테고리의 반복 결제가 있어 정기 지출 여부를 확인해 볼 수 있습니다.",
+        },
+        {
+          title: "소비 점검 포인트",
+          description:
+            "미분류 거래를 먼저 정리한 뒤 다시 요청하면 목표 추천과 절감 추이의 신뢰도가 올라갑니다.",
+        },
+      ],
+      generatedAt: new Date().toISOString(),
+    });
+  }),
+
   http.post("/api/categories", async ({ request }) => {
     if (!IS_TEST) await delay();
     const body = (await request.json()) as { name?: string; color?: string };

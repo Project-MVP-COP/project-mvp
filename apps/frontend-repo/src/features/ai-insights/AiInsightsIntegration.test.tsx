@@ -110,7 +110,7 @@ describe("AI insights integration flow", () => {
     fireEvent.click(chooseButtons[0]);
 
     await waitFor(() => {
-      expect(screen.queryByText("이번 달 AI 추천 목표")).not.toBeInTheDocument();
+      expect(screen.getByText("선택된 목표")).toBeInTheDocument();
     });
   });
 });

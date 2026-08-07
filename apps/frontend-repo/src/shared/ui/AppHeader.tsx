@@ -21,7 +21,6 @@ import { useDisclosure } from "@mantine/hooks";
 import {
   IconBrain,
   IconBrush,
-  IconChartLine,
   IconChevronDown,
   IconLogout,
   IconMoon,
@@ -48,8 +47,9 @@ const navTabs: NavTab[] = [
   { label: "내역 세척 및 관리", value: "/washing", icon: IconBrush },
   { label: "규칙 엔진 빌더", value: "/rules", icon: IconTool },
   { label: "AI 소비 인사이트", value: "/insights", icon: IconBrain },
-  { label: "미래 가치 시뮬레이터", value: "/sim", icon: IconChartLine },
-  { label: "샘플", value: "/sample", icon: IconSparkles },
+  ...(import.meta.env.DEV
+    ? [{ label: "샘플", value: "/sample", icon: IconSparkles }]
+    : []),
 ];
 
 interface AppHeaderProps {

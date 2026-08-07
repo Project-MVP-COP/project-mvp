@@ -7,8 +7,6 @@ import {
   Group,
   NativeSelect,
   Paper,
-  Progress,
-  ScrollArea,
   SimpleGrid,
   Stack,
   Text,
@@ -38,14 +36,12 @@ import {
   buildPromptPreview,
   buildRecommendedGoals,
   buildTrajectoryRows,
-  calculateCategoryStats,
   calculateTotalSaved,
   filterTransactionsForInsight,
   formatAmount,
   formatGeneratedAt,
   getPeriodLabel,
   getLatestTransactionMonth,
-  hasCurrentMonthGoal,
   isTransactionClassified,
   seedMonthlyGoals,
 } from "@/features/ai-insights/model/core";
@@ -103,10 +99,6 @@ export function AiInsightsPageContent() {
     () => filterTransactionsForInsight(transactions, filters),
     [filters, transactions],
   );
-  const categoryStats = useMemo(
-    () => calculateCategoryStats(filteredTransactions),
-    [filteredTransactions],
-  );
   const currentGoalMonth = useMemo(
     () =>
       getLatestTransactionMonth(
@@ -143,11 +135,10 @@ export function AiInsightsPageContent() {
     currentSignature !== lastSuccessSignature;
   const totalSaved = calculateTotalSaved(goals, filteredTransactions);
   const trajectoryRows = buildTrajectoryRows(goals, currentGoalMonth);
-  const maxTrajectoryValue = Math.max(
-    ...trajectoryRows.map((row) => Math.max(row.saved, row.target)),
-    1,
+  const currentMonthGoal = goals.find(
+    (goal) => goal.month === currentGoalMonth && goal.status !== "stopped",
   );
-  const hasGoal = hasCurrentMonthGoal(goals, currentGoalMonth);
+  const chart = buildTrajectoryChart(trajectoryRows);
 
   const insightMutation = useMutation({
     mutationFn: generateInsight,
@@ -224,26 +215,27 @@ export function AiInsightsPageContent() {
               <NativeSelect
                 label="기간 조건"
                 value={filters.period}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const nextPeriod = event.currentTarget
+                    .value as InsightFilters["period"];
                   setFilters((current) => ({
                     ...current,
-                    period: event.currentTarget.value as InsightFilters["period"],
-                  }))
-                }
+                    period: nextPeriod,
+                  }));
+                }}
                 data={periodOptions}
               />
               <NativeSelect
                 label="카테고리 조건"
                 value={String(filters.categoryId ?? "all")}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const nextCategoryId = event.currentTarget.value;
                   setFilters((current) => ({
                     ...current,
                     categoryId:
-                      event.currentTarget.value === "all"
-                        ? null
-                        : Number(event.currentTarget.value),
-                  }))
-                }
+                      nextCategoryId === "all" ? null : Number(nextCategoryId),
+                  }));
+                }}
                 data={[
                   { value: "all", label: "전체 카테고리" },
                   ...categories.map((category) => ({
@@ -365,17 +357,6 @@ export function AiInsightsPageContent() {
           )}
         </Paper>
 
-        {promptOpened && (
-          <Paper withBorder p="md" radius="md">
-            <Stack gap="sm">
-              <Text fw={800} c="teal">
-                전송 프롬프트 미리보기
-              </Text>
-              <Code block>{promptPreview}</Code>
-            </Stack>
-          </Paper>
-        )}
-
         {insight != null && (
           <Stack gap="lg">
             <Paper withBorder p="xl" radius="md" shadow="sm">
@@ -468,68 +449,167 @@ export function AiInsightsPageContent() {
                     </Text>
                   </Stack>
                 </Group>
-                <SimpleGrid cols={{ base: 1, md: 6 }} spacing="sm">
-                  {trajectoryRows.map((row) => (
-                    <Paper
-                      key={row.month}
-                      withBorder
-                      p="sm"
-                      radius="md"
-                      bg={
-                        row.isCurrent
-                          ? "var(--mantine-color-yellow-light)"
-                          : "var(--mantine-color-body)"
-                      }
-                    >
-                      <Stack gap={8}>
-                        <Group justify="space-between">
-                          <Text size="xs" fw={800}>
-                            {row.month}
-                          </Text>
-                          {row.isCurrent && (
-                            <Badge size="xs" color="yellow" variant="filled">
-                              현재
-                            </Badge>
-                          )}
-                        </Group>
-                        <Progress.Root size="lg">
-                          <Progress.Section
-                            value={(row.saved / maxTrajectoryValue) * 100}
-                            color="teal"
+                <svg
+                  width="100%"
+                  height={chart.height}
+                  viewBox={`0 0 ${chart.width} ${chart.height}`}
+                  role="img"
+                  aria-label="절감 자산 추이 그래프"
+                >
+                  <defs>
+                    <linearGradient id="trajectory-area" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="var(--mantine-color-teal-4)" stopOpacity="0.28" />
+                      <stop offset="100%" stopColor="var(--mantine-color-teal-4)" stopOpacity="0.04" />
+                    </linearGradient>
+                  </defs>
+                  {[0.25, 0.5, 0.75, 1].map((ratio) => {
+                    const y = chart.padding.top + chart.plotHeight * ratio;
+                    return (
+                      <line
+                        key={ratio}
+                        x1={chart.padding.left}
+                        x2={chart.padding.left + chart.plotWidth}
+                        y1={y}
+                        y2={y}
+                        stroke="var(--mantine-color-gray-3)"
+                        strokeDasharray="4 6"
+                      />
+                    );
+                  })}
+                  <polyline
+                    points={chart.areaPoints}
+                    fill="url(#trajectory-area)"
+                    stroke="none"
+                  />
+                  <polyline
+                    points={chart.targetPoints}
+                    fill="none"
+                    stroke="var(--mantine-color-violet-5)"
+                    strokeDasharray="8 6"
+                    strokeLinecap="round"
+                    strokeWidth="3"
+                  />
+                  <polyline
+                    points={chart.savedPoints}
+                    fill="none"
+                    stroke="var(--mantine-color-teal-6)"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="4"
+                  />
+                  {trajectoryRows.map((row, index) => {
+                    const x = chart.toX(index);
+                    const savedY = chart.toY(row.saved);
+                    const targetY = chart.toY(row.target);
+                    return (
+                      <g key={row.month}>
+                        {row.isCurrent && (
+                          <line
+                            x1={x}
+                            x2={x}
+                            y1={chart.padding.top}
+                            y2={chart.padding.top + chart.plotHeight}
+                            stroke="var(--mantine-color-yellow-6)"
+                            strokeDasharray="5 5"
+                            strokeWidth="2"
                           />
-                        </Progress.Root>
-                        <Text size="xs" c="dimmed">
-                          누적 {formatAmount(row.saved)}원
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          목표 {formatAmount(row.target)}원
-                        </Text>
-                      </Stack>
-                    </Paper>
-                  ))}
-                </SimpleGrid>
+                        )}
+                        <circle
+                          cx={x}
+                          cy={targetY}
+                          fill="var(--mantine-color-violet-5)"
+                          r="4"
+                        />
+                        <circle
+                          cx={x}
+                          cy={savedY}
+                          fill="var(--mantine-color-teal-6)"
+                          r="5"
+                          stroke="var(--mantine-color-body)"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={x}
+                          y={chart.height - 20}
+                          textAnchor="middle"
+                          fill="var(--mantine-color-dimmed)"
+                          fontSize="13"
+                        >
+                          {row.month}
+                        </text>
+                        {row.isCurrent && (
+                          <text
+                            x={x}
+                            y={chart.padding.top - 8}
+                            textAnchor="middle"
+                            fill="var(--mantine-color-yellow-7)"
+                            fontSize="12"
+                            fontWeight="700"
+                          >
+                            현재
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+                  <text
+                    x={chart.padding.left}
+                    y={chart.padding.top - 8}
+                    fill="var(--mantine-color-dimmed)"
+                    fontSize="12"
+                  >
+                    {formatAmount(chart.maxValue)}원
+                  </text>
+                </svg>
+                <Group gap="lg">
+                  <Group gap={6}>
+                    <Badge color="teal" variant="filled" size="xs">
+                      실선
+                    </Badge>
+                    <Text size="xs" c="dimmed">
+                      실제·투영 누적 절감
+                    </Text>
+                  </Group>
+                  <Group gap={6}>
+                    <Badge color="violet" variant="light" size="xs">
+                      점선
+                    </Badge>
+                    <Text size="xs" c="dimmed">
+                      목표 경로
+                    </Text>
+                  </Group>
+                </Group>
               </Stack>
             </Paper>
 
-            {!hasGoal && (
-              <Paper withBorder p="xl" radius="md" shadow="sm">
-                <Stack gap="md">
-                  <Group gap="sm">
-                    <ThemeIcon variant="light" color="teal">
-                      <IconTargetArrow size={20} />
-                    </ThemeIcon>
-                    <Stack gap={2}>
-                      <Title order={3}>이번 달 AI 추천 목표</Title>
-                      <Text size="sm" c="dimmed">
-                        한 달에 하나만 선택할 수 있습니다.
-                      </Text>
-                    </Stack>
-                  </Group>
-                  <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
-                    {recommendedGoals.map((goal) => (
+            <Paper withBorder p="xl" radius="md" shadow="sm">
+              <Stack gap="md">
+                <Group gap="sm">
+                  <ThemeIcon variant="light" color="teal">
+                    <IconTargetArrow size={20} />
+                  </ThemeIcon>
+                  <Stack gap={2}>
+                    <Title order={3}>이번 달 AI 추천 목표</Title>
+                    <Text size="sm" c="dimmed">
+                      한 달에 하나만 선택할 수 있습니다.
+                    </Text>
+                  </Stack>
+                </Group>
+                <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+                  {recommendedGoals.map((goal) => {
+                    const isSelectedGoal = currentMonthGoal?.id === goal.id;
+
+                    return (
                       <Paper key={goal.id} withBorder p="md" radius="md">
                         <Stack gap="sm">
-                          <Text fw={900}>{goal.title}</Text>
+                          <Group justify="space-between" gap="xs">
+                            <Text fw={900}>{goal.title}</Text>
+                            {isSelectedGoal && (
+                              <Badge color="teal" variant="filled">
+                                선택됨
+                              </Badge>
+                            )}
+                          </Group>
                           <Text size="sm" c="dimmed">
                             현재 {formatAmount(goal.baselineAmount)}원에서 목표{" "}
                             {formatAmount(goal.targetAmount)}원까지 줄이는 계획입니다.
@@ -539,42 +619,75 @@ export function AiInsightsPageContent() {
                           </Badge>
                           <Button
                             size="xs"
-                            variant="light"
+                            variant={isSelectedGoal ? "filled" : "light"}
                             color="teal"
+                            disabled={isSelectedGoal}
                             onClick={() => selectGoal(goal)}
                           >
-                            목표 선택
+                            {isSelectedGoal ? "선택된 목표" : "목표 선택"}
                           </Button>
                         </Stack>
                       </Paper>
-                    ))}
-                  </SimpleGrid>
-                </Stack>
-              </Paper>
-            )}
-
-            <Paper withBorder p="md" radius="md">
-              <Stack gap="sm">
-                <Text size="sm" fw={800} c="dimmed">
-                  카테고리별 분석 기준
-                </Text>
-                <ScrollArea h={160}>
-                  <Stack gap="xs">
-                    {categoryStats.map((category) => (
-                      <Group key={category.name} justify="space-between">
-                        <Text size="sm">{category.name}</Text>
-                        <Text size="sm" fw={800}>
-                          {formatAmount(category.amount)}원
-                        </Text>
-                      </Group>
-                    ))}
-                  </Stack>
-                </ScrollArea>
+                    );
+                  })}
+                </SimpleGrid>
               </Stack>
             </Paper>
           </Stack>
+        )}
+
+        {promptOpened && (
+          <Paper withBorder p="md" radius="md">
+            <Stack gap="sm">
+              <Text fw={800} c="teal">
+                전송 프롬프트 미리보기
+              </Text>
+              <Code block>{promptPreview}</Code>
+            </Stack>
+          </Paper>
         )}
       </Stack>
     </Container>
   );
 }
+
+type TrajectoryRow = ReturnType<typeof buildTrajectoryRows>[number];
+
+const buildTrajectoryChart = (rows: TrajectoryRow[]) => {
+  const width = 720;
+  const height = 260;
+  const padding = { top: 24, right: 28, bottom: 46, left: 56 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const maxValue = Math.max(
+    ...rows.map((row) => Math.max(row.saved, row.target)),
+    1,
+  );
+  const toX = (index: number) =>
+    padding.left + (rows.length <= 1 ? 0 : (plotWidth / (rows.length - 1)) * index);
+  const toY = (value: number) =>
+    padding.top + plotHeight - (value / maxValue) * plotHeight;
+  const savedPoints = rows
+    .map((row, index) => `${toX(index)},${toY(row.saved)}`)
+    .join(" ");
+  const targetPoints = rows
+    .map((row, index) => `${toX(index)},${toY(row.target)}`)
+    .join(" ");
+  const areaPoints = `${padding.left},${padding.top + plotHeight} ${savedPoints} ${
+    padding.left + plotWidth
+  },${padding.top + plotHeight}`;
+
+  return {
+    width,
+    height,
+    padding,
+    plotWidth,
+    plotHeight,
+    maxValue,
+    savedPoints,
+    targetPoints,
+    areaPoints,
+    toX,
+    toY,
+  };
+};

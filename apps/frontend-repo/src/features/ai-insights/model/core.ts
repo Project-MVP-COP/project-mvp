@@ -124,9 +124,10 @@ export const buildRecommendedGoals = (
     (category) => category.name !== "미분류",
   );
   const baseStats = stats.length > 0 ? stats : [{ name: "생활비", amount: 120000 }];
+  const ratios = [0.3, 0.4, 0.5];
 
-  return baseStats.slice(0, 3).map((category, index) => {
-    const ratio = [0.3, 0.4, 0.5][index] ?? 0.3;
+  return ratios.map((ratio, index) => {
+    const category = baseStats[index % baseStats.length];
     const monthlySave = Math.round(category.amount * ratio);
     return {
       id: `${goalMonth}-${category.name}-${ratio}`,

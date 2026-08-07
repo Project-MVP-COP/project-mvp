@@ -208,21 +208,16 @@ export function AiInsightsPageContent() {
       <Stack gap="lg">
         <Paper withBorder p="xl" radius="md" shadow="sm">
           <Stack gap="md">
-            <Group justify="space-between" align="flex-start">
-              <Group gap="sm" wrap="nowrap">
-                <ThemeIcon variant="light" color="violet" size="lg">
-                  <IconBrain size={22} />
-                </ThemeIcon>
-                <Stack gap={2}>
-                  <Title order={2}>AI 소비 인사이트</Title>
-                  <Text size="sm" c="dimmed">
-                    세척된 카드 이용 내역을 기간과 카테고리 조건으로 해석합니다.
-                  </Text>
-                </Stack>
-              </Group>
-              <Badge variant="light" color="violet">
-                MVP-300
-              </Badge>
+            <Group gap="sm" wrap="nowrap">
+              <ThemeIcon variant="light" color="violet" size="lg">
+                <IconBrain size={22} />
+              </ThemeIcon>
+              <Stack gap={2}>
+                <Title order={2}>AI 소비 인사이트</Title>
+                <Text size="sm" c="dimmed">
+                  세척된 카드 이용 내역을 기간과 카테고리 조건으로 해석합니다.
+                </Text>
+              </Stack>
             </Group>
 
             <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">

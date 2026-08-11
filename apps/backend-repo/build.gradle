@@ -50,6 +50,10 @@ dependencies {
 
 	// Apache POI (Excel)
 	implementation 'org.apache.poi:poi-ooxml:5.2.5'
+
+	// AWS Bedrock Runtime
+	implementation platform('software.amazon.awssdk:bom:2.49.5')
+	implementation 'software.amazon.awssdk:bedrockruntime'
 }
 
 tasks.named('test') {

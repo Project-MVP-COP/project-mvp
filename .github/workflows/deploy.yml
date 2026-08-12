@@ -79,6 +79,11 @@ jobs:
             export DB_URL="${{ secrets.DB_URL }}"
             export DB_USERNAME="${{ secrets.DB_USERNAME }}"
             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            export BEDROCK_ENABLED="${{ secrets.BEDROCK_ENABLED }}"
+            export BEDROCK_REGION="${{ secrets.BEDROCK_REGION }}"
+            export BEDROCK_MODEL_ID="${{ secrets.BEDROCK_MODEL_ID }}"
+            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
 
             # JAR 파일명을 build.jar로 통일
             # (Gradle 빌드 결과물은 버전명이 붙어 파일명이 매번 달라짐)

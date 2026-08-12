@@ -658,8 +658,53 @@ BusinessValidator.validateNonNull(order, CommonErrorCode.ENTITY_NOT_FOUND);
 
 ---
 
+## 🤖 AWS Bedrock 인사이트 연동
+
+`POST /api/insights`의 URL과 응답 스키마(`summary`, `cards`, `generatedAt`)는
+Bedrock 활성화 여부와 관계없이 동일합니다. 로컬 환경에서는 기본적으로 기존 Mock 응답을 사용하며,
+운영 환경에서만 설정을 주입해 Bedrock Converse API를 활성화합니다.
+
+| 환경변수 | 필수 여부 | 기본값 | 설명 |
+|:--|:--|:--|:--|
+| `BEDROCK_ENABLED` | 아니요 | `false` | `true`일 때 Bedrock 호출 활성화 |
+| `BEDROCK_REGION` | 활성화 시 필수 | `ap-northeast-2` | Bedrock Runtime 클라이언트 리전 |
+| `BEDROCK_MODEL_ID` | 활성화 시 필수 | 없음 | Foundation Model 또는 Inference Profile ID |
+| `BEDROCK_MAX_TOKENS` | 아니요 | `1200` | 모델 응답 최대 토큰 수 |
+| `BEDROCK_TEMPERATURE` | 아니요 | `0.2` | 모델 응답 무작위성 (`0`~`1`) |
+| `BEDROCK_API_CALL_TIMEOUT` | 아니요 | `30s` | Bedrock 단일 호출 시도 제한 시간 |
+
+현재 인프라 합의 값은 다음과 같습니다.
+
+```text
+BEDROCK_ENABLED=true
+BEDROCK_REGION=ap-northeast-2
+BEDROCK_MODEL_ID=apac.anthropic.claude-3-5-sonnet-20240620-v1:0
+```
+
+AWS SDK는 기본 Credential Provider Chain을 사용합니다. 운영 배포에서는
+`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`를 GitHub Secrets로 주입하며 실제 값을 소스에
+기록하지 않습니다. 실행 역할을 적용할 수 있는 환경으로 이전하면 별도 코드 변경 없이 역할 자격증명을
+사용할 수 있습니다.
+
+Bedrock 활성화 시 리전·모델 ID·토큰·온도·타임아웃 설정을 시작 단계에서 검증합니다. 호출 결과가
+정해진 JSON 스키마와 다르거나 카드가 2~3개가 아니면 성공 응답으로 전달하지 않습니다.
+
+| 상황 | HTTP 상태 | 오류 코드 |
+|:--|:--|:--|
+| 모델 또는 API 호출 타임아웃 | `504` | `INS001` |
+| IAM 권한·모델 접근·네트워크 오류 | `503` | `INS002` |
+| 모델 응답 형식 오류 | `502` | `INS003` |
+
+실연동 완료 전 확인 항목:
+
+1. `github-deploy-user`에 `bedrock:InvokeModel` 권한이 적용되어 있는지 확인
+2. GitHub Secrets에 필수 환경변수와 AWS 자격증명이 등록되어 있는지 확인
+3. 배포 환경에서 `/api/insights` 정상 요청이 실제 모델 응답을 반환하는지 확인
+4. 잘못된 모델 ID 또는 권한 제거 상태에서 RFC 9457 실패 응답이 반환되는지 확인
+
+---
+
 ## 🔗 관련 문서 바로가기
 
 - **[전체 프로젝트 루트 (Root)](../../README.md)**
 - **[프론트엔드 레파지토리 (React)](../frontend-repo/README.md)**
-

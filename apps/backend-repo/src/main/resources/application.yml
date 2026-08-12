@@ -47,3 +47,11 @@ feature:
       hidden-endpoint: false
     transaction:
       reset: true
+
+bedrock:
+  enabled: ${BEDROCK_ENABLED:false}
+  region: ${BEDROCK_REGION:ap-northeast-2}
+  model-id: ${BEDROCK_MODEL_ID:}
+  max-tokens: ${BEDROCK_MAX_TOKENS:1200}
+  temperature: ${BEDROCK_TEMPERATURE:0.2}
+  api-call-timeout: ${BEDROCK_API_CALL_TIMEOUT:30s}

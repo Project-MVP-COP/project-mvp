@@ -1,7 +1,6 @@
 package cop.kbds.agilemvp.insight.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -24,7 +23,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import cop.kbds.agilemvp.auth.config.SecurityConfig;
 import cop.kbds.agilemvp.auth.service.JwtProvider;
+import cop.kbds.agilemvp.common.exception.BusinessException;
 import cop.kbds.agilemvp.common.exception.GlobalExceptionHandler;
+import cop.kbds.agilemvp.insight.exception.InsightErrorCode;
 import cop.kbds.agilemvp.insight.service.InsightResult;
 import cop.kbds.agilemvp.insight.service.InsightResult.InsightCard;
 import cop.kbds.agilemvp.insight.service.InsightCommand;
@@ -62,7 +63,7 @@ class InsightControllerTest {
                 ),
                 "2026-08-06T16:30:00+09:00"
         );
-        given(insightService.generate(eq(1L), any(InsightCommand.class))).willReturn(result);
+        given(insightService.generate(any(InsightCommand.class))).willReturn(result);
 
         mockMvc.perform(post("/api/insights")
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
@@ -153,6 +154,23 @@ class InsightControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Bedrock 호출 실패는 FE가 표시 가능한 503 오류로 반환한다")
+    void generate_BedrockUnavailable_ReturnsServiceUnavailable() throws Exception {
+        given(insightService.generate(any(InsightCommand.class)))
+                .willThrow(new BusinessException(InsightErrorCode.SERVICE_UNAVAILABLE));
+
+        mockMvc.perform(post("/api/insights")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                                .authentication(authenticatedUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest())))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.title").value("SERVICE_UNAVAILABLE"))
+                .andExpect(jsonPath("$.detail")
+                        .value("AI 인사이트 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요."));
     }
 
     private InsightRequest validRequest() {

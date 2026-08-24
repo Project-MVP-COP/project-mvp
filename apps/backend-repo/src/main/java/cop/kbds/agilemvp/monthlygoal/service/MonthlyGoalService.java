@@ -2,6 +2,7 @@ package cop.kbds.agilemvp.monthlygoal.service;
 
 import java.math.BigDecimal;
 import java.time.YearMonth;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,11 @@ import lombok.RequiredArgsConstructor;
 public class MonthlyGoalService {
 
     private final MonthlyGoalRepository monthlyGoalRepository;
+
+    @Transactional(readOnly = true)
+    public List<MonthlyGoal> findAll(Long userId, MonthlyGoalStatus status) {
+        return monthlyGoalRepository.findAllByUserId(userId, status);
+    }
 
     @Transactional
     public MonthlyGoal upsert(

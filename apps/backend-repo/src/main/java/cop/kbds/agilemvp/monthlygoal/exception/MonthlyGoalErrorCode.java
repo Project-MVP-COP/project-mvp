@@ -25,7 +25,11 @@ public enum MonthlyGoalErrorCode implements ErrorCode {
     SAVE_FAILED(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "MGO004",
-            "월 목표 저장 결과를 확인할 수 없습니다.");
+            "월 목표 저장 결과를 확인할 수 없습니다."),
+    INVALID_STATUS(
+            HttpStatus.BAD_REQUEST,
+            "MGO005",
+            "목표 상태는 active, completed, stopped 중 하나여야 합니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

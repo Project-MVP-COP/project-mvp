@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +28,80 @@ class MonthlyGoalServiceIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Test
+    @DisplayName("사용자의 모든 상태 목표를 연월 오름차순으로 조회한다")
+    void findAll_ReturnsOnlyUsersGoalsInMonthOrder() {
+        Long userId = createUser("goal-list-owner", "목록사용자");
+        Long otherUserId = createUser("goal-list-other", "다른목록사용자");
+
+        monthlyGoalService.upsert(
+                userId, YearMonth.of(2026, 8), "8월 목표", "생활",
+                new BigDecimal("0.2"), 100_000L, 20_000L);
+        MonthlyGoal juneGoal = monthlyGoalService.upsert(
+                userId, YearMonth.of(2026, 6), "6월 목표", "식음료",
+                new BigDecimal("0.3"), 100_000L, 30_000L);
+        monthlyGoalService.upsert(
+                otherUserId, YearMonth.of(2026, 7), "다른 사용자 목표", "교통",
+                new BigDecimal("0.1"), 100_000L, 10_000L);
+
+        jdbcTemplate.update(
+                "UPDATE monthly_goals SET status = 'completed', actual_saved = 32000 WHERE id = ?",
+                juneGoal.getId());
+
+        List<MonthlyGoal> goals = monthlyGoalService.findAll(userId, null);
+
+        assertThat(goals).hasSize(2);
+        assertThat(goals)
+                .extracting(MonthlyGoal::getGoalMonth)
+                .containsExactly(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 8, 1));
+        assertThat(goals)
+                .extracting(MonthlyGoal::getStatus)
+                .containsExactly(MonthlyGoalStatus.COMPLETED, MonthlyGoalStatus.ACTIVE);
+        assertThat(goals).allMatch(goal -> goal.getUserId().equals(userId));
+    }
+
+    @Test
+    @DisplayName("상태를 지정하면 해당 상태의 목표만 조회한다")
+    void findAll_StatusFilter_ReturnsMatchingGoals() {
+        Long userId = createUser("goal-status-owner", "상태목록사용자");
+        MonthlyGoal completed = monthlyGoalService.upsert(
+                userId, YearMonth.of(2026, 6), "완수 목표", "식음료",
+                new BigDecimal("0.3"), 100_000L, 30_000L);
+        monthlyGoalService.upsert(
+                userId, YearMonth.of(2026, 7), "유지 목표", "생활",
+                new BigDecimal("0.2"), 100_000L, 20_000L);
+
+        jdbcTemplate.update(
+                "UPDATE monthly_goals SET status = 'completed', actual_saved = 31000 WHERE id = ?",
+                completed.getId());
+
+        List<MonthlyGoal> goals = monthlyGoalService.findAll(userId, MonthlyGoalStatus.COMPLETED);
+
+        assertThat(goals).singleElement()
+                .satisfies(goal -> {
+                    assertThat(goal.getId()).isEqualTo(completed.getId());
+                    assertThat(goal.getActualSaved()).isEqualTo(31_000L);
+                });
+    }
+
+    @Test
+    @DisplayName("개발용 테스트 사용자에게 이전 월 예시 목표가 제공된다")
+    void devSeed_ContainsHistoricalGoals() {
+        Long userId = jdbcTemplate.queryForObject(
+                "SELECT id FROM users WHERE login_id = 'testuser'",
+                Long.class);
+
+        List<MonthlyGoal> goals = monthlyGoalService.findAll(userId, null);
+
+        assertThat(goals).hasSize(2);
+        assertThat(goals)
+                .extracting(MonthlyGoal::getStatus)
+                .containsExactly(MonthlyGoalStatus.COMPLETED, MonthlyGoalStatus.ACTIVE);
+        assertThat(goals)
+                .extracting(MonthlyGoal::getGoalMonth)
+                .allMatch(month -> month.isBefore(LocalDate.now().withDayOfMonth(1)));
+    }
 
     @Test
     @DisplayName("같은 사용자의 같은 월 목표를 다시 저장하면 기존 목표를 교체한다")

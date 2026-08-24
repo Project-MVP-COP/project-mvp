@@ -20,6 +20,6 @@ public enum MonthlyGoalStatus {
         return Arrays.stream(values())
                 .filter(status -> status.value.equals(value))
                 .findFirst()
-                .orElseThrow(() -> new BusinessException(MonthlyGoalErrorCode.INVALID_GOAL_VALUE));
+                .orElseThrow(() -> new BusinessException(MonthlyGoalErrorCode.INVALID_STATUS));
     }
 }

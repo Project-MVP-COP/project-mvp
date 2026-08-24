@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,6 +37,18 @@ public class MonthlyGoalController {
         return monthlyGoalService.findAll(currentUser.getId(), goalStatus).stream()
                 .map(MonthlyGoalResponse::from)
                 .toList();
+    }
+
+    @PatchMapping("/{goalId}/status")
+    public MonthlyGoalResponse updateStatus(
+            @PathVariable Long goalId,
+            @RequestBody @Valid MonthlyGoalStatusUpdateRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return MonthlyGoalResponse.from(monthlyGoalService.updateStatus(
+                currentUser.getId(),
+                goalId,
+                MonthlyGoalStatus.from(request.status()),
+                request.actualSaved()));
     }
 
     @PutMapping("/{goalMonth}")

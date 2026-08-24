@@ -22,12 +22,30 @@ public class MonthlyGoalRepositoryImpl implements MonthlyGoalRepository {
     }
 
     @Override
+    public MonthlyGoal findByIdAndUserIdForUpdate(Long id, Long userId) {
+        return monthlyGoalMapper.findByIdAndUserIdForUpdate(id, userId);
+    }
+
+    @Override
     public MonthlyGoal saveOrReplace(MonthlyGoal goal) {
         monthlyGoalMapper.upsert(goal);
         MonthlyGoal saved = monthlyGoalMapper.findByUserIdAndGoalMonth(
                 goal.getUserId(), goal.getGoalMonth());
         if (saved == null) {
             throw new BusinessException(MonthlyGoalErrorCode.SAVE_FAILED);
+        }
+        return saved;
+    }
+
+    @Override
+    public MonthlyGoal updateStatus(MonthlyGoal goal) {
+        int updated = monthlyGoalMapper.updateStatus(goal);
+        if (updated != 1) {
+            throw new BusinessException(MonthlyGoalErrorCode.UPDATE_FAILED);
+        }
+        MonthlyGoal saved = monthlyGoalMapper.findByIdAndUserId(goal.getId(), goal.getUserId());
+        if (saved == null) {
+            throw new BusinessException(MonthlyGoalErrorCode.UPDATE_FAILED);
         }
         return saved;
     }

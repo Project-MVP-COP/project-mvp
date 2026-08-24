@@ -95,6 +95,24 @@ public class MonthlyGoal {
         return baselineAmount - monthlySave;
     }
 
+    public void changeStatus(MonthlyGoalStatus targetStatus, Long confirmedActualSaved) {
+        if (targetStatus == null || !status.canTransitionTo(targetStatus)) {
+            throw new BusinessException(MonthlyGoalErrorCode.INVALID_STATUS_TRANSITION);
+        }
+        if (targetStatus == MonthlyGoalStatus.COMPLETED) {
+            if (confirmedActualSaved != null && confirmedActualSaved < 0) {
+                throw new BusinessException(MonthlyGoalErrorCode.INVALID_ACTUAL_SAVED);
+            }
+            actualSaved = confirmedActualSaved != null ? confirmedActualSaved : monthlySave;
+        } else {
+            if (confirmedActualSaved != null) {
+                throw new BusinessException(MonthlyGoalErrorCode.INVALID_ACTUAL_SAVED);
+            }
+            actualSaved = null;
+        }
+        status = targetStatus;
+    }
+
     private static void validate(
             Long userId,
             LocalDate goalMonth,

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cop.kbds.agilemvp.monthlygoal.repository.MonthlyGoalMapper">
+
+    <resultMap id="monthlyGoalResultMap" type="cop.kbds.agilemvp.monthlygoal.service.MonthlyGoal">
+        <constructor>
+            <arg column="id" javaType="java.lang.Long"/>
+            <arg column="user_id" javaType="java.lang.Long"/>
+            <arg column="goal_month" javaType="java.time.LocalDate"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="target_category" javaType="java.lang.String"/>
+            <arg column="reduction_ratio" javaType="java.math.BigDecimal"/>
+            <arg column="baseline_amount" javaType="java.lang.Long"/>
+            <arg column="monthly_save" javaType="java.lang.Long"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="actual_saved" javaType="java.lang.Long"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+            <arg column="updated_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <insert id="upsert" databaseId="postgresql">
+        INSERT INTO monthly_goals (
+            user_id,
+            goal_month,
+            title,
+            target_category,
+            reduction_ratio,
+            baseline_amount,
+            monthly_save,
+            status,
+            actual_saved
+        ) VALUES (
+            #{userId},
+            #{goalMonth},
+            #{title},
+            #{targetCategory},
+            #{reductionRatio},
+            #{baselineAmount},
+            #{monthlySave},
+            'active',
+            NULL
+        )
+        ON CONFLICT (user_id, goal_month)
+        DO UPDATE SET
+            title = EXCLUDED.title,
+            target_category = EXCLUDED.target_category,
+            reduction_ratio = EXCLUDED.reduction_ratio,
+            baseline_amount = EXCLUDED.baseline_amount,
+            monthly_save = EXCLUDED.monthly_save,
+            status = 'active',
+            actual_saved = NULL,
+            updated_at = CURRENT_TIMESTAMP
+    </insert>
+
+    <insert id="upsert" databaseId="h2">
+        MERGE INTO monthly_goals (
+            user_id,
+            goal_month,
+            title,
+            target_category,
+            reduction_ratio,
+            baseline_amount,
+            monthly_save,
+            status,
+            actual_saved,
+            updated_at
+        ) KEY (user_id, goal_month) VALUES (
+            #{userId},
+            #{goalMonth},
+            #{title},
+            #{targetCategory},
+            #{reductionRatio},
+            #{baselineAmount},
+            #{monthlySave},
+            'active',
+            NULL,
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <select id="findByUserIdAndGoalMonth" resultMap="monthlyGoalResultMap">
+        SELECT id,
+               user_id,
+               goal_month,
+               title,
+               target_category,
+               reduction_ratio,
+               baseline_amount,
+               monthly_save,
+               status,
+               actual_saved,
+               CAST(created_at AS TIMESTAMP) AS created_at,
+               CAST(updated_at AS TIMESTAMP) AS updated_at
+        FROM monthly_goals
+        WHERE user_id = #{userId}
+          AND goal_month = #{goalMonth}
+    </select>
+
+</mapper>

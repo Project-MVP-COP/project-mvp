@@ -3,6 +3,10 @@ feature:
     transaction:
       reset: false
 
+mybatis:
+  configuration:
+    database-id: postgresql
+
 spring:
   datasource:
     url: ${DB_URL}

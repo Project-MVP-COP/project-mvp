@@ -16,10 +16,18 @@ public enum MonthlyGoalStatus {
 
     private final String value;
 
+    public boolean canTransitionTo(MonthlyGoalStatus target) {
+        return switch (this) {
+            case ACTIVE -> target == COMPLETED || target == STOPPED;
+            case STOPPED -> target == ACTIVE;
+            case COMPLETED -> false;
+        };
+    }
+
     public static MonthlyGoalStatus from(String value) {
         return Arrays.stream(values())
                 .filter(status -> status.value.equals(value))
                 .findFirst()
-                .orElseThrow(() -> new BusinessException(MonthlyGoalErrorCode.INVALID_GOAL_VALUE));
+                .orElseThrow(() -> new BusinessException(MonthlyGoalErrorCode.INVALID_STATUS));
     }
 }

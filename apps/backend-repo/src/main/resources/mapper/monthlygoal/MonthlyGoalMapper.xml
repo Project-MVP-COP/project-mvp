@@ -21,25 +21,44 @@
         </constructor>
     </resultMap>
 
+    <sql id="monthlyGoalColumns">
+        id,
+        user_id,
+        goal_month,
+        title,
+        target_category,
+        reduction_ratio,
+        baseline_amount,
+        monthly_save,
+        status,
+        actual_saved,
+        CAST(created_at AS TIMESTAMP) AS created_at,
+        CAST(updated_at AS TIMESTAMP) AS updated_at
+    </sql>
+
     <select id="findAllByUserId" resultMap="monthlyGoalResultMap">
-        SELECT id,
-               user_id,
-               goal_month,
-               title,
-               target_category,
-               reduction_ratio,
-               baseline_amount,
-               monthly_save,
-               status,
-               actual_saved,
-               CAST(created_at AS TIMESTAMP) AS created_at,
-               CAST(updated_at AS TIMESTAMP) AS updated_at
+        SELECT <include refid="monthlyGoalColumns"/>
         FROM monthly_goals
         WHERE user_id = #{userId}
         <if test="status != null">
           AND status = #{status.value}
         </if>
         ORDER BY goal_month ASC, id ASC
+    </select>
+
+    <select id="findByIdAndUserIdForUpdate" resultMap="monthlyGoalResultMap">
+        SELECT <include refid="monthlyGoalColumns"/>
+        FROM monthly_goals
+        WHERE id = #{id}
+          AND user_id = #{userId}
+        FOR UPDATE
+    </select>
+
+    <select id="findByIdAndUserId" resultMap="monthlyGoalResultMap">
+        SELECT <include refid="monthlyGoalColumns"/>
+        FROM monthly_goals
+        WHERE id = #{id}
+          AND user_id = #{userId}
     </select>
 
     <insert id="upsert" databaseId="postgresql">
@@ -103,21 +122,19 @@
     </insert>
 
     <select id="findByUserIdAndGoalMonth" resultMap="monthlyGoalResultMap">
-        SELECT id,
-               user_id,
-               goal_month,
-               title,
-               target_category,
-               reduction_ratio,
-               baseline_amount,
-               monthly_save,
-               status,
-               actual_saved,
-               CAST(created_at AS TIMESTAMP) AS created_at,
-               CAST(updated_at AS TIMESTAMP) AS updated_at
+        SELECT <include refid="monthlyGoalColumns"/>
         FROM monthly_goals
         WHERE user_id = #{userId}
           AND goal_month = #{goalMonth}
     </select>
+
+    <update id="updateStatus">
+        UPDATE monthly_goals
+        SET status = #{status.value},
+            actual_saved = #{actualSaved},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
 
 </mapper>

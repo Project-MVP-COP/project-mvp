@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,6 +53,75 @@ class MonthlyGoalControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @Test
+    @DisplayName("월 목표 상태 변경 성공 시 갱신된 목표를 반환한다")
+    void updateStatus_Success_ReturnsUpdatedGoal() throws Exception {
+        given(monthlyGoalService.updateStatus(
+                anyLong(),
+                anyLong(),
+                eq(MonthlyGoalStatus.COMPLETED),
+                eq(32_000L)))
+                .willReturn(completedGoal());
+
+        mockMvc.perform(patch("/api/monthly-goals/10/status")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                                .authentication(authenticatedUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "completed",
+                                  "actualSaved": 32000
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.status").value("completed"))
+                .andExpect(jsonPath("$.actualSaved").value(32000));
+    }
+
+    @Test
+    @DisplayName("지원하지 않는 변경 상태는 400을 반환한다")
+    void updateStatus_InvalidStatus_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(patch("/api/monthly-goals/10/status")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                                .authentication(authenticatedUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status": "paused"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("INVALID_STATUS"));
+    }
+
+    @Test
+    @DisplayName("음수 확정 절감액은 필드 검증 오류를 반환한다")
+    void updateStatus_NegativeActualSaved_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(patch("/api/monthly-goals/10/status")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                                .authentication(authenticatedUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "completed",
+                                  "actualSaved": -1
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.actualSaved")
+                        .value("확정 절감액은 0 이상이어야 합니다."));
+    }
+
+    @Test
+    @DisplayName("인증하지 않은 월 목표 상태 변경 요청은 403을 반환한다")
+    void updateStatus_Unauthenticated_ReturnsForbidden() throws Exception {
+        mockMvc.perform(patch("/api/monthly-goals/10/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status": "stopped"}
+                                """))
+                .andExpect(status().isForbidden());
+    }
 
     @Test
     @DisplayName("월 목표 목록을 연월 순서와 전체 필드로 반환한다")
@@ -209,6 +279,22 @@ class MonthlyGoalControllerTest {
                 32_000L,
                 LocalDateTime.of(2026, 7, 1, 10, 0),
                 LocalDateTime.of(2026, 7, 31, 10, 0));
+    }
+
+    private MonthlyGoal completedGoal() {
+        return new MonthlyGoal(
+                10L,
+                1L,
+                LocalDate.of(2026, 8, 1),
+                "식비 30% 줄이기",
+                "식음료",
+                new BigDecimal("0.3000"),
+                100_000L,
+                30_000L,
+                "completed",
+                32_000L,
+                LocalDateTime.of(2026, 8, 24, 10, 0),
+                LocalDateTime.of(2026, 8, 24, 11, 0));
     }
 
     private String validRequest() {

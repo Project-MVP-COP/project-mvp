@@ -63,4 +63,59 @@ class MonthlyGoalTest {
                 .extracting(exception -> ((BusinessException) exception).getErrorCode())
                 .isEqualTo(MonthlyGoalErrorCode.INVALID_GOAL_AMOUNT);
     }
+
+    @Test
+    @DisplayName("유지 중 목표를 완수하면 월 절감액을 기본 확정 절감액으로 사용한다")
+    void changeStatus_ActiveToCompleted_DefaultsActualSaved() {
+        MonthlyGoal goal = activeGoal();
+
+        goal.changeStatus(MonthlyGoalStatus.COMPLETED, null);
+
+        assertThat(goal.getStatus()).isEqualTo(MonthlyGoalStatus.COMPLETED);
+        assertThat(goal.getActualSaved()).isEqualTo(30_000L);
+    }
+
+    @Test
+    @DisplayName("유지 중 목표를 완수할 때 요청한 확정 절감액을 사용한다")
+    void changeStatus_ActiveToCompleted_UsesConfirmedActualSaved() {
+        MonthlyGoal goal = activeGoal();
+
+        goal.changeStatus(MonthlyGoalStatus.COMPLETED, 32_000L);
+
+        assertThat(goal.getActualSaved()).isEqualTo(32_000L);
+    }
+
+    @Test
+    @DisplayName("완수 목표는 다른 상태로 변경할 수 없다")
+    void changeStatus_CompletedToStopped_ThrowsBusinessException() {
+        MonthlyGoal goal = activeGoal();
+        goal.changeStatus(MonthlyGoalStatus.COMPLETED, null);
+
+        assertThatThrownBy(() -> goal.changeStatus(MonthlyGoalStatus.STOPPED, null))
+                .isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).getErrorCode())
+                .isEqualTo(MonthlyGoalErrorCode.INVALID_STATUS_TRANSITION);
+    }
+
+    @Test
+    @DisplayName("중단 처리에는 확정 절감액을 입력할 수 없다")
+    void changeStatus_ActiveToStoppedWithActualSaved_ThrowsBusinessException() {
+        MonthlyGoal goal = activeGoal();
+
+        assertThatThrownBy(() -> goal.changeStatus(MonthlyGoalStatus.STOPPED, 10_000L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).getErrorCode())
+                .isEqualTo(MonthlyGoalErrorCode.INVALID_ACTUAL_SAVED);
+    }
+
+    private MonthlyGoal activeGoal() {
+        return MonthlyGoal.create(
+                1L,
+                LocalDate.of(2026, 8, 1),
+                "식비 줄이기",
+                "식음료",
+                new BigDecimal("0.3"),
+                100_000L,
+                30_000L);
+    }
 }

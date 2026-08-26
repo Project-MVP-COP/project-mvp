@@ -8,5 +8,9 @@ import cop.kbds.agilemvp.monthlygoal.service.MonthlyGoalStatus;
 public interface MonthlyGoalRepository {
     List<MonthlyGoal> findAllByUserId(Long userId, MonthlyGoalStatus status);
 
+    MonthlyGoal findByIdAndUserIdForUpdate(Long id, Long userId);
+
     MonthlyGoal saveOrReplace(MonthlyGoal goal);
+
+    MonthlyGoal updateStatus(MonthlyGoal goal);
 }

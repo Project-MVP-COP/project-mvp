@@ -23,6 +23,7 @@ import cop.kbds.agilemvp.insight.exception.InsightErrorCode;
 import cop.kbds.agilemvp.insight.service.InsightCommand;
 import cop.kbds.agilemvp.insight.service.InsightCommand.InsightTransaction;
 import cop.kbds.agilemvp.insight.service.InsightResult;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.AccessDeniedException;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
@@ -135,7 +136,15 @@ class BedrockInsightGeneratorTest {
     @DisplayName("Bedrock 권한 오류는 503 오류로 변환한다")
     void generate_AccessDenied_ThrowsServiceUnavailable() {
         given(bedrockRuntimeClient.converse(any(ConverseRequest.class)))
-                .willThrow(AccessDeniedException.builder().message("denied").build());
+                .willThrow(AccessDeniedException.builder()
+                        .message("denied")
+                        .statusCode(403)
+                        .requestId("bedrock-request-id")
+                        .awsErrorDetails(AwsErrorDetails.builder()
+                                .errorCode("AccessDeniedException")
+                                .serviceName("Bedrock Runtime")
+                                .build())
+                        .build());
 
         assertThatThrownBy(() -> generator.generate(command()))
                 .isInstanceOfSatisfying(BusinessException.class,

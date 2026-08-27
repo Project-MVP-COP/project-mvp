@@ -28,9 +28,12 @@ fi
 echo "> 새 앱을 실행합니다."
 cd $WORK_DIR
 nohup java -Xmx512m \
-  -DDB_URL=$DB_URL \
-  -DDB_USERNAME=$DB_USERNAME \
-  -DDB_PASSWORD=$DB_PASSWORD \
+  -DDB_URL="$DB_URL" \
+  -DDB_USERNAME="$DB_USERNAME" \
+  -DDB_PASSWORD="$DB_PASSWORD" \
+  -Dbedrock.enabled="${BEDROCK_ENABLED:-false}" \
+  -Dbedrock.region="${BEDROCK_REGION:-ap-northeast-2}" \
+  -Dbedrock.model-id="${BEDROCK_MODEL_ID:-}" \
   -jar app.jar \
   --spring.profiles.active=prod \
   > app.log 2>&1 &

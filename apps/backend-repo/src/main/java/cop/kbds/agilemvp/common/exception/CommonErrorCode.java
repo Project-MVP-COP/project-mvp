@@ -19,7 +19,8 @@ public enum CommonErrorCode implements ErrorCode {
     INVALID_TYPE_VALUE(HttpStatus.BAD_REQUEST, "COM005", "잘못된 타입의 값이 입력되었습니다."),
     HTTP_MESSAGE_NOT_READABLE(HttpStatus.BAD_REQUEST, "COM006", "읽을 수 없는 요청 메시지입니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "COM007", "잘못된 입력값입니다."),
-    FORBIDDEN(HttpStatus.FORBIDDEN, "COM008", "해당 리소스에 대한 권한이 없습니다.");
+    FORBIDDEN(HttpStatus.FORBIDDEN, "COM008", "해당 리소스에 대한 권한이 없습니다."),
+    UPLOAD_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "COM009", "업로드 파일은 최대 10MB까지 가능합니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

@@ -17,6 +17,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -118,6 +119,18 @@ public class GlobalExceptionHandler {
             NoResourceFoundException e, HttpServletRequest request) {
         log.warn("NoResourceFoundException: {}", e.getMessage(), e);
         ErrorCode errorCode = CommonErrorCode.ENTITY_NOT_FOUND;
+        ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
+    }
+
+    /**
+     * multipart 파일 또는 요청 크기가 설정된 제한을 초과한 경우 (413)
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    protected ResponseEntity<ProblemDetail> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException e, HttpServletRequest request) {
+        log.warn("MaxUploadSizeExceededException: {}", e.getMessage());
+        ErrorCode errorCode = CommonErrorCode.UPLOAD_SIZE_EXCEEDED;
         ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
     }

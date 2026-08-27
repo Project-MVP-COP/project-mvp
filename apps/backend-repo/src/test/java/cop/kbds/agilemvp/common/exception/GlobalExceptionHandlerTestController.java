@@ -3,6 +3,7 @@ package cop.kbds.agilemvp.common.exception;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestController
 class GlobalExceptionHandlerTestController {
@@ -28,6 +29,11 @@ class GlobalExceptionHandlerTestController {
     @GetMapping("/test/runtime-exception")
     public void runtimeException() {
         throw new RuntimeException("Sensitive system information");
+    }
+
+    @GetMapping("/test/max-upload-size")
+    public void maxUploadSize() {
+        throw new MaxUploadSizeExceededException(10L * 1024 * 1024);
     }
 
     @jakarta.validation.Valid

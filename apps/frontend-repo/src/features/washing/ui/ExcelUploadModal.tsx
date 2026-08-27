@@ -9,11 +9,16 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { Dropzone, MS_EXCEL_MIME_TYPE } from "@mantine/dropzone";
+import { Dropzone } from "@mantine/dropzone";
 import { IconFileSpreadsheet, IconUpload, IconX } from "@tabler/icons-react";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { bulkAddTransactions, uploadExcel } from "@/features/washing/api/mutations";
+import {
+  EXCEL_UPLOAD_ACCEPT,
+  MAX_EXCEL_FILE_SIZE,
+  getExcelUploadErrorMessage,
+} from "@/features/washing/model/excelUpload";
 import { washingKeys } from "@/features/washing/api/queries";
 import { formatAmount } from "@/features/washing/model/core";
 import type { TransactionDto } from "@/features/washing/model/types";
@@ -33,7 +38,7 @@ export function ExcelUploadModal({ opened, onClose, onSuccess }: ExcelUploadModa
   const parseMutation = useMutation({
     mutationFn: (f: File) => uploadExcel(f),
     onSuccess: (data) => setPreview(data),
-    onError: () => toast.error("엑셀 파싱에 실패했습니다."),
+    onError: (error) => toast.error(getExcelUploadErrorMessage(error)),
   });
 
   const saveMutation = useMutation({
@@ -88,8 +93,18 @@ export function ExcelUploadModal({ opened, onClose, onSuccess }: ExcelUploadModa
 
         <Dropzone
           onDrop={handleDrop}
-          onReject={() => toast.error(".xls 또는 .xlsx 파일만 업로드할 수 있습니다.")}
-          accept={MS_EXCEL_MIME_TYPE}
+          onReject={(rejections) => {
+            const isTooLarge = rejections.some((rejection) =>
+              rejection.errors.some((error) => error.code === "file-too-large"),
+            );
+            toast.error(
+              isTooLarge
+                ? "엑셀 파일은 최대 10MB까지 업로드할 수 있습니다."
+                : ".xls 또는 .xlsx 파일만 업로드할 수 있습니다.",
+            );
+          }}
+          accept={EXCEL_UPLOAD_ACCEPT}
+          maxSize={MAX_EXCEL_FILE_SIZE}
           maxFiles={1}
           loading={parseMutation.isPending}
         >

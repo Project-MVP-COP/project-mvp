@@ -50,7 +50,7 @@ export const uploadExcel = async (file: File): Promise<TransactionDto[]> => {
   const formData = new FormData();
   formData.append("file", file);
   const { data } = await api.post("/api/excel/upload", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 60_000,
   });
   return TransactionDtoListSchema.parse(data);
 };

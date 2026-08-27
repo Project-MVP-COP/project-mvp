@@ -64,6 +64,16 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("업로드 용량 초과 시 413과 허용 용량 안내를 반환한다")
+    void handleMaxUploadSizeExceededException() throws Exception {
+        mockMvc.perform(get("/test/max-upload-size"))
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(jsonPath("$.type").value("urn:cop:kbds:agilemvp:error:COM009"))
+                .andExpect(jsonPath("$.title").value("UPLOAD_SIZE_EXCEEDED"))
+                .andExpect(jsonPath("$.detail").value("업로드 파일은 최대 10MB까지 가능합니다."));
+    }
+
+    @Test
     @DisplayName("Validation 에러 발생 시 errors 필드 포함 확인")
     void handleValidationException() throws Exception {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/test/validation")

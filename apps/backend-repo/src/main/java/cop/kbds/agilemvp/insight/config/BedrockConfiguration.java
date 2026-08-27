@@ -10,11 +10,13 @@ import org.springframework.context.annotation.Configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
+@Slf4j
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(BedrockProperties.class)
 public class BedrockConfiguration {
@@ -32,6 +34,8 @@ public class BedrockConfiguration {
         validate(properties);
 
         Duration timeout = properties.apiCallTimeout();
+        log.info("Configuring Bedrock runtime: region={}, modelId={}, attemptTimeoutMs={}",
+                properties.region(), properties.modelId(), timeout.toMillis());
         ClientOverrideConfiguration overrideConfiguration = ClientOverrideConfiguration.builder()
                 .apiCallAttemptTimeout(timeout)
                 .apiCallTimeout(timeout.plusSeconds(5))

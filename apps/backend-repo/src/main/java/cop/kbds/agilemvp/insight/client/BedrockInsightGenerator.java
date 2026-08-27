@@ -56,6 +56,11 @@ public class BedrockInsightGenerator implements InsightGenerator {
 
     @Override
     public InsightResult generate(InsightCommand command) {
+        long startedAt = System.nanoTime();
+        int transactionCount = command.transactions() == null ? 0 : command.transactions().size();
+        log.info("Bedrock insight generation started: region={}, modelId={}, period={}, categoryId={}, transactionCount={}",
+                properties.region(), properties.modelId(), command.period(), command.categoryId(), transactionCount);
+
         try {
             ConverseResponse response = bedrockRuntimeClient.converse(createRequest(command));
             GeneratedInsight generatedInsight = parse(extractText(response));
@@ -65,19 +70,48 @@ public class BedrockInsightGenerator implements InsightGenerator {
                     .map(card -> new InsightCard(card.title().trim(), card.description().trim()))
                     .toList();
 
-            return new InsightResult(
+            InsightResult result = new InsightResult(
                     generatedInsight.summary().trim(),
                     cards,
                     OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+            log.info("Bedrock insight generation completed: modelId={}, cardCount={}, durationMs={}",
+                    properties.modelId(), cards.size(), elapsedMillis(startedAt));
+            return result;
         } catch (BusinessException e) {
+            log.warn("Bedrock insight response rejected: modelId={}, errorCode={}, durationMs={}",
+                    properties.modelId(), e.getErrorCode().getCode(), elapsedMillis(startedAt));
             throw e;
-        } catch (ModelTimeoutException | ApiCallTimeoutException e) {
-            log.warn("Bedrock insight generation timed out: {}", e.getMessage());
+        } catch (ModelTimeoutException e) {
+            log.warn("Bedrock model timed out: modelId={}, statusCode={}, requestId={}, awsErrorCode={}, durationMs={}",
+                    properties.modelId(), e.statusCode(), e.requestId(), awsErrorCode(e), elapsedMillis(startedAt));
             throw new BusinessException(InsightErrorCode.GENERATION_TIMEOUT);
-        } catch (BedrockRuntimeException | SdkClientException e) {
-            log.warn("Bedrock insight generation failed: {}", e.getMessage());
+        } catch (ApiCallTimeoutException e) {
+            log.warn("Bedrock client timed out: modelId={}, exceptionType={}, durationMs={}",
+                    properties.modelId(), e.getClass().getSimpleName(), elapsedMillis(startedAt));
+            throw new BusinessException(InsightErrorCode.GENERATION_TIMEOUT);
+        } catch (BedrockRuntimeException e) {
+            log.warn("Bedrock service call failed: modelId={}, statusCode={}, requestId={}, awsErrorCode={}, "
+                            + "awsServiceName={}, durationMs={}",
+                    properties.modelId(), e.statusCode(), e.requestId(), awsErrorCode(e), awsServiceName(e),
+                    elapsedMillis(startedAt));
+            throw new BusinessException(InsightErrorCode.SERVICE_UNAVAILABLE);
+        } catch (SdkClientException e) {
+            log.warn("Bedrock client call failed: modelId={}, exceptionType={}, durationMs={}",
+                    properties.modelId(), e.getClass().getSimpleName(), elapsedMillis(startedAt));
             throw new BusinessException(InsightErrorCode.SERVICE_UNAVAILABLE);
         }
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return (System.nanoTime() - startedAt) / 1_000_000;
+    }
+
+    private String awsErrorCode(BedrockRuntimeException exception) {
+        return exception.awsErrorDetails() == null ? null : exception.awsErrorDetails().errorCode();
+    }
+
+    private String awsServiceName(BedrockRuntimeException exception) {
+        return exception.awsErrorDetails() == null ? null : exception.awsErrorDetails().serviceName();
     }
 
     private ConverseRequest createRequest(InsightCommand command) {

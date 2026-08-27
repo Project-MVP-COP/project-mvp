@@ -6,6 +6,7 @@ import cop.kbds.agilemvp.user.service.User;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/excel")
 @RequiredArgsConstructor
+@Slf4j
 public class ExcelController {
 
     private final ExcelService excelService;
@@ -44,7 +46,23 @@ public class ExcelController {
     @ResponseStatus(HttpStatus.OK)
     public List<TransactionDto> uploadExcel(@RequestPart("file") MultipartFile file,
                                             @AuthenticationPrincipal User currentUser) {
-        return excelService.parseUpload(file, currentUser.getId());
+        long startedAt = System.nanoTime();
+        log.info("Excel upload started: userId={}, sizeBytes={}, contentType={}",
+                currentUser.getId(), file.getSize(), file.getContentType());
+        try {
+            List<TransactionDto> transactions = excelService.parseUpload(file, currentUser.getId());
+            log.info("Excel upload parsed: userId={}, rows={}, durationMs={}",
+                    currentUser.getId(), transactions.size(), elapsedMillis(startedAt));
+            return transactions;
+        } catch (RuntimeException e) {
+            log.warn("Excel upload failed: userId={}, sizeBytes={}, durationMs={}, exception={}",
+                    currentUser.getId(), file.getSize(), elapsedMillis(startedAt), e.getClass().getSimpleName());
+            throw e;
+        }
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return (System.nanoTime() - startedAt) / 1_000_000;
     }
 
     private void setExcelHeaders(HttpServletResponse response, String filename) {

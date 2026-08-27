@@ -26,6 +26,7 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -107,6 +108,30 @@ class RuleServiceIntegrationTest {
                 .orElseThrow();
         assertThat(starbucks.recommendedCategoryName()).isEqualTo("식음료");
         assertThat(starbucks.recommendedCategoryId()).isEqualTo(foodId);
+    }
+
+    @Test
+    @DisplayName("가맹점 괄호 접미사를 정규화하고 편의점과 로컬푸드 카테고리를 추천한다")
+    void findUnclassifiedPatterns_NormalizesMerchantAndRecommendsQaCategories() {
+        Long userId = createUser("pattern-qa-user", "패턴QA유저");
+        Long convenienceStoreId = categoryId("편의점");
+        Long shoppingId = categoryId("쇼핑");
+        insertTransaction(userId, "2026-08-01", "세븐일레븐 강남점", null, 3200L, null, false);
+        insertTransaction(userId, "2026-08-02", "세븐일레븐 선릉점", null, 4100L, null, false);
+        insertTransaction(userId, "2026-08-03", "원당농협로컬푸드직매장", null, 18000L, null, false);
+        insertTransaction(userId, "2026-08-04", "원당농협로컬푸드직매장", null, 23000L, null, false);
+        insertTransaction(userId, "2026-08-05", "쿠팡(쿠페이 일시불", null, 29000L, null, false);
+        insertTransaction(userId, "2026-08-06", "쿠팡(쿠페이)", null, 15000L, null, false);
+
+        Map<String, RulePattern> patternsByKeyword = ruleService.findUnclassifiedPatterns(userId).stream()
+                .collect(Collectors.toMap(RulePattern::keyword, pattern -> pattern));
+
+        assertThat(patternsByKeyword.get("세븐일레븐").recommendedCategoryName()).isEqualTo("편의점");
+        assertThat(patternsByKeyword.get("세븐일레븐").recommendedCategoryId()).isEqualTo(convenienceStoreId);
+        assertThat(patternsByKeyword.get("원당농협로컬푸드직매장").recommendedCategoryName()).isEqualTo("쇼핑");
+        assertThat(patternsByKeyword.get("원당농협로컬푸드직매장").recommendedCategoryId()).isEqualTo(shoppingId);
+        assertThat(patternsByKeyword.get("쿠팡").recommendedCategoryName()).isEqualTo("쇼핑");
+        assertThat(patternsByKeyword.get("쿠팡").recommendedCategoryId()).isEqualTo(shoppingId);
     }
 
     @Test

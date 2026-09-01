@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -131,6 +132,18 @@ public class GlobalExceptionHandler {
             MaxUploadSizeExceededException e, HttpServletRequest request) {
         log.warn("MaxUploadSizeExceededException: {}", e.getMessage());
         ErrorCode errorCode = CommonErrorCode.UPLOAD_SIZE_EXCEEDED;
+        ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
+    }
+
+    /**
+     * 엔드포인트가 지원하지 않는 Content-Type으로 요청한 경우 (415)
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    protected ResponseEntity<ProblemDetail> handleHttpMediaTypeNotSupportedException(
+            HttpMediaTypeNotSupportedException e, HttpServletRequest request) {
+        log.warn("HttpMediaTypeNotSupportedException: {}", e.getMessage());
+        ErrorCode errorCode = CommonErrorCode.UNSUPPORTED_MEDIA_TYPE;
         ProblemDetail problemDetail = createProblemDetail(errorCode, errorCode.getMessage(), request);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problemDetail);
     }

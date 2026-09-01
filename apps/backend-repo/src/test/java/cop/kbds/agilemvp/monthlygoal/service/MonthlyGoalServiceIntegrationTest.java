@@ -252,9 +252,16 @@ class MonthlyGoalServiceIntegrationTest {
                 new BigDecimal("0.4"), 100_000L, 40_000L);
 
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM monthly_goals WHERE goal_month = CAST(? AS DATE)",
+                """
+                SELECT COUNT(*)
+                FROM monthly_goals
+                WHERE goal_month = CAST(? AS DATE)
+                  AND user_id IN (?, ?)
+                """,
                 Integer.class,
-                "2026-08-01");
+                "2026-08-01",
+                firstUserId,
+                secondUserId);
 
         assertThat(count).isEqualTo(2);
         assertThat(first.getId()).isNotEqualTo(second.getId());

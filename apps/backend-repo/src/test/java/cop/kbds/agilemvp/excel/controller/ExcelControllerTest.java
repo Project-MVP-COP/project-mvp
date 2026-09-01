@@ -4,8 +4,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -87,6 +89,20 @@ class ExcelControllerTest {
                 .andExpect(jsonPath("$.title").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.detail").value("지원하지 않는 엑셀 형식입니다."))
                 .andExpect(jsonPath("$.traceId").exists());
+    }
+
+    @Test
+    @DisplayName("JSON으로 잘못 전송된 엑셀 업로드 요청은 415를 반환한다")
+    void uploadExcel_JsonContentType_ReturnsUnsupportedMediaType() throws Exception {
+        mockMvc.perform(post("/api/excel/upload")
+                        .with(authentication(authenticatedUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"file\":{}}"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.title").value("UNSUPPORTED_MEDIA_TYPE"))
+                .andExpect(jsonPath("$.detail").value("지원하지 않는 요청 형식입니다."));
+
+        verifyNoInteractions(excelService);
     }
 
     @Test

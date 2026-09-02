@@ -34,6 +34,23 @@ export const InsightResponseSchema = z.object({
   generatedAt: z.string(),
 });
 
+export const MonthlyGoalSchema = z.object({
+  id: z.number(),
+  month: z.string(),
+  title: z.string(),
+  targetCategory: z.string(),
+  reductionRatio: z.number(),
+  baselineAmount: z.number(),
+  targetAmount: z.number(),
+  monthlySave: z.number(),
+  status: z.enum(["active", "completed", "stopped"]),
+  actualSaved: z.number().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const MonthlyGoalListSchema = z.array(MonthlyGoalSchema);
+
 export const TransactionDtoSchema = z.object({
   id: z.number(),
   userId: z.number(),

@@ -2,6 +2,21 @@ import { delay, http, HttpResponse } from "msw";
 import { db, dbLedger, dbRuleEngine, dbUser, dbWashing } from "./db";
 
 const IS_TEST = import.meta.env.MODE === "test";
+let monthlyGoals: Array<{
+  id: number;
+  month: string;
+  title: string;
+  targetCategory: string;
+  reductionRatio: number;
+  baselineAmount: number;
+  targetAmount: number;
+  monthlySave: number;
+  status: "active" | "completed" | "stopped";
+  actualSaved: number | null;
+  createdAt: string;
+  updatedAt: string;
+}> = [];
+let nextMonthlyGoalId = 1;
 
 export const handlers = [
   http.get("/api/sample", async () => {
@@ -229,6 +244,55 @@ export const handlers = [
   http.get("/api/categories", async () => {
     if (!IS_TEST) await delay();
     return HttpResponse.json(dbLedger.getCategories());
+  }),
+
+  http.get("/api/monthly-goals", async () => {
+    if (!IS_TEST) await delay();
+    return HttpResponse.json(monthlyGoals);
+  }),
+
+  http.put("/api/monthly-goals/:month", async ({ params, request }) => {
+    if (!IS_TEST) await delay();
+    const body = (await request.json()) as {
+      title: string;
+      targetCategory: string;
+      reductionRatio: number;
+      baselineAmount: number;
+      monthlySave: number;
+    };
+    const month = String(params.month);
+    const now = new Date().toISOString();
+    const goal = {
+      id: monthlyGoals.find((item) => item.month === month)?.id ?? nextMonthlyGoalId++,
+      month,
+      ...body,
+      targetAmount: body.baselineAmount - body.monthlySave,
+      status: "active" as const,
+      actualSaved: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    monthlyGoals = [...monthlyGoals.filter((item) => item.month !== month), goal];
+    return HttpResponse.json(goal);
+  }),
+
+  http.patch("/api/monthly-goals/:id/status", async ({ params, request }) => {
+    if (!IS_TEST) await delay();
+    const body = (await request.json()) as {
+      status: "active" | "completed" | "stopped";
+      actualSaved?: number;
+    };
+    const id = Number(params.id);
+    const current = monthlyGoals.find((goal) => goal.id === id);
+    if (!current) return new HttpResponse(null, { status: 404 });
+    const updated = {
+      ...current,
+      status: body.status,
+      actualSaved: body.status === "completed" ? body.actualSaved ?? current.monthlySave : null,
+      updatedAt: new Date().toISOString(),
+    };
+    monthlyGoals = monthlyGoals.map((goal) => (goal.id === id ? updated : goal));
+    return HttpResponse.json(updated);
   }),
 
   http.post("/api/insights", async ({ request }) => {

@@ -6,6 +6,7 @@ import {
   InsightRequestSchema,
   InsightResponseSchema,
   InsightTransactionSchema,
+  MonthlyGoalSchema,
   TransactionDtoSchema,
 } from "@/features/ai-insights/model/schemas";
 
@@ -22,16 +23,16 @@ export interface InsightFilters {
   categoryId: number | null;
 }
 
-export interface MonthlyGoal {
+export type MonthlyGoal = z.infer<typeof MonthlyGoalSchema>;
+
+export type MonthlyGoalUpsertRequest = Pick<
+  MonthlyGoal,
+  "title" | "targetCategory" | "reductionRatio" | "baselineAmount" | "monthlySave"
+>;
+
+export interface MonthlyGoalDraft extends MonthlyGoalUpsertRequest {
   id: string;
   month: string;
-  title: string;
-  targetCategory: string;
-  reductionRatio: number;
-  baselineAmount: number;
   targetAmount: number;
-  monthlySave: number;
-  status: "active" | "completed" | "stopped";
-  savedAtLabel: string;
-  actualSaved: number | null;
+  status: "active";
 }

@@ -148,7 +148,7 @@ export const buildRecommendedGoals = (
   });
 };
 
-export const seedMonthlyGoals = (): MonthlyGoal[] => [
+export const seedMonthlyGoals = () => [
   {
     id: "goal-2026-04",
     month: "2026-04",

@@ -28,7 +28,11 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useSuspenseQueries } from "@tanstack/react-query";
-import { generateInsight } from "@/features/ai-insights/api/fetchers";
+import {
+  generateInsightWithMonthlyGoals,
+  updateMonthlyGoalStatus,
+  upsertMonthlyGoal,
+} from "@/features/ai-insights/api/fetchers";
 import { aiInsightQueries } from "@/features/ai-insights/api/queries";
 import {
   buildDataSignature,
@@ -43,37 +47,20 @@ import {
   getPeriodLabel,
   getLatestTransactionMonth,
   isTransactionClassified,
-  seedMonthlyGoals,
 } from "@/features/ai-insights/model/core";
 import type {
   InsightFilters,
   InsightResponse,
   MonthlyGoal,
+  MonthlyGoalDraft,
 } from "@/features/ai-insights/model/types";
 import { toast } from "@/shared/ui/toast";
-
-const goalStorageKey = "card-horizon-ai-insight-goals";
 
 const periodOptions = [
   { value: "ALL", label: "전체 기간" },
   { value: "LAST_1_MONTH", label: "최근 1개월" },
   { value: "LAST_3_MONTHS", label: "최근 3개월" },
 ];
-
-const readGoals = () => {
-  const storedValue = window.localStorage.getItem(goalStorageKey);
-  if (!storedValue) return seedMonthlyGoals();
-
-  try {
-    return JSON.parse(storedValue) as MonthlyGoal[];
-  } catch {
-    return seedMonthlyGoals();
-  }
-};
-
-const writeGoals = (goals: MonthlyGoal[]) => {
-  window.localStorage.setItem(goalStorageKey, JSON.stringify(goals));
-};
 
 export function AiInsightsPageContent() {
   const [transactionsQuery, categoriesQuery] = useSuspenseQueries({
@@ -87,7 +74,7 @@ export function AiInsightsPageContent() {
   });
   const [insight, setInsight] = useState<InsightResponse | null>(null);
   const [promptOpened, setPromptOpened] = useState(false);
-  const [goals, setGoals] = useState<MonthlyGoal[]>(readGoals);
+  const [goals, setGoals] = useState<MonthlyGoal[]>([]);
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(
     null,
   );
@@ -141,9 +128,10 @@ export function AiInsightsPageContent() {
   const chart = buildTrajectoryChart(trajectoryRows);
 
   const insightMutation = useMutation({
-    mutationFn: generateInsight,
-    onSuccess: (result) => {
+    mutationFn: generateInsightWithMonthlyGoals,
+    onSuccess: ({ insight: result, goals: monthlyGoals }) => {
       setInsight(result);
+      setGoals(monthlyGoals);
       setRequestErrorMessage(null);
       setLastSuccessSignature(currentSignature);
       toast.success("AI 인사이트를 생성했습니다.");
@@ -166,33 +154,57 @@ export function AiInsightsPageContent() {
     insightMutation.mutate(buildInsightRequest(filteredTransactions, filters));
   };
 
-  const selectGoal = (goal: MonthlyGoal) => {
-    const nextGoals = [
-      ...goals.filter((item) => item.month !== goal.month),
-      goal,
-    ].sort((a, b) => a.month.localeCompare(b.month));
-    setGoals(nextGoals);
-    writeGoals(nextGoals);
-    toast.success("이번 달 절감 목표를 저장했습니다.");
+  const selectGoal = (goal: MonthlyGoalDraft) => {
+    goalMutation.mutate({ type: "upsert", goal });
   };
 
   const updateGoalStatus = (
-    goalId: string,
+    goalId: number,
     status: MonthlyGoal["status"],
   ) => {
-    const nextGoals = goals.map((goal) =>
-      goal.id === goalId
-        ? {
-            ...goal,
-            status,
-            actualSaved:
-              status === "completed" ? goal.actualSaved ?? goal.monthlySave : null,
-          }
-        : goal,
-    );
-    setGoals(nextGoals);
-    writeGoals(nextGoals);
+    const goal = goals.find((item) => item.id === goalId);
+    if (!goal) return;
+    goalMutation.mutate({ type: "status", goal, status });
   };
+
+  const goalMutation = useMutation({
+    mutationFn: async (
+      variables:
+        | { type: "upsert"; goal: MonthlyGoalDraft }
+        | {
+            type: "status";
+            goal: MonthlyGoal;
+            status: MonthlyGoal["status"];
+          },
+    ) => {
+      if (variables.type === "upsert") {
+        const { goal } = variables;
+        return upsertMonthlyGoal(goal.month, {
+          title: goal.title,
+          targetCategory: goal.targetCategory,
+          reductionRatio: goal.reductionRatio,
+          baselineAmount: goal.baselineAmount,
+          monthlySave: goal.monthlySave,
+        });
+      }
+
+      const { goal, status } = variables;
+      return updateMonthlyGoalStatus(
+        goal.id,
+        status,
+        status === "completed" ? goal.actualSaved ?? goal.monthlySave : undefined,
+      );
+    },
+    onSuccess: (updatedGoal) => {
+      setGoals((currentGoals) =>
+        [...currentGoals.filter((goal) => goal.id !== updatedGoal.id && goal.month !== updatedGoal.month), updatedGoal]
+          .sort((a, b) => a.month.localeCompare(b.month)),
+      );
+    },
+    onError: () => {
+      toast.error("목표 정보를 저장하지 못했습니다. 다시 시도해주세요.");
+    },
+  });
 
   return (
     <Container size="xl">
@@ -597,7 +609,9 @@ export function AiInsightsPageContent() {
                 </Group>
                 <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
                   {recommendedGoals.map((goal) => {
-                    const isSelectedGoal = currentMonthGoal?.id === goal.id;
+                    const isSelectedGoal =
+                      currentMonthGoal?.month === goal.month &&
+                      currentMonthGoal.title === goal.title;
 
                     return (
                       <Paper key={goal.id} withBorder p="md" radius="md">

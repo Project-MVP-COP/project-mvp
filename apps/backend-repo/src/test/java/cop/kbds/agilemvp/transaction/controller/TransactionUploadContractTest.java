@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
@@ -72,6 +73,49 @@ class TransactionUploadContractTest {
         assertThat(saved.getValue().getFirst().getTransactionDate()).isEqualTo("2026-04-01");
         assertThat(saved.getValue().getFirst().getAmount()).isEqualTo(1000L);
         assertThat(saved.getValue().stream().filter(row -> "취소".equals(row.getStatus())).count()).isEqualTo(1);
+    }
+
+    @Test
+    void writablePayloadDefaultsInternalFlagsAndTracksExplicitTag() throws Exception {
+        var user = new User(1L, "tester", "테스터", "hash", "active", null, null, null);
+        var auth = new UsernamePasswordAuthenticationToken(user, null, List.of());
+        given(transactionService.addBulk(anyList(), eq(1L)))
+                .willAnswer(invocation -> new BulkUploadResult(invocation.getArgument(0), 0));
+        String input = """
+                [{"transactionDate":"2026-04-01","merchant":"합성 가맹점","amount":1000,
+                  "cardName":"신한카드","installment":1,"status":"승인","tag":null}]
+                """;
+        mockMvc.perform(post("/api/transactions/bulk").with(authentication(auth))
+                        .contentType(MediaType.APPLICATION_JSON).content(input))
+                .andExpect(status().isCreated());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<TransactionDto>> saved = ArgumentCaptor.forClass(List.class);
+        verify(transactionService).addBulk(saved.capture(), eq(1L));
+        var transaction = saved.getValue().getFirst();
+        assertThat(transaction.isPersisted()).isFalse();
+        assertThat(transaction.isTagSpecified()).isTrue();
+        assertThat(transaction.getAppliedRuleId()).isNull();
+        assertThat(transaction.getFoundation().spendingEligible()).isFalse();
+    }
+
+    @Test
+    void editingWithoutTagKeepsTagUnspecifiedAndIgnoresClientSemantics() throws Exception {
+        var user = new User(1L, "tester", "테스터", "hash", "active", null, null, null);
+        var auth = new UsernamePasswordAuthenticationToken(user, null, List.of());
+        mockMvc.perform(put("/api/transactions/1").with(authentication(auth))
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"transactionDate":"2026-04-01","merchant":"합성 가맹점","amount":1000,
+                                 "cardName":"신한카드","installment":1,"status":"승인",
+                                 "persisted":true,"appliedRuleId":99,"tagSpecified":true,
+                                 "foundation":{"spendingEligible":true}}
+                                """))
+                .andExpect(status().isOk());
+        var saved = ArgumentCaptor.forClass(TransactionDto.class);
+        verify(transactionService).update(eq(1L), saved.capture(), eq(1L));
+        assertThat(saved.getValue().isTagSpecified()).isFalse();
+        assertThat(saved.getValue().isPersisted()).isFalse();
+        assertThat(saved.getValue().getAppliedRuleId()).isNull();
+        assertThat(saved.getValue().getFoundation().spendingEligible()).isFalse();
     }
 
     private byte[] syntheticWorkbook() throws Exception {

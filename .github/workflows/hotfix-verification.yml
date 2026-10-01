@@ -15,4 +15,8 @@ jobs:
           cache-dependency-path: apps/backend-repo/*.gradle*
       - name: Backend regression tests
         working-directory: apps/backend-repo
-        run: bash gradlew test
+        run: |
+          if ! bash gradlew test; then
+            cat build/test-results/test/TEST-cop.kbds.agilemvp.transaction.controller.TransactionUploadContractTest.xml
+            exit 1
+          fi

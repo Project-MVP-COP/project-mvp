@@ -45,6 +45,8 @@ cd apps/backend-repo
 
 본 문서는 Project-MVP-COP(Agile MVP) 프로젝트의 주요 아키텍처 결정 사항을 기록합니다. 각 ADR은 **맥락(Context)**, **결정(Decision)**, **결과(Consequences)**, **재검토 시점(When to Revisit)**을 포함하며, 신규 팀원 온보딩 및 향후 기술 부채 상환 시점의 지표로 활용됩니다.
 
+> 💡 **프로젝트 완료 후 아키텍처 회고**: 초기 ADR들이 프로젝트 완료 시점(MOTIFIN Core Cycle)까지 어떻게 지켜졌고 어떤 스노우볼링을 만들었는지에 대한 전체 리뷰는 **[아키텍처 회고록 (Architecture Retrospective)](./docs/architecture-retrospective.md)**에서 확인할 수 있습니다.
+
 ### 🌐 1. 공통 (Common) 아키텍처 결정 사항
 
 #### ADR-C01: 리소스 수정 규약 – PUT(전체 교체) 우선 전략
